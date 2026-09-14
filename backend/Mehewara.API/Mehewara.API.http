@@ -1,0 +1,6 @@
+@Mehewara.API_HostAddress = http://localhost:5194
+
+GET {{Mehewara.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
