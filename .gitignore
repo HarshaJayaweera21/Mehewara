@@ -1,0 +1,429 @@
+# ============================================================
+# Mehewara - Root .gitignore
+# Polyglot Monorepo:
+# - Backend: ASP.NET Core 8 (.NET)
+# - AI Service: FastAPI / Python 3.12 / uv
+# - Web: React 19 / Vite / TypeScript
+# - Mobile: Flutter / Dart (Android, iOS, Desktop, Web)
+# - Infrastructure: Docker / CI Workflows
+# ============================================================
+
+
+# ============================================================
+# ENVIRONMENT / SECRETS / CREDENTIALS
+# ============================================================
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.template
+!.env.sample
+
+*.env
+*.env.local
+*.env.development
+*.env.production
+*.env.test
+
+# Docker environment overrides
+docker/.env
+docker/**/.env
+
+# Certificates, keys, and credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+secrets/
+credentials/
+service-account*.json
+
+# Mobile Keystore / Signing
+key.properties
+**/key.properties
+*.keystore
+*.jks
+
+
+# ============================================================
+# OPERATING SYSTEM SPECIFIC
+# ============================================================
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+
+# ============================================================
+# EDITORS AND IDES
+# ============================================================
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Visual Studio (C# / .NET / C++)
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.sln.docstates
+x64/
+x86/
+
+# JetBrains / Android Studio / IntelliJ / PyCharm / Rider
+.idea/
+*.iml
+*.ipr
+*.iws
+
+
+# ============================================================
+# GENERAL LOGS, CACHES & TEMPORARY FILES
+# ============================================================
+
+*.log
+logs/
+*.tmp
+*.temp
+*.cache
+*.bak
+*.old
+*.swp
+*.swo
+*.orig
+*.rej
+
+temp/
+tmp/
+scratch/
+
+# Coverage
+coverage/
+**/coverage/
+coverage.html
+.nyc_output/
+
+
+# ============================================================
+# ASP.NET CORE / .NET 8
+# ============================================================
+
+# Build outputs
+**/bin/
+**/obj/
+
+# Generated assemblies and symbols
+*.dll
+*.exe
+*.pdb
+*.mdb
+
+# User-specific project settings
+*.rsuser
+
+# Test outputs
+TestResults/
+*.trx
+*.coverage
+
+# NuGet packages & caches
+*.nupkg
+*.snupkg
+packages/
+
+# Roslyn / MSBuild
+*.GeneratedMSBuildEditorConfig.editorconfig
+
+# Local configuration overrides
+appsettings*.local.json
+
+
+# ============================================================
+# PYTHON / FASTAPI / UV (AI SERVICE)
+# ============================================================
+
+# Python bytecode & cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+**/.venv/
+venv/
+**/venv/
+env/
+ENV/
+
+# Python packaging and distributions
+build/
+dist/
+wheels/
+*.egg-info/
+.eggs/
+
+# Testing & Type checking / Linting
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IMPORTANT:
+# Keep uv.lock committed for reproducible builds.
+# Do NOT ignore uv.lock.
+
+
+# ============================================================
+# REACT / VITE / NODE / TYPESCRIPT (WEB)
+# ============================================================
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+dist-ssr/
+
+# Vite & bundler caches
+.vite/
+**/.vite/
+.parcel-cache/
+.cache/
+
+# Package managers
+.npm/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Yarn Berry
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.yarnrc.yml
+
+# TypeScript build info & lint caches
+*.tsbuildinfo
+.eslintcache
+
+
+# ============================================================
+# FLUTTER / DART (MOBILE APP)
+# ============================================================
+
+# Flutter & Dart tooling
+.dart_tool/
+**/.dart_tool/
+.pub/
+**/.pub/
+.pub-cache/
+**/.pub-cache/
+
+# Flutter generated files
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.widget_preview/
+
+# Generated Flutter plugin registrants
+**/GeneratedPluginRegistrant.*
+**/generated_plugin_registrant.*
+
+# Symbolication & Obfuscation
+app.*.symbols
+app.*.map.json
+
+
+# ============================================================
+# ANDROID (FLUTTER / NATIVE)
+# ============================================================
+
+# Gradle & Kotlin caches
+.gradle/
+**/.gradle/
+.kotlin/
+**/.kotlin/
+
+# Android build outputs
+**/android/app/build/
+**/android/build/
+**/android/.cxx/
+**/android/captures/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+
+# Android local properties
+**/android/local.properties
+local.properties
+
+# Gradle wrapper binary (if not committed)
+gradle-wrapper.jar
+
+# Android profiler memory dump
+*.hprof
+
+
+# ============================================================
+# IOS & MACOS (FLUTTER / NATIVE)
+# ============================================================
+
+# CocoaPods
+**/ios/Pods/
+**/macos/Pods/
+**/ios/.symlinks/
+**/macos/.symlinks/
+
+# Flutter ephemeral & build outputs
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.xcframework
+
+**/macos/Flutter/ephemeral/
+
+# Xcode user & build files
+**/DerivedData/
+**/xcuserdata/
+**/xcshareddata/WorkspaceSettings.xcsettings
+*.mode1v3
+*.mode2v3
+*.moved-aside
+*.pbxuser
+*.perspectivev3
+
+
+# ============================================================
+# WINDOWS & LINUX (FLUTTER DESKTOP)
+# ============================================================
+
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+
+
+# ============================================================
+# DOCKER
+# ============================================================
+
+# Docker local overrides
+docker-compose.override.yml
+
+
+# ============================================================
+# DATABASE / LOCAL STORAGE / MIGRATIONS
+# ============================================================
+
+# SQLite & local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Database backups & dumps
+*.dump
+*.backup
+
+# Local persistent data directories
+data/
+local-data/
+
+
+# ============================================================
+# AI SERVICE ARTIFACTS / MODELS / VECTOR STORES
+# ============================================================
+
+# Machine learning model weights and checkpoints
+models/
+checkpoints/
+*.safetensors
+*.gguf
+*.pt
+*.pth
+*.bin
+*.onnx
+
+# AI experiment tracking & metrics
+experiments/
+runs/
+wandb/
+mlruns/
+
+# Vector database indexes & embeddings
+vector_store/
+chroma/
+faiss_index/
+
+
+# ============================================================
+# UPLOADS & LOCAL USER MEDIA
+# (Rule: Ignore uploaded runtime files without ignoring source assets)
+# ============================================================
+
+uploads/*
+!uploads/.gitkeep
+**/uploads/*
+!**/uploads/.gitkeep
+
+local-uploads/*
+!local-uploads/.gitkeep
+**/local-uploads/*
+!**/local-uploads/.gitkeep
+
+downloads/*
+!downloads/.gitkeep
+**/downloads/*
+!**/downloads/.gitkeep
+
+# Exclude generated / temporary AI media outputs while preserving source repository assets
+**/ai-service/**/outputs/
+**/ai-service/**/generated_images/
