@@ -427,3 +427,7 @@ downloads/*
 # Exclude generated / temporary AI media outputs while preserving source repository assets
 **/ai-service/**/outputs/
 **/ai-service/**/generated_images/
+
+
+*.md
+*.sql
