@@ -1,11 +1,12 @@
 # ============================================================
 # Mehewara - Root .gitignore
-# Polyglot Monorepo:
-# - Backend: ASP.NET Core 8 (.NET)
-# - AI Service: FastAPI / Python 3.12 / uv
-# - Web: React 19 / Vite / TypeScript
-# - Mobile: Flutter / Dart (Android, iOS, Desktop, Web)
-# - Infrastructure: Docker / CI Workflows
+# Polyglot Monorepo
+#
+# Backend: ASP.NET Core 8 / .NET
+# AI Service: FastAPI / Python / uv
+# Web: React / Vite / TypeScript
+# Mobile: Flutter / Dart
+# Infrastructure: Docker / CI
 # ============================================================
 
 
@@ -13,7 +14,7 @@
 # ENVIRONMENT / SECRETS / CREDENTIALS
 # ============================================================
 
-# Environment variables
+# Environment variable files
 .env
 .env.*
 !.env.example
@@ -30,7 +31,7 @@
 docker/.env
 docker/**/.env
 
-# Certificates, keys, and credentials
+# Certificates, private keys, credentials
 *.pem
 *.key
 *.p12
@@ -38,19 +39,26 @@ docker/**/.env
 *.crt
 *.cer
 *.der
+
 secrets/
 credentials/
+
+# Service account credentials
 service-account*.json
 
-# Mobile Keystore / Signing
+# ============================================================
+# MOBILE SIGNING / KEYSTORE
+# ============================================================
+
 key.properties
 **/key.properties
+
 *.keystore
 *.jks
 
 
 # ============================================================
-# OPERATING SYSTEM SPECIFIC
+# OPERATING SYSTEM
 # ============================================================
 
 # Windows
@@ -77,23 +85,22 @@ $RECYCLE.BIN/
 
 
 # ============================================================
-# EDITORS AND IDES
+# EDITORS / IDEs
 # ============================================================
 
 # Visual Studio Code
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
-!.vscode/tasks.json
-!.vscode/launch.json
+# Keep the repository free from machine-specific VS Code settings.
+.vscode/
 
-# Visual Studio (C# / .NET / C++)
+# Visual Studio
 .vs/
 *.user
 *.userosscache
 *.suo
 *.userprefs
 *.sln.docstates
+
+# Native build architecture folders
 x64/
 x86/
 
@@ -105,11 +112,12 @@ x86/
 
 
 # ============================================================
-# GENERAL LOGS, CACHES & TEMPORARY FILES
+# GENERAL LOGS / CACHE / TEMPORARY FILES
 # ============================================================
 
 *.log
 logs/
+
 *.tmp
 *.temp
 *.cache
@@ -124,15 +132,26 @@ temp/
 tmp/
 scratch/
 
-# Coverage
+
+# ============================================================
+# TEST / COVERAGE
+# ============================================================
+
 coverage/
 **/coverage/
+
 coverage.html
 .nyc_output/
 
+TestResults/
+**/TestResults/
+
+*.trx
+*.coverage
+
 
 # ============================================================
-# ASP.NET CORE / .NET 8
+# ASP.NET CORE / .NET
 # ============================================================
 
 # Build outputs
@@ -148,55 +167,73 @@ coverage.html
 # User-specific project settings
 *.rsuser
 
-# Test outputs
-TestResults/
-*.trx
-*.coverage
-
-# NuGet packages & caches
+# NuGet packages
 *.nupkg
 *.snupkg
 packages/
 
-# Roslyn / MSBuild
+# Roslyn / MSBuild generated files
 *.GeneratedMSBuildEditorConfig.editorconfig
 
-# Local configuration overrides
+# Local ASP.NET configuration overrides
 appsettings*.local.json
 
 
 # ============================================================
-# PYTHON / FASTAPI / UV (AI SERVICE)
+# IMPORTANT:
+# .NET USER SECRETS
+#
+# User Secrets are stored outside the repository by .NET.
+# Do NOT create a secrets.json file inside the project.
+#
+# The UserSecretsId in the .csproj is safe to commit.
 # ============================================================
 
-# Python bytecode & cache
+
+# ============================================================
+# PYTHON / FASTAPI / UV
+# ai-service/mehewara-ai
+# ============================================================
+
+# Python bytecode
 __pycache__/
 **/__pycache__/
+
 *.py[cod]
 *$py.class
 
-# Virtual environments
+# Python virtual environments
 .venv/
 **/.venv/
+
 venv/
 **/venv/
+
 env/
 ENV/
 
-# Python packaging and distributions
-build/
-dist/
-wheels/
+# Python packaging
 *.egg-info/
 .eggs/
 
-# Testing & Type checking / Linting
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.hypothesis/
+# AI service build / distribution
+**/ai-service/mehewara-ai/build/
+**/ai-service/mehewara-ai/dist/
 
-# Coverage
+# Python caches
+.pytest_cache/
+**/.pytest_cache/
+
+.mypy_cache/
+**/.mypy_cache/
+
+.ruff_cache/
+**/.ruff_cache/
+
+.hypothesis/
+**/.hypothesis/
+
+# Python coverage
 .coverage
 .coverage.*
 htmlcov/
@@ -205,12 +242,56 @@ htmlcov/
 .ipynb_checkpoints/
 
 # IMPORTANT:
-# Keep uv.lock committed for reproducible builds.
+# uv.lock SHOULD be committed for reproducible builds.
 # Do NOT ignore uv.lock.
 
 
 # ============================================================
-# REACT / VITE / NODE / TYPESCRIPT (WEB)
+# AI SERVICE - MODELS / CHECKPOINTS / EXPERIMENTS
+# ============================================================
+
+# IMPORTANT:
+# Scope these to the AI service.
+# Do NOT use a generic "models/" rule because
+# backend/Mehewara.API/Models/ contains C# source code.
+
+**/ai-service/mehewara-ai/models/
+**/ai-service/mehewara-ai/checkpoints/
+
+# Large ML model files
+*.safetensors
+*.gguf
+*.pt
+*.pth
+*.onnx
+
+# Experiment tracking
+experiments/
+**/experiments/
+
+runs/
+**/runs/
+
+wandb/
+**/wandb/
+
+mlruns/
+**/mlruns/
+
+# Vector stores / indexes
+vector_store/
+**/vector_store/
+
+chroma/
+**/chroma/
+
+faiss_index/
+**/faiss_index/
+
+
+# ============================================================
+# REACT / VITE / NODE / TYPESCRIPT
+# web/mehewara-web
 # ============================================================
 
 # Dependencies
@@ -218,19 +299,25 @@ node_modules/
 **/node_modules/
 
 # Build outputs
-dist/
 **/dist/
-dist-ssr/
+**/dist-ssr/
 
-# Vite & bundler caches
+# Vite cache
 .vite/
 **/.vite/
-.parcel-cache/
-.cache/
 
-# Package managers
+# Other bundler caches
+.parcel-cache/
+**/.parcel-cache/
+
+.cache/
+**/.cache/
+
+# Package manager caches
 .npm/
 .pnpm-store/
+
+# npm logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -244,47 +331,53 @@ lerna-debug.log*
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
-.yarnrc.yml
 
-# TypeScript build info & lint caches
+# Keep .yarnrc.yml if it exists.
+# It may contain project configuration.
+
+# TypeScript build information
 *.tsbuildinfo
+
+# ESLint cache
 .eslintcache
 
 
 # ============================================================
-# FLUTTER / DART (MOBILE APP)
+# FLUTTER / DART
+# mobile/mehewara_mobile
 # ============================================================
 
-# Flutter & Dart tooling
+# Dart / Flutter tooling
 .dart_tool/
 **/.dart_tool/
+
 .pub/
 **/.pub/
+
 .pub-cache/
 **/.pub-cache/
 
-# Flutter generated files
+# Flutter generated configuration
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
+
 .widget_preview/
 
-# Generated Flutter plugin registrants
-**/GeneratedPluginRegistrant.*
-**/generated_plugin_registrant.*
-
-# Symbolication & Obfuscation
+# Symbolication / obfuscation outputs
 app.*.symbols
 app.*.map.json
 
 
 # ============================================================
-# ANDROID (FLUTTER / NATIVE)
+# ANDROID / GRADLE
 # ============================================================
 
-# Gradle & Kotlin caches
+# Gradle caches
 .gradle/
 **/.gradle/
+
+# Kotlin caches
 .kotlin/
 **/.kotlin/
 
@@ -293,39 +386,44 @@ app.*.map.json
 **/android/build/
 **/android/.cxx/
 **/android/captures/
+
 **/android/app/debug/
 **/android/app/profile/
 **/android/app/release/
 
-# Android local properties
+# Android local configuration
 **/android/local.properties
 local.properties
 
-# Gradle wrapper binary (if not committed)
-gradle-wrapper.jar
-
-# Android profiler memory dump
+# Android profiler dumps
 *.hprof
+
+# NOTE:
+# gradle-wrapper.jar is intentionally NOT ignored.
+# If the Flutter/Android project contains it, it should
+# normally be committed.
 
 
 # ============================================================
-# IOS & MACOS (FLUTTER / NATIVE)
+# iOS / macOS / XCODE
 # ============================================================
 
 # CocoaPods
 **/ios/Pods/
 **/macos/Pods/
-**/ios/.symlinks/
-**/macos/.symlinks/
 
-# Flutter ephemeral & build outputs
+# Flutter iOS/macOS generated files
+**/ios/.symlinks/
 **/ios/Flutter/ephemeral/
 **/ios/Flutter/.last_build_id
+
 **/ios/Flutter/Generated.xcconfig
 **/ios/Flutter/flutter_export_environment.sh
+
 **/ios/Flutter/app.flx
 **/ios/Flutter/app.zip
 **/ios/Flutter/flutter_assets/
+
 **/ios/Flutter/Flutter.framework
 **/ios/Flutter/Flutter.podspec
 **/ios/Flutter/App.framework
@@ -333,10 +431,11 @@ gradle-wrapper.jar
 
 **/macos/Flutter/ephemeral/
 
-# Xcode user & build files
+# Xcode generated/user files
 **/DerivedData/
 **/xcuserdata/
 **/xcshareddata/WorkspaceSettings.xcsettings
+
 *.mode1v3
 *.mode2v3
 *.moved-aside
@@ -345,7 +444,7 @@ gradle-wrapper.jar
 
 
 # ============================================================
-# WINDOWS & LINUX (FLUTTER DESKTOP)
+# WINDOWS / LINUX - FLUTTER DESKTOP
 # ============================================================
 
 **/windows/flutter/ephemeral/
@@ -356,78 +455,64 @@ gradle-wrapper.jar
 # DOCKER
 # ============================================================
 
-# Docker local overrides
+# Local Docker Compose overrides
 docker-compose.override.yml
+compose.override.yml
 
 
 # ============================================================
-# DATABASE / LOCAL STORAGE / MIGRATIONS
+# DATABASE / LOCAL DATABASE FILES
 # ============================================================
 
-# SQLite & local databases
+# Local SQLite databases
 *.db
 *.sqlite
 *.sqlite3
 
-# Database backups & dumps
+# Database backups / dumps
 *.dump
 *.backup
 
-# Local persistent data directories
-data/
+# Local persistent storage
 local-data/
+**/local-data/
 
 
 # ============================================================
-# AI SERVICE ARTIFACTS / MODELS / VECTOR STORES
+# UPLOADS / GENERATED USER MEDIA
 # ============================================================
 
-# Machine learning model weights and checkpoints
-models/
-checkpoints/
-*.safetensors
-*.gguf
-*.pt
-*.pth
-*.bin
-*.onnx
-
-# AI experiment tracking & metrics
-experiments/
-runs/
-wandb/
-mlruns/
-
-# Vector database indexes & embeddings
-vector_store/
-chroma/
-faiss_index/
-
-
-# ============================================================
-# UPLOADS & LOCAL USER MEDIA
-# (Rule: Ignore uploaded runtime files without ignoring source assets)
-# ============================================================
-
+# Runtime uploads
 uploads/*
 !uploads/.gitkeep
+
 **/uploads/*
 !**/uploads/.gitkeep
 
+# Local uploads
 local-uploads/*
 !local-uploads/.gitkeep
+
 **/local-uploads/*
 !**/local-uploads/.gitkeep
 
+# Runtime downloads
 downloads/*
 !downloads/.gitkeep
+
 **/downloads/*
 !**/downloads/.gitkeep
 
-# Exclude generated / temporary AI media outputs while preserving source repository assets
-**/ai-service/**/outputs/
-**/ai-service/**/generated_images/
+# AI-generated runtime media
+**/ai-service/mehewara-ai/outputs/
+**/ai-service/mehewara-ai/generated_images/
+
+
+# ============================================================
+# .NET LOCAL TOOL STATE
+# ============================================================
+
+.dotnet/
 
 
 *.md
-*.sql
