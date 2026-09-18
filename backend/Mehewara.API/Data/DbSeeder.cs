@@ -11,7 +11,10 @@ public static class DbSeeder
         {
             logger.LogInformation("Checking database tables and seeding initial data...");
 
-            // 1. Seed Roles
+            // ============================================================
+            // 1. SEED ROLES
+            // ============================================================
+
             var rolesToSeed = new List<Role>
             {
                 new()
@@ -82,12 +85,28 @@ public static class DbSeeder
 
             await context.SaveChangesAsync();
 
-            var adminRole = await context.Roles.FirstAsync(r => r.RoleCode == "ADMIN");
-            var residentRole = await context.Roles.FirstAsync(r => r.RoleCode == "RESIDENT");
-            var drainageRole = await context.Roles.FirstAsync(r => r.RoleCode == "CREW_LEADER_DRAINAGE");
-            var roadRole = await context.Roles.FirstAsync(r => r.RoleCode == "CREW_LEADER_ROAD");
 
-            // 2. Seed Default Test Users
+            // ============================================================
+            // 2. GET REQUIRED ROLES
+            // ============================================================
+
+            var adminRole = await context.Roles
+                .FirstAsync(r => r.RoleCode == "ADMIN");
+
+            var residentRole = await context.Roles
+                .FirstAsync(r => r.RoleCode == "RESIDENT");
+
+            var drainageRole = await context.Roles
+                .FirstAsync(r => r.RoleCode == "CREW_LEADER_DRAINAGE");
+
+            var roadRole = await context.Roles
+                .FirstAsync(r => r.RoleCode == "CREW_LEADER_ROAD");
+
+
+            // ============================================================
+            // 3. SEED DEFAULT TEST USERS
+            // ============================================================
+
             var usersToSeed = new List<User>
             {
                 new()
@@ -103,6 +122,7 @@ public static class DbSeeder
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 },
+
                 new()
                 {
                     UserId = Guid.Parse("a0000000-0000-0000-0000-000000000002"),
@@ -116,6 +136,7 @@ public static class DbSeeder
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 },
+
                 new()
                 {
                     UserId = Guid.Parse("a0000000-0000-0000-0000-000000000003"),
@@ -129,6 +150,7 @@ public static class DbSeeder
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 },
+
                 new()
                 {
                     UserId = Guid.Parse("a0000000-0000-0000-0000-000000000004"),
@@ -154,11 +176,18 @@ public static class DbSeeder
 
             await context.SaveChangesAsync();
 
-            // 3. Seed Crews if none exist
+
+            // ============================================================
+            // 4. SEED CREWS
+            // ============================================================
+
             if (!await context.Crews.AnyAsync())
             {
-                var drainageUser = await context.Users.FirstAsync(u => u.Email == "crew.drainage@mehewara.gov.lk");
-                var roadUser = await context.Users.FirstAsync(u => u.Email == "crew.road@mehewara.gov.lk");
+                var drainageUser = await context.Users
+                    .FirstAsync(u => u.Email == "crew.drainage@mehewara.gov.lk");
+
+                var roadUser = await context.Users
+                    .FirstAsync(u => u.Email == "crew.road@mehewara.gov.lk");
 
                 context.Crews.AddRange(
                     new Crew
@@ -173,6 +202,7 @@ public static class DbSeeder
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     },
+
                     new Crew
                     {
                         CrewId = Guid.Parse("c0000000-0000-0000-0000-000000000002"),
@@ -190,11 +220,344 @@ public static class DbSeeder
                 await context.SaveChangesAsync();
             }
 
-            logger.LogInformation("Database seeded successfully.");
+
+            // ============================================================
+            // 5. SEED PROBLEMS
+            // ============================================================
+            //
+            // Current relationship:
+            //
+            // Problem 1 -----> Many Reports
+            //
+            // Report has:
+            //     ProblemId = nullable FK
+            //
+            // There is NO ReportProblem join table.
+            // ============================================================
+
+            var problem1Id =
+                Guid.Parse("b0000000-0000-0000-0000-000000000001");
+
+            var problem2Id =
+                Guid.Parse("b0000000-0000-0000-0000-000000000002");
+
+            if (!await context.Problems.AnyAsync())
+            {
+                var problemsToSeed = new List<Problem>
+                {
+                    new()
+                    {
+                        ProblemId = problem1Id,
+                        Title = "Blocked roadside drain near Central College",
+                        Description = "Multiple resident reports describe water accumulating on and beside the road near Central College, indicating a possible drainage obstruction.",
+                        Category = "DRAINAGE",
+                        Latitude = 7.290571m,
+                        Longitude = 80.633726m,
+                        Address = "Near Central College, Kandy",
+                        Priority = "HIGH",
+                        PriorityScore = 75,
+                        Status = "IDENTIFIED",
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    },
+
+                    new()
+                    {
+                        ProblemId = problem2Id,
+                        Title = "Large pothole on Main Street",
+                        Description = "Multiple reports describe a large pothole on Main Street near the bus stop, affecting vehicles using the road.",
+                        Category = "ROAD",
+                        Latitude = 7.291820m,
+                        Longitude = 80.635210m,
+                        Address = "Main Street near bus stop, Kandy",
+                        Priority = "MEDIUM",
+                        PriorityScore = 55,
+                        Status = "IDENTIFIED",
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    }
+                };
+
+                context.Problems.AddRange(problemsToSeed);
+
+                await context.SaveChangesAsync();
+
+                logger.LogInformation("Seeded {Count} problems.", problemsToSeed.Count);
+            }
+
+
+            // ============================================================
+            // 6. SEED REPORTS
+            // ============================================================
+            //
+            // R001-R004 -> Problem 1
+            // R005-R006 -> Problem 2
+            // R007-R008 -> NULL
+            //
+            // The NULL reports are intentionally left unassigned so
+            // Member 2 can test the Problem Consolidation workflow.
+            // ============================================================
+
+            if (!await context.Reports.AnyAsync())
+            {
+                var residentUser = await context.Users
+                    .FirstAsync(u => u.Email == "resident@example.com");
+
+                var reportsToSeed = new List<Report>
+                {
+                    // ----------------------------------------------------
+                    // PROBLEM 1 REPORTS
+                    // ----------------------------------------------------
+
+                    new()
+                    {
+                        ReportId = Guid.Parse(
+                            "d0000000-0000-0000-0000-000000000001"),
+
+                        ResidentId = residentUser.UserId,
+
+                        ProblemId = problem1Id,
+
+                        Description =
+                            "There is a huge amount of water covering the road near Central College. Cars are struggling to pass through.",
+
+                        Category = "DRAINAGE",
+
+                        Latitude = 7.290600m,
+                        Longitude = 80.633700m,
+
+                        Address =
+                            "Near Central College, Kandy",
+
+                        Status = "PENDING",
+
+                        CreatedAt = DateTime.UtcNow.AddHours(-6),
+                        UpdatedAt = DateTime.UtcNow.AddHours(-6)
+                    },
+
+                    new()
+                    {
+                        ReportId = Guid.Parse(
+                            "d0000000-0000-0000-0000-000000000002"),
+
+                        ResidentId = residentUser.UserId,
+
+                        ProblemId = problem1Id,
+
+                        Description =
+                            "The road near Central College is flooded after the rain. Vehicles are having difficulty getting through.",
+
+                        Category = "DRAINAGE",
+
+                        Latitude = 7.290620m,
+                        Longitude = 80.633680m,
+
+                        Address =
+                            "Near Central College, Kandy",
+
+                        Status = "PENDING",
+
+                        CreatedAt = DateTime.UtcNow.AddHours(-5),
+                        UpdatedAt = DateTime.UtcNow.AddHours(-5)
+                    },
+
+                    new()
+                    {
+                        ReportId = Guid.Parse(
+                            "d0000000-0000-0000-0000-000000000003"),
+
+                        ResidentId = residentUser.UserId,
+
+                        ProblemId = problem1Id,
+
+                        Description =
+                            "Water is collecting beside Central College. The roadside drain may be blocked.",
+
+                        Category = "DRAINAGE",
+
+                        Latitude = 7.290550m,
+                        Longitude = 80.633750m,
+
+                        Address =
+                            "Side road near Central College, Kandy",
+
+                        Status = "PENDING",
+
+                        CreatedAt = DateTime.UtcNow.AddHours(-4),
+                        UpdatedAt = DateTime.UtcNow.AddHours(-4)
+                    },
+
+                    new()
+                    {
+                        ReportId = Guid.Parse(
+                            "d0000000-0000-0000-0000-000000000004"),
+
+                        ResidentId = residentUser.UserId,
+
+                        ProblemId = problem1Id,
+
+                        Description =
+                            "There is water all over the road near Central College and traffic is moving very slowly.",
+
+                        Category = "DRAINAGE",
+
+                        Latitude = 7.290590m,
+                        Longitude = 80.633710m,
+
+                        Address =
+                            "Central College road, Kandy",
+
+                        Status = "PENDING",
+
+                        CreatedAt = DateTime.UtcNow.AddHours(-3),
+                        UpdatedAt = DateTime.UtcNow.AddHours(-3)
+                    },
+
+
+                    // ----------------------------------------------------
+                    // PROBLEM 2 REPORTS
+                    // ----------------------------------------------------
+
+                    new()
+                    {
+                        ReportId = Guid.Parse(
+                            "d0000000-0000-0000-0000-000000000005"),
+
+                        ResidentId = residentUser.UserId,
+
+                        ProblemId = problem2Id,
+
+                        Description =
+                            "There is a large pothole on Main Street near the bus stop.",
+
+                        Category = "ROAD",
+
+                        Latitude = 7.291820m,
+                        Longitude = 80.635210m,
+
+                        Address =
+                            "Main Street near bus stop, Kandy",
+
+                        Status = "PENDING",
+
+                        CreatedAt = DateTime.UtcNow.AddHours(-5),
+                        UpdatedAt = DateTime.UtcNow.AddHours(-5)
+                    },
+
+                    new()
+                    {
+                        ReportId = Guid.Parse(
+                            "d0000000-0000-0000-0000-000000000006"),
+
+                        ResidentId = residentUser.UserId,
+
+                        ProblemId = problem2Id,
+
+                        Description =
+                            "Vehicles are hitting a big pothole on Main Street close to the bus stop.",
+
+                        Category = "ROAD",
+
+                        Latitude = 7.291850m,
+                        Longitude = 80.635190m,
+
+                        Address =
+                            "Main Street near bus stop, Kandy",
+
+                        Status = "PENDING",
+
+                        CreatedAt = DateTime.UtcNow.AddHours(-2),
+                        UpdatedAt = DateTime.UtcNow.AddHours(-2)
+                    },
+
+
+                    // ----------------------------------------------------
+                    // UNASSIGNED REPORT
+                    // ----------------------------------------------------
+                    // This should be processed by the Problem
+                    // Consolidation Agent and may result in CREATE_NEW.
+                    // ----------------------------------------------------
+
+                    new()
+                    {
+                        ReportId = Guid.Parse(
+                            "d0000000-0000-0000-0000-000000000007"),
+
+                        ResidentId = residentUser.UserId,
+
+                        ProblemId = null,
+
+                        Description =
+                            "A large tree has fallen across the road near the public park and is blocking vehicles.",
+
+                        Category = "ENVIRONMENT",
+
+                        Latitude = 7.293100m,
+                        Longitude = 80.637200m,
+
+                        Address =
+                            "Near public park, Kandy",
+
+                        Status = "PENDING",
+
+                        CreatedAt = DateTime.UtcNow.AddHours(-1),
+                        UpdatedAt = DateTime.UtcNow.AddHours(-1)
+                    },
+
+
+                    // ----------------------------------------------------
+                    // ANOTHER UNASSIGNED REPORT
+                    // ----------------------------------------------------
+                    // Also intentionally has ProblemId = null.
+                    // ----------------------------------------------------
+
+                    new()
+                    {
+                        ReportId = Guid.Parse(
+                            "d0000000-0000-0000-0000-000000000008"),
+
+                        ResidentId = residentUser.UserId,
+
+                        ProblemId = null,
+
+                        Description =
+                            "Garbage has not been collected for several days around the market area.",
+
+                        Category = "WASTE",
+
+                        Latitude = 7.294000m,
+                        Longitude = 80.638100m,
+
+                        Address =
+                            "Market area, Kandy",
+
+                        Status = "PENDING",
+
+                        CreatedAt = DateTime.UtcNow.AddMinutes(-30),
+                        UpdatedAt = DateTime.UtcNow.AddMinutes(-30)
+                    }
+                };
+
+                context.Reports.AddRange(reportsToSeed);
+
+                await context.SaveChangesAsync();
+
+                logger.LogInformation("Seeded {Count} reports.", reportsToSeed.Count);
+            }
+
+
+            // ============================================================
+            // 7. FINAL MESSAGE
+            // ============================================================
+
+            logger.LogInformation(
+                "Database seeded successfully with roles, users, crews, problems and reports.");
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An error occurred while seeding the database.");
+            logger.LogError(
+                ex,
+                "An error occurred while seeding the database.");
         }
     }
 }
