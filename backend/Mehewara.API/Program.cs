@@ -48,6 +48,8 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 // 3. Application Services
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
+builder.Services.AddScoped<IPhotoStorageService, CloudinaryPhotoStorageService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
