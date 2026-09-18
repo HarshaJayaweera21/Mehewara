@@ -144,6 +144,23 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
+var uploadsDir = Path.Combine(app.Environment.ContentRootPath, "uploads");
+if (!Directory.Exists(uploadsDir))
+{
+    Directory.CreateDirectory(uploadsDir);
+}
+var profilesUploadDir = Path.Combine(uploadsDir, "profiles");
+if (!Directory.Exists(profilesUploadDir))
+{
+    Directory.CreateDirectory(profilesUploadDir);
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsDir),
+    RequestPath = "/uploads"
+});
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
