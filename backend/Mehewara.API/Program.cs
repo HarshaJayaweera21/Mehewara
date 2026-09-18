@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Mehewara.API.Common;
 using Mehewara.API.Data;
+using Mehewara.API.Integrations.Cloudinary;
 using Mehewara.API.Middleware;
 using Mehewara.API.Services.Implementations;
 using Mehewara.API.Services.Interfaces;
