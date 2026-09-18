@@ -1,16 +1,15 @@
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
-using Mehewara.API.Common;
 using Mehewara.API.Exceptions;
 using Mehewara.API.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
-namespace Mehewara.API.Services.Implementations;
+namespace Mehewara.API.Integrations.Cloudinary;
 
 public class CloudinaryPhotoStorageService : IPhotoStorageService
 {
-    private readonly Cloudinary _cloudinary;
+    private readonly CloudinaryDotNet.Cloudinary _cloudinary;
     private readonly ILogger<CloudinaryPhotoStorageService> _logger;
 
     public CloudinaryPhotoStorageService(
@@ -33,7 +32,7 @@ public class CloudinaryPhotoStorageService : IPhotoStorageService
             settings.ApiSecret
         );
 
-        _cloudinary = new Cloudinary(account);
+        _cloudinary = new CloudinaryDotNet.Cloudinary(account);
         _cloudinary.Api.Secure = true;
     }
 
