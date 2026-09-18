@@ -84,6 +84,8 @@ CREATE TABLE users (
 
     phone_number VARCHAR(20),
 
+    profile_image_url VARCHAR(500),
+
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
 
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
