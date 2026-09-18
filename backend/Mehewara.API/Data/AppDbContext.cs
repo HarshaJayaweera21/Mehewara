@@ -16,7 +16,6 @@ public class AppDbContext : DbContext
     public DbSet<Report> Reports { get; set; }
     public DbSet<ReportPhoto> ReportPhotos { get; set; }
     public DbSet<Problem> Problems { get; set; }
-    public DbSet<ReportProblem> ReportProblems { get; set; }
     public DbSet<Crew> Crews { get; set; }
     public DbSet<WorkOrder> WorkOrders { get; set; }
     public DbSet<ApprovalHistory> ApprovalHistories { get; set; }
@@ -284,11 +283,20 @@ public class AppDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .IsRequired();
 
+            entity.Property(r => r.ProblemId)
+                .HasColumnName("problem_id");
+
             // User → Reports
             entity.HasOne(r => r.Resident)
                 .WithMany()
                 .HasForeignKey(r => r.ResidentId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Problem → Reports (1:N)
+            entity.HasOne(r => r.Problem)
+                .WithMany(p => p.Reports)
+                .HasForeignKey(r => r.ProblemId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // CHECK constraints
             entity.ToTable("reports", table =>
@@ -313,6 +321,9 @@ public class AppDbContext : DbContext
             // Indexes
             entity.HasIndex(r => r.ResidentId)
                 .HasDatabaseName("idx_reports_resident_id");
+
+            entity.HasIndex(r => r.ProblemId)
+                .HasDatabaseName("idx_reports_problem_id");
 
             entity.HasIndex(r => r.Status)
                 .HasDatabaseName("idx_reports_status");
@@ -479,72 +490,8 @@ public class AppDbContext : DbContext
                 .HasDatabaseName("idx_problems_location");
         });
 
-
-        // 7. REPORT PROBLEMS
-    
-        modelBuilder.Entity<ReportProblem>(entity =>
-        {
-            entity.ToTable("report_problems");
-
-            entity.HasKey(rp => rp.ReportProblemId);
-
-            entity.Property(rp => rp.ReportProblemId)
-                .HasColumnName("report_problem_id")
-                .HasDefaultValueSql("gen_random_uuid()");
-
-            entity.Property(rp => rp.ReportId)
-                .HasColumnName("report_id")
-                .IsRequired();
-
-            entity.Property(rp => rp.ProblemId)
-                .HasColumnName("problem_id")
-                .IsRequired();
-
-            entity.Property(rp => rp.LinkType)
-                .HasColumnName("link_type")
-                .HasMaxLength(30)
-                .IsRequired();
-
-            entity.Property(rp => rp.LinkedAt)
-                .HasColumnName("linked_at")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .IsRequired();
-
-            // Report → ReportProblems
-            entity.HasOne(rp => rp.Report)
-                .WithMany(r => r.ReportProblems)
-                .HasForeignKey(rp => rp.ReportId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // Problem → ReportProblems
-            entity.HasOne(rp => rp.Problem)
-                .WithMany(p => p.ReportProblems)
-                .HasForeignKey(rp => rp.ProblemId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // UNIQUE(report_id, problem_id)
-            entity.HasIndex(rp => new { rp.ReportId, rp.ProblemId })
-                .IsUnique()
-                .HasDatabaseName("uq_report_problem");
-
-            // CHECK constraint
-            entity.ToTable("report_problems", table =>
-            {
-                table.HasCheckConstraint(
-                    "chk_report_problems_link_type",
-                    "\"link_type\" IN ('DUPLICATE', 'RELATED', 'PRIMARY')");
-            });
-
-            // Indexes
-            entity.HasIndex(rp => rp.ReportId)
-                .HasDatabaseName("idx_report_problems_report_id");
-
-            entity.HasIndex(rp => rp.ProblemId)
-                .HasDatabaseName("idx_report_problems_problem_id");
-        });
-
         
-        // 8. WORK ORDERS
+        // 7. WORK ORDERS
 
         modelBuilder.Entity<WorkOrder>(entity =>
         {
