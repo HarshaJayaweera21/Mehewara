@@ -16,7 +16,7 @@ public class Problem
     public DateTime UpdatedAt { get; set; }
 
     
-    public ICollection<ReportProblem> ReportProblems { get; set; } = new List<ReportProblem>();
+    public ICollection<Report> Reports { get; set; } = new List<Report>();
     public ICollection<WorkOrder> WorkOrders { get; set; } = new List<WorkOrder>();
     public ICollection<WorkflowRun> WorkflowRuns { get; set; } = new List<WorkflowRun>();
 }

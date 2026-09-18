@@ -1,4 +1,4 @@
-namespace Mehewara.API.Common;
+namespace Mehewara.API.Integrations.Cloudinary;
 
 public class CloudinarySettings
 {

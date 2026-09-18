@@ -3,6 +3,7 @@ using System;
 using Mehewara.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Mehewara.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260918043408_UpdateAppDbContext")]
+    partial class UpdateAppDbContext
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -286,10 +289,6 @@ namespace Mehewara.API.Migrations
                         .HasColumnType("numeric(9,6)")
                         .HasColumnName("longitude");
 
-                    b.Property<Guid?>("ProblemId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("problem_id");
-
                     b.Property<Guid>("ResidentId")
                         .HasColumnType("uuid")
                         .HasColumnName("resident_id");
@@ -315,9 +314,6 @@ namespace Mehewara.API.Migrations
 
                     b.HasIndex("CreatedAt")
                         .HasDatabaseName("idx_reports_created_at");
-
-                    b.HasIndex("ProblemId")
-                        .HasDatabaseName("idx_reports_problem_id");
 
                     b.HasIndex("ResidentId")
                         .HasDatabaseName("idx_reports_resident_id");
@@ -379,6 +375,52 @@ namespace Mehewara.API.Migrations
                         .HasDatabaseName("idx_report_photos_report_id");
 
                     b.ToTable("report_photos", (string)null);
+                });
+
+            modelBuilder.Entity("Mehewara.API.Models.ReportProblem", b =>
+                {
+                    b.Property<Guid>("ReportProblemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("report_problem_id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("LinkType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("link_type");
+
+                    b.Property<DateTime>("LinkedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("linked_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("ProblemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("problem_id");
+
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("report_id");
+
+                    b.HasKey("ReportProblemId");
+
+                    b.HasIndex("ProblemId")
+                        .HasDatabaseName("idx_report_problems_problem_id");
+
+                    b.HasIndex("ReportId")
+                        .HasDatabaseName("idx_report_problems_report_id");
+
+                    b.HasIndex("ReportId", "ProblemId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_report_problem");
+
+                    b.ToTable("report_problems", null, t =>
+                        {
+                            t.HasCheckConstraint("chk_report_problems_link_type", "\"link_type\" IN ('DUPLICATE', 'RELATED', 'PRIMARY')");
+                        });
                 });
 
             modelBuilder.Entity("Mehewara.API.Models.Role", b =>
@@ -791,18 +833,11 @@ namespace Mehewara.API.Migrations
 
             modelBuilder.Entity("Mehewara.API.Models.Report", b =>
                 {
-                    b.HasOne("Mehewara.API.Models.Problem", "Problem")
-                        .WithMany("Reports")
-                        .HasForeignKey("ProblemId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("Mehewara.API.Models.User", "Resident")
                         .WithMany()
                         .HasForeignKey("ResidentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Problem");
 
                     b.Navigation("Resident");
                 });
@@ -814,6 +849,25 @@ namespace Mehewara.API.Migrations
                         .HasForeignKey("ReportId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("Mehewara.API.Models.ReportProblem", b =>
+                {
+                    b.HasOne("Mehewara.API.Models.Problem", "Problem")
+                        .WithMany("ReportProblems")
+                        .HasForeignKey("ProblemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mehewara.API.Models.Report", "Report")
+                        .WithMany("ReportProblems")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Problem");
 
                     b.Navigation("Report");
                 });
@@ -884,7 +938,7 @@ namespace Mehewara.API.Migrations
 
             modelBuilder.Entity("Mehewara.API.Models.Problem", b =>
                 {
-                    b.Navigation("Reports");
+                    b.Navigation("ReportProblems");
 
                     b.Navigation("WorkOrders");
 
@@ -894,6 +948,8 @@ namespace Mehewara.API.Migrations
             modelBuilder.Entity("Mehewara.API.Models.Report", b =>
                 {
                     b.Navigation("Photos");
+
+                    b.Navigation("ReportProblems");
 
                     b.Navigation("WorkflowRuns");
                 });

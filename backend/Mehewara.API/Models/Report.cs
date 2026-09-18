@@ -22,12 +22,14 @@ public class Report
 
     public DateTime UpdatedAt { get; set; }
 
+    public Guid? ProblemId { get; set; }
+
     // Navigation properties
     public User Resident { get; set; } = null!;
 
-    public ICollection<ReportPhoto> Photos { get; set; } = new List<ReportPhoto>();
+    public Problem? Problem { get; set; }
 
-    public ICollection<ReportProblem> ReportProblems { get; set; } = new List<ReportProblem>();
+    public ICollection<ReportPhoto> Photos { get; set; } = new List<ReportPhoto>();
 
     public ICollection<WorkflowRun> WorkflowRuns { get; set; } = new List<WorkflowRun>();
 }
