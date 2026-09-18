@@ -228,33 +228,6 @@ export const LoginPage: React.FC = () => {
                 Sign in with Google
               </button>
             )}
-
-            <div className="demo-credentials">
-              <div className="demo-title">Quick Test Accounts</div>
-              <div className="demo-chips">
-                <button
-                  type="button"
-                  className="demo-chip"
-                  onClick={() => fillCredentials('resident@example.com', 'Resident@123')}
-                >
-                  Resident
-                </button>
-                <button
-                  type="button"
-                  className="demo-chip"
-                  onClick={() => fillCredentials('admin@mehewara.gov.lk', 'Admin@123')}
-                >
-                  Coordinator
-                </button>
-                <button
-                  type="button"
-                  className="demo-chip"
-                  onClick={() => fillCredentials('crew.drainage@mehewara.gov.lk', 'Crew@123')}
-                >
-                  Drainage Crew
-                </button>
-              </div>
-            </div>
           </>
         )}
       </div>
