@@ -1,6 +1,88 @@
 @Mehewara.API_HostAddress = http://localhost:5194
 
+### 1. Health Check / Weather
 GET {{Mehewara.API_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+### 2. Register / Sign Up a New Resident (No profile picture required at signup)
+# @name register
+POST {{Mehewara.API_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Kasun",
+  "lastName": "Perera",
+  "email": "kasun.perera@example.com",
+  "password": "Password@123",
+  "phoneNumber": "+94771234567"
+}
+
+###
+
+### 3. Sign In / Login (Get JWT Token)
+# @name login
+POST {{Mehewara.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "kasun.perera@example.com",
+  "password": "Password@123"
+}
+
+###
+
+### Extract Token from login response
+@authToken = {{login.response.body.accessToken}}
+
+###
+
+### 4. Get Current User Profile (Requires Bearer Token)
+GET {{Mehewara.API_HostAddress}}/api/auth/me
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+###
+
+### 5. Update Profile Text Info (PATCH name / phone number)
+PATCH {{Mehewara.API_HostAddress}}/api/auth/profile
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "firstName": "Kasun",
+  "lastName": "Perera",
+  "phoneNumber": "+94719876543"
+}
+
+###
+
+### 6. Upload User Profile Photo (PATCH or POST multipart/form-data)
+# In VS Code REST client or curl, upload an actual image file from disk:
+PATCH {{Mehewara.API_HostAddress}}/api/auth/profile/photo
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="avatar.png"
+Content-Type: image/png
+
+< ./test-avatar.png
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### 7. Remove User Profile Photo (DELETE)
+DELETE {{Mehewara.API_HostAddress}}/api/auth/profile/photo
+Authorization: Bearer {{authToken}}
+
+###
+
+### 8. Google OAuth Login (Send Google ID Token from Frontend)
+POST {{Mehewara.API_HostAddress}}/api/auth/google
+Content-Type: application/json
+
+{
+  "idToken": "YOUR_GOOGLE_ID_TOKEN_HERE"
+}
