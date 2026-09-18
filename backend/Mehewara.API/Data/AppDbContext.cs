@@ -110,6 +110,10 @@ public class AppDbContext : DbContext
                 .HasColumnName("phone_number")
                 .HasMaxLength(20);
 
+            entity.Property(u => u.ProfileImageUrl)
+                .HasColumnName("profile_image_url")
+                .HasMaxLength(500);
+
             entity.Property(u => u.IsActive)
                 .HasColumnName("is_active")
                 .HasDefaultValue(true)

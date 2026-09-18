@@ -16,6 +16,8 @@ public class User
 
     public string? PhoneNumber { get; set; }
 
+    public string? ProfileImageUrl { get; set; }
+
     public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
