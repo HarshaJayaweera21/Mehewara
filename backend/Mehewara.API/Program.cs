@@ -55,6 +55,7 @@ builder.Services.AddScoped<IPhotoStorageService, CloudinaryPhotoStorageService>(
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProblemService, ProblemService>();
+builder.Services.AddScoped<IProblemConsolidationService, ProblemConsolidationService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddHttpClient<IAiWorkflowClient, AiWorkflowClient>();
 
