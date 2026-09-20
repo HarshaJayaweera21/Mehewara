@@ -33,6 +33,13 @@ public class ProblemsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{id:guid}/reports")]
+    public async Task<ActionResult<IEnumerable<ProblemReportResponse>>> GetReportsByProblemId(Guid id)
+    {
+        var result = await _problemService.GetReportsByProblemIdAsync(id);
+        return Ok(result);
+    }
+
     [HttpPost]
     public async Task<ActionResult<ProblemResponse>> CreateProblem(
         CreateProblemRequest request)

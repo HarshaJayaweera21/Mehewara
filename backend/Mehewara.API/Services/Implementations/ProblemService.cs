@@ -195,4 +195,38 @@ public class ProblemService : IProblemService
 
         return problem;
     }
+
+    public async Task<IEnumerable<ProblemReportResponse>> GetReportsByProblemIdAsync(Guid problemId)
+    {
+        var problemExists = await _context.Problems
+            .AnyAsync(p => p.ProblemId == problemId);
+
+        if (!problemExists)
+        {
+            throw new NotFoundException($"Problem with ID '{problemId}' was not found.", "PROBLEM_NOT_FOUND");
+        }
+
+        var reports = await _context.Reports
+            .AsNoTracking()
+            .Where(r => r.ProblemId == problemId)
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(r => new ProblemReportResponse
+            {
+                Id = r.ReportId,
+                ResidentId = r.ResidentId,
+                ResidentName = r.Resident.FirstName + " " + r.Resident.LastName,
+                Description = r.Description,
+                Category = r.Category,
+                Latitude = r.Latitude,
+                Longitude = r.Longitude,
+                Address = r.Address,
+                Status = r.Status,
+                PhotoUrls = r.Photos.Select(p => p.PhotoUrl).ToList(),
+                CreatedAt = r.CreatedAt,
+                UpdatedAt = r.UpdatedAt
+            })
+            .ToListAsync();
+
+        return reports;
+    }
 }
