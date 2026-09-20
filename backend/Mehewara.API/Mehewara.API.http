@@ -21,8 +21,8 @@ Content-Type: application/json
 
 ###
 
-### 3. Sign In / Login (Get JWT Token)
-# @name login
+### 3. Sign In as Resident (Get Resident JWT Token)
+# @name residentLogin
 POST {{Mehewara.API_HostAddress}}/api/auth/login
 Content-Type: application/json
 
@@ -33,21 +33,34 @@ Content-Type: application/json
 
 ###
 
-### Extract Token from login response
-@authToken = {{login.response.body.accessToken}}
+### 4. Sign In as Coordinator / Admin (Get Admin JWT Token)
+# @name adminLogin
+POST {{Mehewara.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@mehewara.gov.lk",
+  "password": "Password@123"
+}
 
 ###
 
-### 4. Get Current User Profile (Requires Bearer Token)
+### Extract Tokens from login responses
+@residentToken = {{residentLogin.response.body.accessToken}}
+@adminToken = {{adminLogin.response.body.accessToken}}
+
+###
+
+### 5. Get Current User Profile (Requires Bearer Token)
 GET {{Mehewara.API_HostAddress}}/api/auth/me
-Authorization: Bearer {{authToken}}
+Authorization: Bearer {{residentToken}}
 Accept: application/json
 
 ###
 
-### 5. Update Profile Text Info (PATCH name / phone number)
+### 6. Update Profile Text Info (PATCH name / phone number)
 PATCH {{Mehewara.API_HostAddress}}/api/auth/profile
-Authorization: Bearer {{authToken}}
+Authorization: Bearer {{residentToken}}
 Content-Type: application/json
 
 {
@@ -58,10 +71,9 @@ Content-Type: application/json
 
 ###
 
-### 6. Upload User Profile Photo (PATCH or POST multipart/form-data)
-# In VS Code REST client or curl, upload an actual image file from disk:
+### 7. Upload User Profile Photo to Cloudinary (PATCH multipart/form-data)
 PATCH {{Mehewara.API_HostAddress}}/api/auth/profile/photo
-Authorization: Bearer {{authToken}}
+Authorization: Bearer {{residentToken}}
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -73,13 +85,88 @@ Content-Type: image/png
 
 ###
 
-### 7. Remove User Profile Photo (DELETE)
+### 8. Remove User Profile Photo (DELETE)
 DELETE {{Mehewara.API_HostAddress}}/api/auth/profile/photo
-Authorization: Bearer {{authToken}}
+Authorization: Bearer {{residentToken}}
 
 ###
 
-### 8. Google OAuth Login (Send Google ID Token from Frontend)
+### ============================================================
+### MEMBER 1: REPORT & INTAKE ENDPOINTS
+### ============================================================
+
+### 9. Upload Report Photo to Cloudinary (Resident / Admin)
+# @name uploadReportPhoto
+POST {{Mehewara.API_HostAddress}}/api/reports/photos
+Authorization: Bearer {{residentToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="flooded_road.jpg"
+Content-Type: image/jpeg
+
+< ./test-report-photo.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### 10. Submit a New Municipal Report (Role: RESIDENT)
+# @name createReport
+POST {{Mehewara.API_HostAddress}}/api/reports
+Authorization: Bearer {{residentToken}}
+Content-Type: application/json
+
+{
+  "description": "Heavy storm water overflowing and covering the road near Central College. Vehicles cannot pass safely.",
+  "category": "DRAINAGE",
+  "latitude": 6.9271,
+  "longitude": 79.8612,
+  "address": "Central College area, Colombo 10",
+  "photos": [
+    {
+      "photoUrl": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      "fileName": "flooded_road.jpg",
+      "mimeType": "image/jpeg"
+    }
+  ]
+}
+
+###
+
+### Extract Report ID from create report response
+@createdReportId = {{createReport.response.body.id}}
+
+###
+
+### 11. Coordinator Report List with Filters & Pagination (Role: ADMIN)
+GET {{Mehewara.API_HostAddress}}/api/reports?page=1&pageSize=10&status=PENDING&category=DRAINAGE&sortBy=createdAt&sortDirection=desc
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+###
+
+### 12. Coordinator Report List - Search by Text (Role: ADMIN)
+GET {{Mehewara.API_HostAddress}}/api/reports?search=College&sortBy=createdAt&sortDirection=desc
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+###
+
+### 13. Get Report Details by ID (Role: ADMIN or Owning RESIDENT)
+GET {{Mehewara.API_HostAddress}}/api/reports/{{createdReportId}}
+Authorization: Bearer {{residentToken}}
+Accept: application/json
+
+###
+
+### 14. Resident "My Reports" List (Role: RESIDENT)
+GET {{Mehewara.API_HostAddress}}/api/resident/reports?page=1&pageSize=20&sortBy=createdAt&sortDirection=desc
+Authorization: Bearer {{residentToken}}
+Accept: application/json
+
+###
+
+### 15. Google OAuth Login
 POST {{Mehewara.API_HostAddress}}/api/auth/google
 Content-Type: application/json
 
