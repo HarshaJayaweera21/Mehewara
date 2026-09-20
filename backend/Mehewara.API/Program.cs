@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Mehewara.API.Common;
 using Mehewara.API.Data;
+using Mehewara.API.Integrations.AiService;
 using Mehewara.API.Integrations.Cloudinary;
 using Mehewara.API.Middleware;
 using Mehewara.API.Services.Implementations;
@@ -53,6 +54,8 @@ builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection(
 builder.Services.AddScoped<IPhotoStorageService, CloudinaryPhotoStorageService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddHttpClient<IAiWorkflowClient, AiWorkflowClient>();
 
 // 4. Controllers & Standardized Validation Error Formatting
 builder.Services.AddControllers()
