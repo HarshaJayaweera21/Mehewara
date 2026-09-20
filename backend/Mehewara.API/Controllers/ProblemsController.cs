@@ -26,12 +26,22 @@ public class ProblemsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<ProblemDetailResponse>> GetProblemById(Guid id)
+    {
+        var result = await _problemService.GetProblemByIdAsync(id);
+        return Ok(result);
+    }
+
     [HttpPost]
     public async Task<ActionResult<ProblemResponse>> CreateProblem(
         CreateProblemRequest request)
     {
         var result = await _problemService.CreateProblemAsync(request);
 
-        return StatusCode(StatusCodes.Status201Created, result);
+        return CreatedAtAction(
+            nameof(GetProblemById),
+            new { id = result.Id },
+            result);
     }
 }

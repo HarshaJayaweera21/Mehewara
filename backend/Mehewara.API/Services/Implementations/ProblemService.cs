@@ -1,6 +1,7 @@
 using Mehewara.API.Common;
 using Mehewara.API.Data;
 using Mehewara.API.DTOs.Problems;
+using Mehewara.API.Exceptions;
 using Mehewara.API.Models;
 using Mehewara.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -149,5 +150,49 @@ public class ProblemService : IProblemService
             SortBy = sortBy,
             SortDirection = sortDirection
         };
+    }
+
+    public async Task<ProblemDetailResponse> GetProblemByIdAsync(Guid id)
+    {
+        var problem = await _context.Problems
+            .AsNoTracking()
+            .Where(p => p.ProblemId == id)
+            .Select(p => new ProblemDetailResponse
+            {
+                Id = p.ProblemId,
+                Title = p.Title,
+                Description = p.Description,
+                Category = p.Category,
+                Latitude = p.Latitude,
+                Longitude = p.Longitude,
+                Address = p.Address,
+                Priority = p.Priority,
+                PriorityScore = p.PriorityScore,
+                Status = p.Status,
+                RelatedReports = p.Reports
+                    .OrderByDescending(r => r.CreatedAt)
+                    .Select(r => new RelatedReportSummary
+                    {
+                        ReportId = r.ReportId,
+                        Description = r.Description,
+                        Category = r.Category,
+                        Status = r.Status,
+                        Address = r.Address,
+                        Latitude = r.Latitude,
+                        Longitude = r.Longitude,
+                        CreatedAt = r.CreatedAt
+                    })
+                    .ToList(),
+                CreatedAt = p.CreatedAt,
+                UpdatedAt = p.UpdatedAt
+            })
+            .FirstOrDefaultAsync();
+
+        if (problem == null)
+        {
+            throw new NotFoundException($"Problem with ID '{id}' was not found.", "PROBLEM_NOT_FOUND");
+        }
+
+        return problem;
     }
 }

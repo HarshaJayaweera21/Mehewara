@@ -7,4 +7,5 @@ public interface IProblemService
 {
     Task<ProblemResponse> CreateProblemAsync(CreateProblemRequest request);
     Task<PagedResult<ProblemResponse>> GetProblemsAsync(GetProblemsQuery query);
+    Task<ProblemDetailResponse> GetProblemByIdAsync(Guid id);
 }
