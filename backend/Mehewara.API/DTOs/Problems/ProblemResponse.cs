@@ -22,6 +22,8 @@ public class ProblemResponse
 
     public string Status { get; set; } = string.Empty;
 
+    public int RelatedReportCount { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }

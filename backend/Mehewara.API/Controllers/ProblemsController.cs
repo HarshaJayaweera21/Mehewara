@@ -1,3 +1,4 @@
+using Mehewara.API.Common;
 using Mehewara.API.DTOs.Problems;
 using Mehewara.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -15,6 +16,14 @@ public class ProblemsController : ControllerBase
     public ProblemsController(IProblemService problemService)
     {
         _problemService = problemService;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<PagedResult<ProblemResponse>>> GetProblems(
+        [FromQuery] GetProblemsQuery query)
+    {
+        var result = await _problemService.GetProblemsAsync(query);
+        return Ok(result);
     }
 
     [HttpPost]
