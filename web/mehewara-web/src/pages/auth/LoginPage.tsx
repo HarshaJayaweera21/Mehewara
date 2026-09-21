@@ -36,7 +36,12 @@ const resolveImageUrl = (url?: string | null) => {
   return `http://localhost:5194${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
-export const LoginPage: React.FC = () => {
+interface LoginPageProps {
+  onLoginSuccess?: (user: User, accessToken: string) => void;
+  onNavigateToReports?: () => void;
+}
+
+export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigateToReports }) => {
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
 
   // Sign In state
@@ -89,6 +94,7 @@ export const LoginPage: React.FC = () => {
             localStorage.setItem('mehewara_token', authData.accessToken);
             localStorage.setItem('mehewara_user', JSON.stringify(authData.user));
             setCurrentUser(authData.user);
+            onLoginSuccess?.(authData.user, authData.accessToken);
           } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Google authentication failed.');
           } finally {
@@ -135,6 +141,7 @@ export const LoginPage: React.FC = () => {
       localStorage.setItem('mehewara_token', authData.accessToken);
       localStorage.setItem('mehewara_user', JSON.stringify(authData.user));
       setCurrentUser(authData.user);
+      onLoginSuccess?.(authData.user, authData.accessToken);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to sign in.');
     } finally {
@@ -162,6 +169,7 @@ export const LoginPage: React.FC = () => {
       localStorage.setItem('mehewara_token', authData.accessToken);
       localStorage.setItem('mehewara_user', JSON.stringify(authData.user));
       setCurrentUser(authData.user);
+      onLoginSuccess?.(authData.user, authData.accessToken);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Registration failed.');
     } finally {
@@ -361,23 +369,34 @@ export const LoginPage: React.FC = () => {
             <span className="role-badge">{currentUser.role}</span>
 
             {!isEditingProfile ? (
-              <div className="profile-actions">
+              <div className="profile-actions" style={{ flexDirection: 'column', gap: '0.75rem' }}>
                 <button
                   type="button"
-                  className="secondary-btn"
-                  onClick={startEditProfile}
-                  disabled={loading}
+                  className="submit-btn"
+                  onClick={() => onNavigateToReports?.()}
                 >
-                  Edit Info
+                  📋 Go to Reports Portal
                 </button>
-                <button
-                  type="button"
-                  className="logout-btn"
-                  onClick={handleLogout}
-                  disabled={loading}
-                >
-                  Sign Out
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    style={{ flex: 1 }}
+                    onClick={startEditProfile}
+                    disabled={loading}
+                  >
+                    Edit Info
+                  </button>
+                  <button
+                    type="button"
+                    className="logout-btn"
+                    style={{ flex: 1 }}
+                    onClick={handleLogout}
+                    disabled={loading}
+                  >
+                    Sign Out
+                  </button>
+                </div>
               </div>
             ) : (
               <form className="edit-profile-box" onSubmit={handleProfileUpdateSubmit}>
@@ -490,6 +509,34 @@ export const LoginPage: React.FC = () => {
                   <button type="submit" className="submit-btn" disabled={loading}>
                     {loading ? 'Signing In...' : 'Sign In'}
                   </button>
+
+                  <div className="dev-login-tip">
+                    <div style={{ fontWeight: 600, color: '#94a3b8', marginBottom: '0.4rem', fontSize: '0.775rem' }}>
+                      ⚡ Quick Test Fill:
+                    </div>
+                    <div className="dev-login-buttons">
+                      <button
+                        type="button"
+                        className="quick-login-chip"
+                        onClick={() => {
+                          setEmail('resident@example.com');
+                          setPassword('Resident@123');
+                        }}
+                      >
+                        👤 Resident (Kamal)
+                      </button>
+                      <button
+                        type="button"
+                        className="quick-login-chip"
+                        onClick={() => {
+                          setEmail('admin@mehewara.gov.lk');
+                          setPassword('Admin@123');
+                        }}
+                      >
+                        🛡️ Coordinator (Admin)
+                      </button>
+                    </div>
+                  </div>
                 </form>
 
                 <div className="divider">

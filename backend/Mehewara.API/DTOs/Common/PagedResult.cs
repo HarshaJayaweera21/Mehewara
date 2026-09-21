@@ -7,6 +7,6 @@ public class PagedResult<T>
     public int PageSize { get; set; } = 20;
     public int TotalItems { get; set; }
     public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalItems / PageSize) : 0;
-    public string SortBy { get; set; } = "createdAt";
-    public string SortDirection { get; set; } = "desc";
+    public string? SortBy { get; set; } = "createdAt";
+    public string? SortDirection { get; set; } = "desc";
 }
