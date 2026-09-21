@@ -53,6 +53,8 @@ builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection(
 builder.Services.AddScoped<IPhotoStorageService, CloudinaryPhotoStorageService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICrewService, CrewService>();
+builder.Services.AddScoped<IDispatchService, DispatchService>();
 
 // 4. Controllers & Standardized Validation Error Formatting
 builder.Services.AddControllers()
