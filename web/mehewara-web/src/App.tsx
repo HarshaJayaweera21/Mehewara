@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { LoginPage } from './pages/auth/LoginPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import { ProblemsPage } from './pages/problems';
+import { LandingPage } from './pages/landing';
 import type { User } from './types/auth';
 
 function App() {
@@ -18,17 +19,21 @@ function App() {
     return localStorage.getItem('mehewara_token');
   });
 
-  const [viewMode, setViewMode] = useState<'reports' | 'problems' | 'profile'>(() => {
+  const [viewMode, setViewMode] = useState<'landing' | 'reports' | 'problems' | 'profile' | 'login'>(() => {
     try {
       const saved = localStorage.getItem('mehewara_user');
+      const savedToken = localStorage.getItem('mehewara_token');
       const user: User | null = saved ? JSON.parse(saved) : null;
-      if (user?.role === 'ADMIN') {
-        return 'problems';
+      if (user && savedToken) {
+        if (user.role === 'ADMIN') {
+          return 'problems';
+        }
+        return 'reports';
       }
     } catch {
-      // fallback to reports
+      // fallback to landing
     }
-    return 'reports';
+    return 'landing';
   });
 
   useEffect(() => {
@@ -38,8 +43,12 @@ function App() {
       const user: User | null = savedUser ? JSON.parse(savedUser) : null;
       setCurrentUser(user);
       setToken(savedToken);
-      if (user?.role === 'ADMIN') {
-        setViewMode('problems');
+      if (user && savedToken) {
+        if (user.role === 'ADMIN') {
+          setViewMode('problems');
+        }
+      } else {
+        setViewMode('landing');
       }
     };
 
@@ -52,7 +61,7 @@ function App() {
     localStorage.removeItem('mehewara_user');
     setCurrentUser(null);
     setToken(null);
-    setViewMode('reports');
+    setViewMode('landing');
   };
 
   const handleLoginSuccess = (user: User, accessToken: string) => {
@@ -65,12 +74,38 @@ function App() {
     }
   };
 
-  // 1. Not Authenticated -> Show Login & Sign-up Portal
-  if (!currentUser || !token) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  // 1. Landing Page View (Public Entrance for All Visitors)
+  if (viewMode === 'landing') {
+    return (
+      <LandingPage
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onOpenProfile={() => setViewMode('profile')}
+        onNavigateToLogin={() => setViewMode('login')}
+        onNavigateToReports={() => {
+          if (currentUser && token) {
+            setViewMode('reports');
+          } else {
+            setViewMode('login');
+          }
+        }}
+        onNavigateToProblems={() => setViewMode('problems')}
+      />
+    );
   }
 
-  // 2. Authenticated Profile View -> Manage Profile & Photo
+  // 2. Login & Registration Portal
+  if (viewMode === 'login' || (!currentUser || !token)) {
+    return (
+      <LoginPage
+        onLoginSuccess={handleLoginSuccess}
+        onNavigateToLanding={() => setViewMode('landing')}
+        onNavigateToReports={() => setViewMode('reports')}
+      />
+    );
+  }
+
+  // 3. Authenticated Profile View -> Manage Profile & Photo
   if (viewMode === 'profile') {
     const returnDestination = currentUser.role === 'ADMIN' ? 'problems' : 'reports';
     return (
@@ -111,12 +146,13 @@ function App() {
         <LoginPage
           onNavigateToReports={() => setViewMode(returnDestination)}
           onLoginSuccess={handleLoginSuccess}
+          onNavigateToLanding={() => setViewMode('landing')}
         />
       </div>
     );
   }
 
-  // 3. Authenticated Problems Dashboard View (specifically redirected for ADMIN)
+  // 4. Authenticated Problems Dashboard View (specifically redirected for ADMIN)
   if (viewMode === 'problems') {
     return (
       <ProblemsPage
@@ -124,12 +160,13 @@ function App() {
         token={token}
         onLogout={handleLogout}
         onNavigateToReports={() => setViewMode('reports')}
+        onNavigateToLanding={() => setViewMode('landing')}
         onOpenProfile={() => setViewMode('profile')}
       />
     );
   }
 
-  // 4. Authenticated Reports View -> Resident Reports Portal
+  // 5. Authenticated Reports View -> Resident Reports Portal
   return (
     <ReportsPage
       currentUser={currentUser}
