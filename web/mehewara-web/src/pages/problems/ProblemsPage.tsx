@@ -18,6 +18,7 @@ export interface ProblemsPageProps {
   onLogout?: () => void;
   onNavigateToReports?: () => void;
   onOpenProfile?: () => void;
+  onNavigateToLanding?: () => void;
   onSelectProblem?: (problemId: string) => void;
 }
 
@@ -52,6 +53,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   onLogout,
   onNavigateToReports,
   onOpenProfile,
+  onNavigateToLanding,
   onSelectProblem,
 }) => {
   // Search and filter states
@@ -248,6 +250,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
           currentUser={currentUser}
           onLogout={onLogout}
           onOpenProfile={onOpenProfile}
+          onBrandClick={onNavigateToLanding}
         />
 
         {/* 1. Coordinator Welcome Banner (Stitch Generated with Real Time Greeting) */}
