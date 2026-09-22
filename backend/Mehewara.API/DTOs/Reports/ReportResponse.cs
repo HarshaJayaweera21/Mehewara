@@ -12,6 +12,7 @@ public class ReportResponse
     public decimal Longitude { get; set; }
     public string? Address { get; set; }
     public string Status { get; set; } = "PENDING";
+    public string? AiAnalysis { get; set; }
     public List<ReportPhotoDto> Photos { get; set; } = new();
     public List<LinkedProblemDto> LinkedProblems { get; set; } = new();
     public DateTime CreatedAt { get; set; }
