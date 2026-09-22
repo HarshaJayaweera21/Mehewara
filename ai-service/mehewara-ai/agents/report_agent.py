@@ -68,7 +68,7 @@ Your SOLE responsibility is to analyze raw citizen reports and extract strictly 
 ### Authoritative Output Fields:
 - `observedIssue`: Primary observable defect or physical condition described by the citizen.
 - `affectedAsset`: Specific municipal physical asset affected (e.g., road surface, streetlight, stormwater drain, sidewalk).
-- `reportedImpact`: Explicit impact stated by citizen (e.g. "traffic blocked", "pedestrians slipping"), or null if unmentioned.
+- `reportedImpact`: List of explicit impacts stated by citizen (e.g. ["traffic blocked", "pedestrians slipping"]), or empty list if unmentioned.
 - `duration`: How long the issue has persisted if stated (e.g. "since yesterday", "3 days"), or null.
 - `hazards`: List of explicit safety hazards mentioned in the report.
 - `reportedCategory`: Citizen's input category.
@@ -143,7 +143,7 @@ def _build_deterministic_structured_report(
         report_id=report_input.id,
         observed_issue=desc.strip(),
         affected_asset=affected_asset,
-        reported_impact="Impact described in report" if any(i in desc_lower for i in ["block", "cannot", "damage", "prevent", "hard"]) else None,
+        reported_impact=["Impact described in report"] if any(i in desc_lower for i in ["block", "cannot", "damage", "prevent", "hard"]) else [],
         duration=duration,
         hazards=hazards,
         reported_category=report_input.category,
