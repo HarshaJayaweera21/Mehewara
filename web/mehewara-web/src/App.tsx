@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { LoginPage } from './pages/auth/LoginPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
+import { ProblemsPage } from './pages/problems';
+import { LandingPage } from './pages/landing';
 import type { User } from './types/auth';
 
 function App() {
@@ -17,14 +19,37 @@ function App() {
     return localStorage.getItem('mehewara_token');
   });
 
-  const [viewMode, setViewMode] = useState<'reports' | 'profile'>('reports');
+  const [viewMode, setViewMode] = useState<'landing' | 'reports' | 'problems' | 'profile' | 'login'>(() => {
+    try {
+      const saved = localStorage.getItem('mehewara_user');
+      const savedToken = localStorage.getItem('mehewara_token');
+      const user: User | null = saved ? JSON.parse(saved) : null;
+      if (user && savedToken) {
+        if (user.role === 'ADMIN') {
+          return 'problems';
+        }
+        return 'reports';
+      }
+    } catch {
+      // fallback to landing
+    }
+    return 'landing';
+  });
 
   useEffect(() => {
     const handleStorageChange = () => {
       const savedUser = localStorage.getItem('mehewara_user');
       const savedToken = localStorage.getItem('mehewara_token');
-      setCurrentUser(savedUser ? JSON.parse(savedUser) : null);
+      const user: User | null = savedUser ? JSON.parse(savedUser) : null;
+      setCurrentUser(user);
       setToken(savedToken);
+      if (user && savedToken) {
+        if (user.role === 'ADMIN') {
+          setViewMode('problems');
+        }
+      } else {
+        setViewMode('landing');
+      }
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -36,22 +61,53 @@ function App() {
     localStorage.removeItem('mehewara_user');
     setCurrentUser(null);
     setToken(null);
-    setViewMode('reports');
+    setViewMode('landing');
   };
 
   const handleLoginSuccess = (user: User, accessToken: string) => {
     setCurrentUser(user);
     setToken(accessToken);
-    setViewMode('reports');
+    if (user.role === 'ADMIN') {
+      setViewMode('problems');
+    } else {
+      setViewMode('reports');
+    }
   };
 
-  // 1. Not Authenticated -> Show Login & Sign-up Portal
-  if (!currentUser || !token) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  // 1. Landing Page View (Public Entrance for All Visitors)
+  if (viewMode === 'landing') {
+    return (
+      <LandingPage
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onOpenProfile={() => setViewMode('profile')}
+        onNavigateToLogin={() => setViewMode('login')}
+        onNavigateToReports={() => {
+          if (currentUser && token) {
+            setViewMode('reports');
+          } else {
+            setViewMode('login');
+          }
+        }}
+        onNavigateToProblems={() => setViewMode('problems')}
+      />
+    );
   }
 
-  // 2. Authenticated Profile View -> Manage Profile & Photo
+  // 2. Login & Registration Portal
+  if (viewMode === 'login' || (!currentUser || !token)) {
+    return (
+      <LoginPage
+        onLoginSuccess={handleLoginSuccess}
+        onNavigateToLanding={() => setViewMode('landing')}
+        onNavigateToReports={() => setViewMode('reports')}
+      />
+    );
+  }
+
+  // 3. Authenticated Profile View -> Manage Profile & Photo
   if (viewMode === 'profile') {
+    const returnDestination = currentUser.role === 'ADMIN' ? 'problems' : 'reports';
     return (
       <div style={{ minHeight: '100vh', background: '#0f172a' }}>
         <div
@@ -66,7 +122,7 @@ function App() {
         >
           <button
             type="button"
-            onClick={() => setViewMode('reports')}
+            onClick={() => setViewMode(returnDestination)}
             style={{
               background: '#0f172a',
               color: '#38bdf8',
@@ -81,27 +137,43 @@ function App() {
               gap: '0.5rem',
             }}
           >
-            ← Back to Reports Portal
+            ← Back to {returnDestination === 'problems' ? 'Problems Dashboard' : 'Reports Portal'}
           </button>
           <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
             Logged in as: <strong style={{ color: '#f8fafc' }}>{currentUser.name}</strong> ({currentUser.role})
           </span>
         </div>
         <LoginPage
-          onNavigateToReports={() => setViewMode('reports')}
+          onNavigateToReports={() => setViewMode(returnDestination)}
           onLoginSuccess={handleLoginSuccess}
+          onNavigateToLanding={() => setViewMode('landing')}
         />
       </div>
     );
   }
 
-  // 3. Authenticated Main View -> Reports Portal (List, Add Report, Details)
+  // 4. Authenticated Problems Dashboard View (specifically redirected for ADMIN)
+  if (viewMode === 'problems') {
+    return (
+      <ProblemsPage
+        currentUser={currentUser}
+        token={token}
+        onLogout={handleLogout}
+        onNavigateToReports={() => setViewMode('reports')}
+        onNavigateToLanding={() => setViewMode('landing')}
+        onOpenProfile={() => setViewMode('profile')}
+      />
+    );
+  }
+
+  // 5. Authenticated Reports View -> Resident Reports Portal
   return (
     <ReportsPage
       currentUser={currentUser}
       token={token}
       onLogout={handleLogout}
       onOpenProfile={() => setViewMode('profile')}
+      onNavigateToProblems={() => setViewMode('problems')}
     />
   );
 }
