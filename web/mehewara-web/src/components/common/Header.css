@@ -1,0 +1,269 @@
+/* ==========================================================================
+   Mehewara Top Navigation Header Component
+   Universal Header across Municipal Operation Portals
+   ========================================================================== */
+
+.app-header,
+.problems-top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--mw-border, #DDE2DE);
+  margin-bottom: 0.25rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Brand Section (Emblem + Sinhala Name) */
+.header-brand,
+.problems-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  user-select: none;
+}
+
+.header-brand-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.header-brand-name,
+.problems-brand-name {
+  font-family: 'Gemunu Libre', var(--mw-font-family, 'DM Sans'), sans-serif;
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--mw-primary-forest, #123C32);
+  letter-spacing: -0.015em;
+  line-height: 1;
+}
+
+/* Profile Trigger & Dropdown Menu */
+.header-profile-wrap,
+.problems-nav-profile-wrap {
+  position: relative;
+}
+
+.header-profile-trigger,
+.problems-profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--mw-surface, #FFFFFF);
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 20px;
+  padding: 4px 10px 4px 4px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  color: var(--mw-text-secondary, #68736E);
+}
+
+.header-profile-trigger:hover,
+.header-profile-trigger.active,
+.problems-profile-trigger:hover,
+.problems-profile-trigger.active {
+  border-color: var(--mw-primary-forest, #123C32);
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.08);
+}
+
+.header-profile-avatar,
+.problems-profile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--mw-soft-sage, #E5F6EE);
+  color: var(--mw-primary-forest, #123C32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.header-avatar-img,
+.problems-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.header-profile-chevron,
+.profile-chevron {
+  color: var(--mw-text-muted, #8F9995);
+  transition: transform 150ms ease;
+}
+
+.header-profile-chevron.rotated,
+.profile-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+/* Dropdown Popup Card */
+.header-profile-dropdown,
+.problems-profile-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 240px;
+  background: var(--mw-surface, #FFFFFF);
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(18, 60, 50, 0.12), 0 2px 6px rgba(18, 60, 50, 0.04);
+  z-index: 200;
+  padding: 0.85rem 0;
+  animation: headerDropdownFadeIn 140ms ease forwards;
+  box-sizing: border-box;
+}
+
+@keyframes headerDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.profile-dropdown-header {
+  padding: 0.25rem 1rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dropdown-user-name {
+  font-size: 0.925rem;
+  font-weight: 650;
+  color: var(--mw-text-primary, #18211E);
+  line-height: 1.25;
+}
+
+.dropdown-user-role-badge {
+  background: var(--mw-soft-sage, #E5F6EE);
+  color: var(--mw-primary-forest, #123C32);
+  padding: 0.18rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  width: fit-content;
+  letter-spacing: 0.02em;
+  margin-top: 0.15rem;
+}
+
+.dropdown-user-email {
+  font-size: 0.775rem;
+  color: var(--mw-text-muted, #8F9995);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-dropdown-divider {
+  height: 1px;
+  background: var(--mw-border-subtle, #EBEFEA);
+  margin: 0.35rem 0;
+}
+
+.profile-dropdown-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0 0.4rem;
+}
+
+.profile-dropdown-item {
+  border: none;
+  background: transparent;
+  color: var(--mw-text-primary, #18211E);
+  font-family: var(--mw-font-family, 'DM Sans', sans-serif);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  text-align: left;
+  transition: background 120ms ease, color 120ms ease;
+  box-sizing: border-box;
+}
+
+.profile-dropdown-item:hover {
+  background: var(--mw-page-bg, #F7F7F2);
+  color: var(--mw-primary-forest, #123C32);
+}
+
+.profile-dropdown-item.logout-item:hover {
+  background: var(--mw-critical-bg, #FEF2F2);
+  color: var(--mw-critical-text, #991B1B);
+}
+
+/* Auth Buttons (Logged-out state) */
+.header-auth-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.header-auth-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--mw-primary-forest, #123C32);
+  color: #FFFFFF;
+  border: 1px solid var(--mw-primary-forest, #123C32);
+  border-radius: 20px;
+  padding: 0.45rem 1.15rem;
+  font-family: var(--mw-font-family, 'DM Sans', sans-serif);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.12);
+  user-select: none;
+}
+
+.header-auth-btn:hover {
+  background: var(--mw-primary-hover, #0D3028);
+  border-color: var(--mw-primary-hover, #0D3028);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(18, 60, 50, 0.18);
+}
+
+.header-auth-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(18, 60, 50, 0.1);
+}
+
+.header-auth-btn svg {
+  flex-shrink: 0;
+  stroke: currentColor;
+}
+
+/* Responsive */
+@media (max-width: 580px) {
+  .app-header,
+  .problems-top-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .header-brand-logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .header-brand-name,
+  .problems-brand-name {
+    font-size: 1.85rem;
+  }
+}
