@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # --- LLM Configuration ---
     gemini_api_key: str = "not-set"
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-3.5-flash-lite"
 
     # --- ASP.NET Core Backend ---
     dotnet_api_base_url: str = "http://localhost:5153"

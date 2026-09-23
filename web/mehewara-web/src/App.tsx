@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { LoginPage } from './pages/auth/LoginPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import { ProblemsPage } from './pages/problems';
+import { UncertainReportsPage } from './pages/problems/UncertainReportsPage';
 import { LandingPage } from './pages/landing';
 import type { User } from './types/auth';
 
@@ -19,7 +20,7 @@ function App() {
     return localStorage.getItem('mehewara_token');
   });
 
-  const [viewMode, setViewMode] = useState<'landing' | 'reports' | 'problems' | 'profile' | 'login'>(() => {
+  const [viewMode, setViewMode] = useState<'landing' | 'reports' | 'problems' | 'uncertain-reports' | 'profile' | 'login'>(() => {
     try {
       const saved = localStorage.getItem('mehewara_user');
       const savedToken = localStorage.getItem('mehewara_token');
@@ -161,6 +162,21 @@ function App() {
         onLogout={handleLogout}
         onNavigateToReports={() => setViewMode('reports')}
         onNavigateToLanding={() => setViewMode('landing')}
+        onOpenProfile={() => setViewMode('profile')}
+        onNavigateToUncertainReports={() => setViewMode('uncertain-reports')}
+      />
+    );
+  }
+
+  // 4b. Authenticated Uncertain Reports Triage View (Coordinator HITL Review)
+  if (viewMode === 'uncertain-reports') {
+    return (
+      <UncertainReportsPage
+        currentUser={currentUser}
+        token={token}
+        onNavigateToProblems={() => setViewMode('problems')}
+        onNavigateToReports={() => setViewMode('reports')}
+        onLogout={handleLogout}
         onOpenProfile={() => setViewMode('profile')}
       />
     );

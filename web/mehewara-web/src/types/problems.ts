@@ -109,3 +109,45 @@ export interface PagedResult<T> {
   sortBy?: string;
   sortDirection?: string;
 }
+
+export interface NearbyCandidateProblemSummary {
+  problemId: string;
+  title: string;
+  category: string;
+  address: string | null;
+  distanceMeters: number;
+  reportCount: number;
+}
+
+export interface UncertainReportResponse {
+  reportId: string;
+  description: string;
+  category: string;
+  latitude: number;
+  longitude: number;
+  address: string | null;
+  residentName: string;
+  createdAt: string;
+  photoUrls: string[];
+  aiUncertaintyReason: string | null;
+  aiEvidence: string[];
+  nearbyCandidates: NearbyCandidateProblemSummary[];
+}
+
+export interface LinkUncertainReportRequest {
+  reportId: string;
+  problemId: string;
+  coordinatorNotes?: string;
+}
+
+export interface CreateProblemFromUncertainReportRequest {
+  reportId: string;
+  title: string;
+  description?: string;
+  category: string;
+  latitude: number;
+  longitude: number;
+  address?: string;
+  coordinatorNotes?: string;
+}
+

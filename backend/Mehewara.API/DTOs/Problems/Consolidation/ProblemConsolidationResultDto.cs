@@ -9,4 +9,6 @@ public class ProblemConsolidationResultDto
     public string Summary { get; set; } = string.Empty;
     public List<string> Evidence { get; set; } = new();
     public NewProblemCandidateDto? NewProblem { get; set; }
+    public string? UpdatedProblemDescription { get; set; }
+    public object? StructuredReport { get; set; }
 }

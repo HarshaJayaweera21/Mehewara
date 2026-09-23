@@ -21,7 +21,6 @@ from app.llm import get_llm, is_llm_configured
 from schemas.report_analysis import MunicipalCategory, ReportInputSchema, StructuredReport
 from tools.report_tools import (
     AGENT_1_TOOLS,
-    analyze_category_hints,
     get_asset_context,
     get_location_context,
     get_municipal_asset_catalog,
@@ -68,7 +67,7 @@ Your SOLE responsibility is to analyze raw citizen reports and extract strictly 
 ### Authoritative Output Fields:
 - `observedIssue`: Primary observable defect or physical condition described by the citizen.
 - `affectedAsset`: Specific municipal physical asset affected (e.g., road surface, streetlight, stormwater drain, sidewalk).
-- `reportedImpact`: Explicit impact stated by citizen (e.g. "traffic blocked", "pedestrians slipping"), or null if unmentioned.
+- `reportedImpact`: List of explicit impacts stated by citizen (e.g. ["traffic blocked", "pedestrians slipping"]), or empty list if unmentioned.
 - `duration`: How long the issue has persisted if stated (e.g. "since yesterday", "3 days"), or null.
 - `hazards`: List of explicit safety hazards mentioned in the report.
 - `reportedCategory`: Citizen's input category.
@@ -79,111 +78,34 @@ Your SOLE responsibility is to analyze raw citizen reports and extract strictly 
 """
 
 
-def _build_deterministic_structured_report(
-    report_input: ReportInputSchema,
-) -> StructuredReport:
-    """
-    Deterministic rule-based fallback extractor for offline testing or when
-    the LLM API is unavailable.
-    """
-    desc = report_input.description
-    desc_lower = desc.lower()
-
-    # Determine inferred category via keyword scan
-    inferred_cat_str, confidence = analyze_category_hints(desc)
-    try:
-        inferred_cat = MunicipalCategory(inferred_cat_str)
-    except ValueError:
-        inferred_cat = MunicipalCategory.ENVIRONMENT
-
-    # Find affected asset from @tool catalog
-    catalog: list[str] = get_municipal_asset_catalog.invoke({"category": inferred_cat.value})
-    affected_asset = "municipal infrastructure"
-    for asset in catalog:
-        if asset.lower() in desc_lower:
-            affected_asset = asset
-            break
-    if affected_asset == "municipal infrastructure" and catalog:
-        affected_asset = catalog[0]
-
-    # Extract duration hints
-    duration: str | None = None
-    duration_indicators = ["day", "days", "week", "weeks", "month", "months", "since", "yesterday", "hours", "past"]
-    for word in desc.split():
-        for ind in duration_indicators:
-            if ind in word.lower():
-                words = desc.split()
-                idx = words.index(word)
-                start = max(0, idx - 1)
-                end = min(len(words), idx + 2)
-                duration = " ".join(words[start:end])
-                break
-        if duration:
-            break
-
-    # Extract hazards
-    hazards: list[str] = []
-    if any(h in desc_lower for h in ["danger", "accident", "damage", "collision", "fall", "injury"]):
-        hazards.append("safety / accident hazard noted in description")
-    if any(h in desc_lower for h in ["spark", "shock", "electrocution", "live wire"]):
-        hazards.append("electrical hazard")
-    if any(h in desc_lower for h in ["flood", "drown", "waterlogging"]):
-        hazards.append("waterlogging / flood hazard")
-
-    # Missing information checklist
-    missing: list[str] = []
-    if len(report_input.photos) == 0:
-        missing.append("no photographic evidence attached")
-    if duration is None:
-        missing.append("duration / timeline of issue not stated")
-    if not any(dim in desc_lower for dim in ["cm", "m", "meter", "feet", "inch", "large", "small", "deep", "wide"]):
-        missing.append("physical dimensions / severity magnitude not quantified")
-
-    return StructuredReport(
-        report_id=report_input.id,
-        observed_issue=desc.strip(),
-        affected_asset=affected_asset,
-        reported_impact="Impact described in report" if any(i in desc_lower for i in ["block", "cannot", "damage", "prevent", "hard"]) else None,
-        duration=duration,
-        hazards=hazards,
-        reported_category=report_input.category,
-        inferred_category=inferred_cat,
-        category_confidence=confidence,
-        missing_information=missing,
-        image_available=len(report_input.photos) > 0,
-    )
-
-
 async def analyze_report_with_llm(
     report_input: ReportInputSchema,
 ) -> StructuredReport:
     """
     Execute Agent 1 report analysis using Google Gemini with structured Pydantic output
-    and allow-listed @tool bindings.
+    and allow-listed @tool bindings. Every execution runs strictly through the LLM agent.
     """
-    # If no Gemini API key is configured or set to default placeholder, use deterministic engine
     if not is_llm_configured():
-        logger.info("Using deterministic extractor (GEMINI_API_KEY not configured)")
-        return _build_deterministic_structured_report(report_input)
+        raise RuntimeError(
+            "Agent 1 requires a configured LLM. Please set GEMINI_API_KEY in .env."
+        )
 
-    try:
-        from langchain_core.messages import HumanMessage, SystemMessage
+    from langchain_core.messages import HumanMessage, SystemMessage
 
-        # Get shared configured LLM instance from centralized factory
-        llm = get_llm(temperature=0.1)
+    # Get shared configured LLM instance from centralized factory
+    llm = get_llm(temperature=0.1)
 
-        # Bind allow-listed tools and structured output schema
-        llm_with_tools = llm.bind_tools(AGENT_1_TOOLS)
-        structured_llm = llm_with_tools.with_structured_output(StructuredReport)
+    # Configure structured output schema for deterministic extraction
+    structured_llm = llm.with_structured_output(StructuredReport)
 
-        location_info: dict = get_location_context.invoke({
-            "latitude": report_input.latitude,
-            "longitude": report_input.longitude,
-            "address": report_input.address,
-        })
-        asset_catalog: list[str] = get_municipal_asset_catalog.invoke({})
+    location_info: dict = get_location_context.invoke({
+        "latitude": report_input.latitude,
+        "longitude": report_input.longitude,
+        "address": report_input.address,
+    })
+    asset_catalog: list[str] = get_municipal_asset_catalog.invoke({})
 
-        user_content = f"""Please analyze this citizen report:
+    user_content = f"""Please analyze this citizen report:
 Report ID: {report_input.id}
 Reported Category: {report_input.category}
 Coordinates: ({report_input.latitude}, {report_input.longitude})
@@ -199,24 +121,21 @@ Standard Municipal Assets Available:
 Remember: Extract ONLY observable facts. Do NOT speculate on invisible root causes. Populate missingInformation for any gaps.
 """
 
-        result = await structured_llm.ainvoke([
-            SystemMessage(content=AGENT_1_SYSTEM_PROMPT),
-            HumanMessage(content=user_content),
-        ])
+    result = await structured_llm.ainvoke([
+        SystemMessage(content=AGENT_1_SYSTEM_PROMPT),
+        HumanMessage(content=user_content),
+    ])
 
-        if isinstance(result, StructuredReport):
-            result.report_id = report_input.id
-            result.image_available = len(report_input.photos) > 0
-            return result
+    if isinstance(result, StructuredReport):
+        result.report_id = report_input.id
+        result.image_available = len(report_input.photos) > 0
+        return result
 
-        if isinstance(result, dict):
-            result["reportId"] = report_input.id
-            result["imageAvailable"] = len(report_input.photos) > 0
-            return StructuredReport(**result)
+    if isinstance(result, dict):
+        result["reportId"] = report_input.id
+        result["imageAvailable"] = len(report_input.photos) > 0
+        return StructuredReport(**result)
 
-        logger.warning("LLM returned non-StructuredReport object (%s), falling back", type(result))
-        return _build_deterministic_structured_report(report_input)
-
-    except Exception as ex:
-        logger.exception("LLM extraction failed (%s). Using deterministic fallback.", ex)
-        return _build_deterministic_structured_report(report_input)
+    raise ValueError(
+        f"Agent 1 failed to produce a valid StructuredReport. Received: {type(result)}"
+    )

@@ -5,6 +5,9 @@ import type {
   GetProblemsParams,
   CreateProblemRequest,
   PagedResult,
+  UncertainReportResponse,
+  LinkUncertainReportRequest,
+  CreateProblemFromUncertainReportRequest,
 } from '../types/problems';
 import type { ApiError } from '../types/auth';
 
@@ -98,3 +101,56 @@ export async function createProblem(token: string, data: CreateProblemRequest): 
 
   return handleResponse<ProblemResponse>(res);
 }
+
+/**
+ * Get all uncertain reports flagged by AI Agent 2 for coordinator review
+ */
+export async function getUncertainReports(token: string): Promise<UncertainReportResponse[]> {
+  const res = await fetch(`${API_BASE}/problems/uncertain-reports`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return handleResponse<UncertainReportResponse[]>(res);
+}
+
+/**
+ * Manually link an uncertain report to an existing active problem
+ */
+export async function linkUncertainReport(
+  token: string,
+  data: LinkUncertainReportRequest
+): Promise<ProblemResponse> {
+  const res = await fetch(`${API_BASE}/problems/uncertain-reports/link`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse<ProblemResponse>(res);
+}
+
+/**
+ * Manually create a new problem from an uncertain report
+ */
+export async function createProblemFromUncertainReport(
+  token: string,
+  data: CreateProblemFromUncertainReportRequest
+): Promise<ProblemResponse> {
+  const res = await fetch(`${API_BASE}/problems/uncertain-reports/create`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse<ProblemResponse>(res);
+}
+
