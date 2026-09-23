@@ -6,7 +6,7 @@ import type {
   ProblemPriority,
   ProblemStatus,
 } from '../../types/problems';
-import { getProblems } from '../../services/problemApi';
+import { getProblems, getUncertainReports } from '../../services/problemApi';
 import { Header } from '../../components/common';
 import { CoordinatorWelcomeBanner } from './CoordinatorWelcomeBanner';
 import { ProblemDetailModal } from './ProblemDetailModal';
@@ -20,6 +20,7 @@ export interface ProblemsPageProps {
   onOpenProfile?: () => void;
   onNavigateToLanding?: () => void;
   onSelectProblem?: (problemId: string) => void;
+  onNavigateToUncertainReports?: () => void;
 }
 
 const CATEGORIES: (ProblemCategory | 'ALL')[] = [
@@ -55,6 +56,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   onOpenProfile,
   onNavigateToLanding,
   onSelectProblem,
+  onNavigateToUncertainReports,
 }) => {
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,6 +69,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   // Real backend data states
   const [problems, setProblems] = useState<ProblemResponse[]>([]);
   const [allProblemsForMetrics, setAllProblemsForMetrics] = useState<ProblemResponse[]>([]);
+  const [uncertainCount, setUncertainCount] = useState<number>(0);
   const [totalResults, setTotalResults] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,6 +77,25 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   const [activeToast, setActiveToast] = useState<string | null>(null);
   const [retryTrigger, setRetryTrigger] = useState(0);
   const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
+
+  // Fetch count of uncertain reports requiring coordinator review
+  useEffect(() => {
+    let ignore = false;
+    const authToken = token || localStorage.getItem('mehewara_token') || '';
+    getUncertainReports(authToken)
+      .then((data) => {
+        if (!ignore && data) {
+          setUncertainCount(data.length);
+        }
+      })
+      .catch(() => {
+        // Silently catch if not authenticated or error
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [token, retryTrigger]);
 
   // Fetch real problem records from backend API
   useEffect(() => {
@@ -256,6 +278,51 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
         {/* 1. Coordinator Welcome Banner (Stitch Generated with Real Time Greeting) */}
         <CoordinatorWelcomeBanner roleName="Coordinator" activeProblemsCount={metrics.totalActive} />
 
+        {/* 1.5. Coordinator Triage Alert Banner (Agent 2 HITL Queue) */}
+        {uncertainCount > 0 && onNavigateToUncertainReports && (
+          <div
+            className="problems-uncertain-alert-banner"
+            onClick={onNavigateToUncertainReports}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="uncertain-alert-left">
+              <div className="uncertain-alert-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </div>
+              <div className="uncertain-alert-body">
+                <div className="uncertain-alert-title-row">
+                  <span className="uncertain-alert-title">
+                    {uncertainCount} Report{uncertainCount > 1 ? 's' : ''} Require Coordinator Review
+                  </span>
+                  <span className="uncertain-alert-badge">Agent 2 Human-in-the-Loop</span>
+                </div>
+                <p className="uncertain-alert-desc">
+                  AI consolidation flagged borderline or ambiguous citizen defect submissions. Open triage to inspect evidence, manually link to existing problems, or create new problem records.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="uncertain-alert-cta-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigateToUncertainReports();
+              }}
+            >
+              <span>Review Uncertain Reports</span>
+              <span className="uncertain-cta-count">{uncertainCount}</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* 2. Top Metrics Strip (Unified White Surface with Dividers) */}
         <section className="problems-metrics-strip" aria-label="Key Operational Metrics">
           <div className="problems-metric-cell">
@@ -402,12 +469,28 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
           <h2 className="results-section-title">
             <span>Problems</span>
           </h2>
-          <div className="results-count-pill">
-            {isLoading
-              ? 'Loading...'
-              : totalResults === 0
-              ? 'No problems found'
-              : `${totalResults} ${totalResults === 1 ? 'result' : 'results'}`}
+          <div className="problems-results-header-actions">
+            {onNavigateToUncertainReports && (
+              <button
+                type="button"
+                className="problems-uncertain-nav-btn"
+                onClick={onNavigateToUncertainReports}
+                title="Review citizen reports flagged by Agent 2 as uncertain"
+              >
+                <span className="uncertain-nav-dot" />
+                <span>Uncertain Reports Queue</span>
+                {uncertainCount > 0 && (
+                  <span className="uncertain-nav-badge">{uncertainCount}</span>
+                )}
+              </button>
+            )}
+            <div className="results-count-pill">
+              {isLoading
+                ? 'Loading...'
+                : totalResults === 0
+                ? 'No problems found'
+                : `${totalResults} ${totalResults === 1 ? 'result' : 'results'}`}
+            </div>
           </div>
         </div>
 

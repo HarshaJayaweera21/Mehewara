@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ProblemDetailResponse, RelatedReportSummary } from '../../types/problems';
 import type { ReportResponse } from '../../types/reports';
 import { getProblemById } from '../../services/problemApi';
@@ -61,10 +61,6 @@ function getReportStatusClass(status: string): string {
   if (s === 'RESOLVED') return 'pdm-report-status-resolved';
   if (s === 'CANCELLED') return 'pdm-report-status-cancelled';
   return 'pdm-report-status-pending';
-}
-
-function truncateId(id: string, chars = 12): string {
-  return id.length > chars ? id.slice(0, chars) + '…' : id;
 }
 
 // ─── Sub-component: Individual Report Detail Popup ────────────────────────────
@@ -369,7 +365,6 @@ export const ProblemDetailModal: React.FC<ProblemDetailModalProps> = ({
   const [problem, setProblem] = useState<ProblemDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
   // Stacked modal states
