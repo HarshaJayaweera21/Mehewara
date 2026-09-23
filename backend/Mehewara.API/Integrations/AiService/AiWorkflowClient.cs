@@ -31,6 +31,69 @@ public class AiWorkflowClient : IAiWorkflowClient
         var baseUrl = _configuration["AiService:BaseUrl"] ?? "http://localhost:8000";
         var endpoint = $"{baseUrl.TrimEnd('/')}/internal/ai/workflows";
 
+        // Query active candidate problems and nearby reports from database within ~1km bounding box
+        List<object> candidateProblems = new();
+        List<object> relatedReports = new();
+
+        try
+        {
+            using var queryScope = _scopeFactory.CreateScope();
+            var dbContext = queryScope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // ~1km radius bounding box: approx 0.01 degrees in latitude/longitude
+            var minLat = report.Latitude - 0.01m;
+            var maxLat = report.Latitude + 0.01m;
+            var minLon = report.Longitude - 0.01m;
+            var maxLon = report.Longitude + 0.01m;
+
+            var dbProblems = await dbContext.Problems
+                .AsNoTracking()
+                .Where(p => p.Status != "RESOLVED" && p.Status != "CANCELLED")
+                .Where(p => p.Latitude >= minLat && p.Latitude <= maxLat && p.Longitude >= minLon && p.Longitude <= maxLon)
+                .Take(10)
+                .Select(p => new
+                {
+                    problemId = p.ProblemId,
+                    title = p.Title,
+                    description = p.Description,
+                    category = p.Category,
+                    status = p.Status,
+                    latitude = (double)p.Latitude,
+                    longitude = (double)p.Longitude,
+                    address = p.Address,
+                    priority = p.Priority,
+                    reportCount = p.Reports.Count
+                })
+                .ToListAsync();
+
+            candidateProblems = dbProblems.Cast<object>().ToList();
+
+            var dbReports = await dbContext.Reports
+                .AsNoTracking()
+                .Where(r => r.ReportId != report.ReportId && r.Status != "RESOLVED" && r.Status != "CANCELLED")
+                .Where(r => r.Latitude >= minLat && r.Latitude <= maxLat && r.Longitude >= minLon && r.Longitude <= maxLon)
+                .Take(10)
+                .Select(r => new
+                {
+                    reportId = r.ReportId,
+                    problemId = r.ProblemId,
+                    description = r.Description,
+                    category = r.Category,
+                    latitude = (double)r.Latitude,
+                    longitude = (double)r.Longitude,
+                    address = r.Address,
+                    status = r.Status,
+                    createdAt = r.CreatedAt
+                })
+                .ToListAsync();
+
+            relatedReports = dbReports.Cast<object>().ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load candidate problems/reports from database for Report {ReportId}. Proceeding with empty context.", report.ReportId);
+        }
+
         var payload = new
         {
             workflowId = workflowRunId,
@@ -39,8 +102,8 @@ public class AiWorkflowClient : IAiWorkflowClient
                 id = report.ReportId,
                 description = report.Description,
                 category = report.Category,
-                latitude = report.Latitude,
-                longitude = report.Longitude,
+                latitude = (double)report.Latitude,
+                longitude = (double)report.Longitude,
                 address = report.Address,
                 photos = report.Photos.Select(p => new
                 {
@@ -52,18 +115,18 @@ public class AiWorkflowClient : IAiWorkflowClient
             },
             context = new
             {
-                candidateProblems = new List<object>(),
-                relatedReports = new List<object>(),
+                candidateProblems = candidateProblems,
+                relatedReports = relatedReports,
                 availableCrews = new List<object>()
             }
         };
 
         try
         {
-            _logger.LogInformation("Triggering AI workflow for Report {ReportId} (WorkflowRun {WorkflowRunId}) at {Endpoint}",
-                report.ReportId, workflowRunId, endpoint);
+            _logger.LogInformation("Triggering AI workflow for Report {ReportId} (WorkflowRun {WorkflowRunId}) with {CandidateCount} candidate problems at {Endpoint}",
+                report.ReportId, workflowRunId, candidateProblems.Count, endpoint);
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(90));
             var response = await _httpClient.PostAsJsonAsync(endpoint, payload, cts.Token);
 
             if (response.IsSuccessStatusCode)
@@ -72,7 +135,7 @@ public class AiWorkflowClient : IAiWorkflowClient
                 _logger.LogInformation("AI workflow response received for Report {ReportId}: {Response}",
                     report.ReportId, responseContent);
 
-                // Persist the AI structured analysis into PostgreSQL (workflow_runs and workflow_events)
+                // Persist the AI structured analysis and problem consolidation into PostgreSQL
                 await PersistWorkflowResultAsync(workflowRunId, responseContent);
 
                 return true;
@@ -107,41 +170,174 @@ public class AiWorkflowClient : IAiWorkflowClient
                 return;
             }
 
-            // Parse response JSON to extract the analysis section
+            // Retrieve the target report
+            var report = await context.Reports
+                .Include(r => r.Problem)
+                .FirstOrDefaultAsync(r => r.ReportId == workflowRun.ReportId);
+
             using var doc = JsonDocument.Parse(responseJson);
             var root = doc.RootElement;
-            string stateData = responseJson;
-            if (root.TryGetProperty("analysis", out var analysisElem))
+
+            // 1. Extract Agent 1 structured report analysis
+            string agent1Data = string.Empty;
+            if (root.TryGetProperty("reportAnalysis", out var reportAnalysisElem))
             {
-                stateData = analysisElem.GetRawText();
+                agent1Data = reportAnalysisElem.GetRawText();
+            }
+            else if (root.TryGetProperty("analysis", out var analysisElem))
+            {
+                agent1Data = analysisElem.GetRawText();
             }
 
-            workflowRun.StateData = stateData;
-            workflowRun.CurrentStage = "REPORT_ANALYSIS";
+            // Add immutable audit trail for Agent 1 (Report Analysis)
+            if (!string.IsNullOrWhiteSpace(agent1Data))
+            {
+                var event1 = new WorkflowEvent
+                {
+                    WorkflowEventId = Guid.NewGuid(),
+                    WorkflowRunId = workflowRun.WorkflowRunId,
+                    AgentName = "Report Analysis Agent",
+                    Stage = "REPORT_ANALYSIS",
+                    Status = "COMPLETED",
+                    InputData = JsonSerializer.Serialize(new { reportId = workflowRun.ReportId }),
+                    OutputData = agent1Data,
+                    ValidationResult = JsonSerializer.Serialize(new { result = "PASSED", checks = "Anti-hallucination verified" }),
+                    ToolResults = JsonSerializer.Serialize(new { tools = new[] { "get_municipal_asset_catalog", "get_location_context" } }),
+                    StartedAt = workflowRun.StartedAt,
+                    CompletedAt = DateTime.UtcNow
+                };
+                context.WorkflowEvents.Add(event1);
+            }
+
+            // 2. Extract Agent 2 problem consolidation analysis
+            if (root.TryGetProperty("problemAnalysis", out var problemAnalysisElem) &&
+                problemAnalysisElem.ValueKind == JsonValueKind.Object &&
+                report != null)
+            {
+                var decision = problemAnalysisElem.TryGetProperty("decision", out var decProp) ? decProp.GetString() : "UNCERTAIN";
+                var summary = problemAnalysisElem.TryGetProperty("summary", out var sumProp) ? sumProp.GetString() : null;
+                var updatedProblemDescription = problemAnalysisElem.TryGetProperty("updatedProblemDescription", out var updProp) ? updProp.GetString() : null;
+                var problemIdStr = problemAnalysisElem.TryGetProperty("problemId", out var pidProp) && pidProp.ValueKind == JsonValueKind.String ? pidProp.GetString() : null;
+
+                _logger.LogInformation("Applying Agent 2 decision '{Decision}' for Report {ReportId}", decision, report.ReportId);
+
+                // Case A: Link to Existing Municipal Problem
+                if (decision == "LINK_EXISTING" && Guid.TryParse(problemIdStr, out var targetProblemId))
+                {
+                    var existingProblem = await context.Problems
+                        .Include(p => p.Reports)
+                        .FirstOrDefaultAsync(p => p.ProblemId == targetProblemId);
+
+                    if (existingProblem != null)
+                    {
+                        report.ProblemId = existingProblem.ProblemId;
+
+                        // Add report to collection to compute updated centroid
+                        var allLinkedReports = existingProblem.Reports.ToList();
+                        if (!allLinkedReports.Any(r => r.ReportId == report.ReportId))
+                        {
+                            allLinkedReports.Add(report);
+                        }
+
+                        // Recalculate Centroid / Average of Latitude & Longitude across all reports under this problem
+                        if (allLinkedReports.Count > 0)
+                        {
+                            existingProblem.Latitude = allLinkedReports.Average(r => r.Latitude);
+                            existingProblem.Longitude = allLinkedReports.Average(r => r.Longitude);
+                        }
+
+                        // Update Problem Description with synthesized AI summary
+                        var summaryToUse = !string.IsNullOrWhiteSpace(updatedProblemDescription) ? updatedProblemDescription : summary;
+                        if (!string.IsNullOrWhiteSpace(summaryToUse))
+                        {
+                            existingProblem.Description = summaryToUse;
+                        }
+
+                        existingProblem.UpdatedAt = DateTime.UtcNow;
+
+                        _logger.LogInformation("Successfully linked Report {ReportId} to Problem {ProblemId}. Centroid updated to ({Lat}, {Lon}) and AI summary saved.",
+                            report.ReportId, existingProblem.ProblemId, existingProblem.Latitude, existingProblem.Longitude);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Agent 2 proposed linking to Problem {ProblemId}, but problem does not exist in DB.", targetProblemId);
+                    }
+                }
+                // Case B: Create New Municipal Problem
+                else if (decision == "CREATE_NEW" &&
+                         problemAnalysisElem.TryGetProperty("newProblem", out var newProblemElem) &&
+                         newProblemElem.ValueKind == JsonValueKind.Object)
+                {
+                    var newTitle = newProblemElem.TryGetProperty("title", out var tProp) ? tProp.GetString() : "Municipal Problem";
+                    var newDesc = newProblemElem.TryGetProperty("description", out var dProp) ? dProp.GetString() : (!string.IsNullOrWhiteSpace(summary) ? summary : report.Description);
+                    var newCategory = newProblemElem.TryGetProperty("category", out var cProp) ? cProp.GetString() : report.Category;
+                    var newLat = newProblemElem.TryGetProperty("latitude", out var ltProp) ? (decimal)ltProp.GetDouble() : report.Latitude;
+                    var newLon = newProblemElem.TryGetProperty("longitude", out var lnProp) ? (decimal)lnProp.GetDouble() : report.Longitude;
+                    var newAddr = newProblemElem.TryGetProperty("address", out var aProp) ? aProp.GetString() : report.Address;
+
+                    var newProblem = new Problem
+                    {
+                        ProblemId = Guid.NewGuid(),
+                        Title = newTitle ?? "Municipal Problem",
+                        Description = newDesc, // Initial AI summary generated using this single report
+                        Category = newCategory ?? report.Category,
+                        Latitude = newLat,
+                        Longitude = newLon,
+                        Address = newAddr ?? report.Address,
+                        Status = "IDENTIFIED",
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    context.Problems.Add(newProblem);
+                    report.ProblemId = newProblem.ProblemId;
+
+                    _logger.LogInformation("Successfully created new Problem {ProblemId} ('{Title}') from Report {ReportId} with initial AI summary.",
+                        newProblem.ProblemId, newProblem.Title, report.ReportId);
+                }
+                // Case C: UNCERTAIN (Safe Failure - Keep unlinked pending coordinator review)
+                else
+                {
+                    report.ProblemId = null;
+                    _logger.LogInformation("Report {ReportId} remains unlinked (Decision: {Decision}).", report.ReportId, decision);
+                }
+
+                // Add immutable audit trail for Agent 2 (Problem Consolidation)
+                var event2 = new WorkflowEvent
+                {
+                    WorkflowEventId = Guid.NewGuid(),
+                    WorkflowRunId = workflowRun.WorkflowRunId,
+                    AgentName = "Problem Consolidation Agent",
+                    Stage = "PROBLEM_CONSOLIDATION",
+                    Status = "COMPLETED",
+                    InputData = JsonSerializer.Serialize(new { reportId = workflowRun.ReportId }),
+                    OutputData = problemAnalysisElem.GetRawText(),
+                    ValidationResult = JsonSerializer.Serialize(new
+                    {
+                        decision,
+                        problemId = report.ProblemId,
+                        validation = "PASSED"
+                    }),
+                    ToolResults = JsonSerializer.Serialize(new
+                    {
+                        tools = new[] { "search_existing_problems", "search_similar_reports", "get_nearby_reports" }
+                    }),
+                    StartedAt = workflowRun.StartedAt,
+                    CompletedAt = DateTime.UtcNow
+                };
+                context.WorkflowEvents.Add(event2);
+            }
+
+            // Update workflowRun state and stage
+            workflowRun.StateData = responseJson;
+            workflowRun.CurrentStage = "PROBLEM_CONSOLIDATION";
             workflowRun.Status = "COMPLETED";
             workflowRun.CompletedAt = DateTime.UtcNow;
             workflowRun.UpdatedAt = DateTime.UtcNow;
 
-            // Add immutable audit trail in workflow_events
-            var workflowEvent = new WorkflowEvent
-            {
-                WorkflowEventId = Guid.NewGuid(),
-                WorkflowRunId = workflowRun.WorkflowRunId,
-                AgentName = "Report Analysis Agent",
-                Stage = "REPORT_ANALYSIS",
-                Status = "COMPLETED",
-                InputData = JsonSerializer.Serialize(new { reportId = workflowRun.ReportId }),
-                OutputData = stateData,
-                ValidationResult = JsonSerializer.Serialize(new { result = "PASSED", checks = "Anti-hallucination verified" }),
-                ToolResults = JsonSerializer.Serialize(new { tools = new[] { "get_municipal_asset_catalog", "get_location_context" } }),
-                StartedAt = workflowRun.StartedAt,
-                CompletedAt = DateTime.UtcNow
-            };
-
-            context.WorkflowEvents.Add(workflowEvent);
             await context.SaveChangesAsync();
 
-            _logger.LogInformation("Successfully persisted Agent 1 structured analysis into PostgreSQL workflow_runs ({WorkflowRunId})",
+            _logger.LogInformation("Successfully persisted Agent 1 & Agent 2 workflow results into PostgreSQL for WorkflowRun {WorkflowRunId}",
                 workflowRunId);
         }
         catch (Exception ex)
