@@ -58,7 +58,8 @@ class MehewaraWorkflowState(TypedDict, total=False):
     # Stage 2 Output (Member 2 — Problem Identification & Consolidation)
     problem_analysis: dict[str, Any] | None
 
-    # Stage 3 Output (Member 3 — Prioritization & Crew Recommendation - Future)
+    # Stage 3 Output (Member 3 — Prioritization & Crew Recommendation)
+    priority_analysis: dict[str, Any] | None
     recommendations: list[dict[str, Any]] | None
 
     # Stage 4 Output (Member 4 — Validation & Safety - Future)
@@ -237,12 +238,16 @@ async def run_mehewara_workflow(
 
     structured_report = final_state.get("structured_report")
     problem_analysis = final_state.get("problem_analysis")
+    priority_analysis = final_state.get("priority_analysis")
+    recommendations = final_state.get("recommendations")
 
     return {
         "workflow_id": str(workflow_id),
         "status": "completed",
         "report_analysis": structured_report,
         "problem_analysis": problem_analysis,
+        "priority_analysis": priority_analysis,
+        "recommendations": recommendations,
         # Backward compatibility alias for Member 1 ASP.NET Core client:
         "analysis": structured_report,
     }
