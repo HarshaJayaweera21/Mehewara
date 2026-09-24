@@ -31,6 +31,11 @@ from schemas.problem_consolidation import (
 )
 from tools.problem_tools import set_workflow_candidate_context
 
+# Agent 3 (Member 3)
+from agents.priority_crew_agent import run_priority_recommendation
+from schemas.priority_recommendation import PriorityRecommendationOutput
+from tools.crew_tools import set_workflow_crew_context
+
 logger = logging.getLogger(__name__)
 
 
@@ -177,6 +182,104 @@ async def agent_2_problem_consolidation_node(state: MehewaraWorkflowState) -> di
         return {"error": f"Agent 2 failed: {ex}"}
 
 
+async def agent_3_prioritization_node(state: MehewaraWorkflowState) -> dict[str, Any]:
+    """
+    Node 3: Agent 3 (Prioritization & Crew Recommendation — Member 3)
+    Reads consolidated problem and Agent 1 facts from Agent 2's output,
+    assesses problem severity/urgency, and recommends an available crew.
+    """
+    logger.info("[Workflow %s] Executing Node 3: Agent 3 (Prioritization & Crew Recommendation)...", state.get("workflow_id"))
+
+    problem_analysis = state.get("problem_analysis")
+    if not problem_analysis:
+        logger.warning("[Workflow %s] No problem analysis from Agent 2; skipping Agent 3.", state.get("workflow_id"))
+        return {
+            "priority_analysis": None,
+            "recommendations": [],
+        }
+
+    # Safe Failure check (ADR-06): If Agent 2 decision is UNCERTAIN, bypass prioritization
+    decision = problem_analysis.get("decision")
+    if decision == "UNCERTAIN":
+        logger.info("[Workflow %s] Problem consolidation is UNCERTAIN; skipping Agent 3 prioritization pending coordinator review.", state.get("workflow_id"))
+        return {
+            "priority_analysis": None,
+            "recommendations": [],
+        }
+
+    try:
+        raw_rep = state.get("raw_report", {})
+        new_prob = problem_analysis.get("newProblem") or {}
+
+        # 1. Assemble problem data
+        prob_id = problem_analysis.get("problemId") or "NEW_PROBLEM"
+        prob_title = (
+            new_prob.get("title")
+            or problem_analysis.get("summary")
+            or raw_rep.get("description", "Municipal Problem")
+        )
+        prob_desc = (
+            problem_analysis.get("updatedProblemDescription")
+            or new_prob.get("description")
+            or raw_rep.get("description", "")
+        )
+        prob_cat = (
+            new_prob.get("category")
+            or raw_rep.get("category", "")
+        )
+        prob_lat = float(new_prob.get("latitude") or raw_rep.get("latitude", 0.0))
+        prob_lon = float(new_prob.get("longitude") or raw_rep.get("longitude", 0.0))
+        prob_addr = new_prob.get("address") or raw_rep.get("address", "")
+        report_count = len(problem_analysis.get("relatedReportIds", [])) or 1
+
+        problem_data = {
+            "problemId": str(prob_id),
+            "title": prob_title,
+            "description": prob_desc,
+            "category": prob_cat,
+            "latitude": prob_lat,
+            "longitude": prob_lon,
+            "address": prob_addr,
+            "reportCount": report_count,
+        }
+
+        # 2. Access Agent 1 structured observations via ADR-05 passthrough
+        structured_report = (
+            problem_analysis.get("structuredReport")
+            or state.get("structured_report")
+            or state.get("report_analysis")
+        )
+
+        # 3. Access available crews from state (populated by ASP.NET Core)
+        available_crews = state.get("available_crews", [])
+
+        # 4. Execute Agent 3 recommendation
+        result: PriorityRecommendationOutput = await run_priority_recommendation(
+            problem_data=problem_data,
+            structured_report=structured_report,
+            available_crews=available_crews,
+        )
+
+        logger.info(
+            "[Workflow %s] Agent 3 completed successfully. Priority: %s (%d), Crew: %s (%s)",
+            state.get("workflow_id"),
+            result.priority.value,
+            result.priority_score,
+            result.recommended_crew_name or "N/A",
+            result.recommended_crew_id,
+        )
+
+        result_dict = result.model_dump(by_alias=True)
+        return {
+            "priority_analysis": result_dict,
+            "recommendations": [result_dict],
+        }
+
+    except Exception as ex:
+        logger.exception("[Workflow %s] Agent 3 execution failed: %s", state.get("workflow_id"), ex)
+        return {"error": f"Agent 3 failed: {ex}"}
+
+
 # ────────────────────────────────────────────────────────────────
 # 3. StateGraph Assembly & Compilation
 # ────────────────────────────────────────────────────────────────
@@ -184,20 +287,20 @@ async def agent_2_problem_consolidation_node(state: MehewaraWorkflowState) -> di
 def build_mehewara_graph() -> StateGraph:
     """
     Assembles and compiles the full multi-agent workflow graph.
-    Flow: START -> Agent 1 -> Agent 2 -> (Agent 3 -> Agent 4) -> END
+    Flow: START -> Agent 1 -> Agent 2 -> Agent 3 -> END (Agent 4 plug-in ready)
     """
     builder = StateGraph(MehewaraWorkflowState)
 
     # Register agent stage nodes
     builder.add_node("agent_1_report_analysis", agent_1_report_analysis_node)
     builder.add_node("agent_2_problem_consolidation", agent_2_problem_consolidation_node)
+    builder.add_node("agent_3_prioritization", agent_3_prioritization_node)
 
     # Entry point & sequential transitions
     builder.set_entry_point("agent_1_report_analysis")
     builder.add_edge("agent_1_report_analysis", "agent_2_problem_consolidation")
-
-    # Current terminal edge (Member 3 will route from agent_2_problem_consolidation to agent_3)
-    builder.add_edge("agent_2_problem_consolidation", END)
+    builder.add_edge("agent_2_problem_consolidation", "agent_3_prioritization")
+    builder.add_edge("agent_3_prioritization", END)
 
     return builder.compile()
 
