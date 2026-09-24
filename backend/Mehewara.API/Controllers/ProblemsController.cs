@@ -51,4 +51,30 @@ public class ProblemsController : ControllerBase
             new { id = result.Id },
             result);
     }
+
+    [HttpGet("uncertain-reports")]
+    public async Task<ActionResult<IEnumerable<Mehewara.API.DTOs.Problems.Consolidation.UncertainReportResponse>>> GetUncertainReports()
+    {
+        var result = await _problemService.GetUncertainReportsAsync();
+        return Ok(result);
+    }
+
+    [HttpPost("uncertain-reports/link")]
+    public async Task<ActionResult<ProblemResponse>> LinkUncertainReport(
+        [FromBody] Mehewara.API.DTOs.Problems.Consolidation.LinkUncertainReportRequest request)
+    {
+        var result = await _problemService.LinkUncertainReportAsync(request);
+        return Ok(result);
+    }
+
+    [HttpPost("uncertain-reports/create")]
+    public async Task<ActionResult<ProblemResponse>> CreateProblemFromUncertainReport(
+        [FromBody] Mehewara.API.DTOs.Problems.Consolidation.CreateProblemFromUncertainReportRequest request)
+    {
+        var result = await _problemService.CreateProblemFromUncertainReportAsync(request);
+        return CreatedAtAction(
+            nameof(GetProblemById),
+            new { id = result.Id },
+            result);
+    }
 }

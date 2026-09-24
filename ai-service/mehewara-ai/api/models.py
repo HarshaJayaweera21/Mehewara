@@ -12,6 +12,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from schemas.problem_consolidation import ProblemConsolidationOutputSchema
 from schemas.report_analysis import StructuredReport
 
 
@@ -74,13 +75,23 @@ class WorkflowTriggerRequest(BaseModel):
 # ────────────────────────────────────────────────────────────────
 
 class WorkflowTriggerResponse(BaseModel):
-    """Response returned after processing or queueing a workflow trigger."""
+    """Response returned after executing the multi-agent workflow."""
     status: str = "completed"
     workflow_id: UUID = Field(..., alias="workflowId")
-    message: str = "Agent 1 report analysis completed successfully"
+    message: str = "Multi-agent workflow completed successfully"
+    report_analysis: StructuredReport | None = Field(
+        default=None,
+        alias="reportAnalysis",
+        description="Observable facts and municipal categorization produced by Agent 1",
+    )
+    problem_analysis: ProblemConsolidationOutputSchema | None = Field(
+        default=None,
+        alias="problemAnalysis",
+        description="Municipal problem clustering and consolidation produced by Agent 2",
+    )
     analysis: StructuredReport | None = Field(
         default=None,
-        description="Structured report analysis extracted by Agent 1",
+        description="Backward compatibility alias mapping to Agent 1 analysis",
     )
 
     model_config = {"populate_by_name": True, "serialize_by_alias": True}

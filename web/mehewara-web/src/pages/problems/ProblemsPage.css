@@ -956,3 +956,155 @@
     justify-content: space-between;
   }
 }
+
+/* ==========================================================================
+   Coordinator Uncertain Reports Triage Banner & Nav Styles
+   ========================================================================== */
+.problems-uncertain-alert-banner {
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+  border: 1px solid #FCD34D;
+  border-radius: 10px;
+  padding: 1.15rem 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.problems-uncertain-alert-banner:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.14);
+}
+
+.uncertain-alert-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.uncertain-alert-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #FEF08A;
+  color: #B45309;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.uncertain-alert-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.uncertain-alert-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.uncertain-alert-title {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #92400E;
+}
+
+.uncertain-alert-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #FDE68A;
+  color: #78350F;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+}
+
+.uncertain-alert-desc {
+  font-size: 0.835rem;
+  color: #78350F;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.uncertain-alert-cta-btn {
+  background: #B45309;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 0.65rem 1.15rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.uncertain-alert-cta-btn:hover {
+  background: #92400E;
+  transform: translateY(-1px);
+}
+
+.uncertain-cta-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.12rem 0.48rem;
+  border-radius: 999px;
+}
+
+.problems-results-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.problems-uncertain-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.problems-uncertain-nav-btn:hover {
+  background: #FEF3C7;
+  border-color: #FCD34D;
+}
+
+.uncertain-nav-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #D97706;
+  display: inline-block;
+}
+
+.uncertain-nav-badge {
+  background: #B45309;
+  color: #FFFFFF;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+}
+

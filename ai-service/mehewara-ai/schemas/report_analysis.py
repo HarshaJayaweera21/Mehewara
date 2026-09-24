@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -68,10 +69,10 @@ class StructuredReport(BaseModel):
         alias="affectedAsset",
         description="The physical municipal asset affected (e.g., 'road surface', 'storm drain', 'streetlight', 'sidewalk').",
     )
-    reported_impact: str | None = Field(
-        default=None,
+    reported_impact: list[str] = Field(
+        default_factory=list,
         alias="reportedImpact",
-        description="Explicit impact on residents or transit stated in the report (e.g., 'cars cannot pass'). None if unstated.",
+        description="Explicit impacts on residents or transit stated in the report (e.g., ['cars cannot pass']). Empty list if unstated.",
     )
     duration: str | None = Field(
         default=None,
@@ -150,6 +151,19 @@ class StructuredReport(BaseModel):
         except ValueError:
             return MunicipalCategory.ENVIRONMENT
 
+    @field_validator("reported_impact", mode="before")
+    @classmethod
+    def validate_reported_impact(cls, value: Any) -> list[str]:
+        """Ensure reported_impact is always normalized to a list of strings."""
+        if value is None:
+            return []
+        if isinstance(value, str):
+            val_clean = value.strip()
+            return [val_clean] if val_clean else []
+        if isinstance(value, (list, tuple)):
+            return [str(v).strip() for v in value if str(v).strip()]
+        return []
+
     model_config = {
         "populate_by_name": True,
         "serialize_by_alias": True,
@@ -158,7 +172,7 @@ class StructuredReport(BaseModel):
                 "reportId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                 "observedIssue": "Large pothole in the center lane of the road with visible asphalt crumbling",
                 "affectedAsset": "road surface",
-                "reportedImpact": "Vehicles are swerving dangerously to avoid damage",
+                "reportedImpact": ["Vehicles are swerving dangerously to avoid damage"],
                 "duration": "past 4 days",
                 "hazards": ["vehicle collision risk", "tire puncture hazard"],
                 "reportedCategory": "ROAD",
