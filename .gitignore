@@ -516,3 +516,17 @@ downloads/*
 
 
 *.md
+
+# ============================================================
+# GRAPHIFY (Code Knowledge Graph Artifacts)
+# ============================================================
+graphify-out/
+**/graphify-out/
+.graphify/
+**/.graphify/
+.graphify_analysis.json
+.graphify_labels.json
+.graphify_root
+graph.html
+GRAPH_TREE.html
+GRAPH_REPORT.md

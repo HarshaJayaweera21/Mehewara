@@ -1,0 +1,1110 @@
+/* ==========================================================================
+   Mehewara Municipal Operations - Problems Dashboard Styling
+   Visual Philosophy: Restrained, Editorial, Civic-Tech Minimalism
+   ========================================================================== */
+
+:root {
+  --mw-font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  
+  /* Core Color System */
+  --mw-primary-forest: #123C32;
+  --mw-primary-hover: #0D3028;
+  --mw-mint-accent: #4FD1A1;
+  --mw-soft-sage: #E5F6EE;
+  --mw-page-bg: #F7F7F2;
+  --mw-surface: #FFFFFF;
+  --mw-surface-subtle: #FBFBFA;
+  
+  /* Text & Border */
+  --mw-text-primary: #18211E;
+  --mw-text-secondary: #68736E;
+  --mw-text-muted: #8F9995;
+  --mw-border: #DDE2DE;
+  --mw-border-subtle: #EBEFEA;
+  --mw-border-focus: #123C32;
+  
+  /* Semantic Accents (Restrained, Muted) */
+  --mw-critical-text: #991B1B;
+  --mw-critical-bg: #FEF2F2;
+  --mw-critical-border: #FEE2E2;
+
+  --mw-high-text: #C2410C;
+  --mw-high-bg: #FFF7ED;
+  --mw-high-border: #FFEDD5;
+
+  --mw-medium-text: #B45309;
+  --mw-medium-bg: #FFFBEB;
+  --mw-medium-border: #FEF3C7;
+
+  --mw-low-text: #3D5A4C;
+  --mw-low-bg: #F0F4F2;
+  --mw-low-border: #E1E8E4;
+
+  --mw-identified-text: #123C32;
+  --mw-identified-bg: #E5F6EE;
+  --mw-identified-border: #D1EAE0;
+
+  --mw-assigned-text: #1E40AF;
+  --mw-assigned-bg: #EFF6FF;
+  --mw-assigned-border: #DBEAFE;
+
+  --mw-in-progress-text: #0F766E;
+  --mw-in-progress-bg: #F0FDFA;
+  --mw-in-progress-border: #CCFBF1;
+
+  --mw-resolved-text: #166534;
+  --mw-resolved-bg: #F0FDF4;
+  --mw-resolved-border: #DCFCE7;
+  
+  /* Subtle Elevation */
+  --mw-shadow-subtle: 0 1px 2px rgba(18, 60, 50, 0.04);
+  --mw-shadow-card: 0 1px 3px rgba(18, 60, 50, 0.03), 0 1px 2px rgba(18, 60, 50, 0.02);
+  --mw-shadow-hover: 0 4px 12px rgba(18, 60, 50, 0.06);
+}
+
+/* Base Container */
+.problems-dashboard-container {
+  min-height: 100vh;
+  background-color: var(--mw-page-bg);
+  color: var(--mw-text-primary);
+  font-family: var(--mw-font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding: 2.25rem 2.5rem 4rem;
+  box-sizing: border-box;
+}
+
+.problems-content-wrap {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+/* Top Navigation Header is now managed by Header.tsx and Header.css */
+
+
+/* ==========================================================================
+   1. Coordinator Welcome Banner (Scenic Municipal Illustrated Canvas)
+   ========================================================================== */
+.problems-welcome-banner {
+  background-color: #F6FAF7;
+  background-image: url('../../assets/bg.png');
+  background-position: center bottom;
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+  border: 1px solid var(--mw-border);
+  border-radius: 10px;
+  min-height: 300px;
+  padding: 1.75rem 2rem 1rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.04), 0 1px 2px rgba(18, 60, 50, 0.02);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  box-sizing: border-box;
+}
+
+.problems-welcome-banner:hover {
+  border-color: #BEE0D1;
+  box-shadow: 0 3px 8px rgba(18, 60, 50, 0.06);
+}
+
+/* Strongly Centered Content Stack */
+.welcome-banner-center-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+/* Main Heading */
+.welcome-banner-heading {
+  margin: 0;
+  font-family: var(--mw-font-family);
+  font-size: 2.25rem;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  color: var(--mw-primary-forest);
+  line-height: 1.2;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.75);
+}
+
+/* Supporting Text */
+.welcome-banner-text {
+  margin: 0;
+  font-family: var(--mw-font-family);
+  font-size: 0.885rem;
+  font-weight: 500;
+  color: #384C43;
+  line-height: 1.45;
+  max-width: 620px;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+}
+
+/* ==========================================================================
+   2. Top Metrics Strip (Unified White Surface with Dividers)
+   ========================================================================== */
+.problems-metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--mw-surface);
+  border: 1px solid var(--mw-border);
+  border-radius: 8px;
+  box-shadow: var(--mw-shadow-card);
+  overflow: hidden;
+}
+
+.problems-metric-cell {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border-right: 1px solid var(--mw-border);
+  position: relative;
+  transition: background-color 150ms ease;
+}
+
+.problems-metric-cell:last-child {
+  border-right: none;
+}
+
+.problems-metric-cell:hover {
+  background-color: var(--mw-surface-subtle);
+}
+
+.metric-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.metric-label {
+  font-size: 0.71875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mw-text-secondary);
+}
+
+.metric-mint-pip {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--mw-mint-accent);
+}
+
+.metric-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--mw-text-primary);
+  line-height: 1.15;
+}
+
+.metric-descriptor {
+  font-size: 0.775rem;
+  font-weight: 400;
+  color: var(--mw-text-muted);
+}
+
+/* ==========================================================================
+   3. Filter / Search Toolbar
+   ========================================================================== */
+.problems-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  background: var(--mw-surface);
+  border: 1px solid var(--mw-border);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  box-shadow: var(--mw-shadow-card);
+}
+
+.problems-search-box {
+  flex: 1;
+  min-width: 260px;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: var(--mw-page-bg);
+  border: 1px solid var(--mw-border);
+  border-radius: 6px;
+  padding: 0 0.85rem;
+  height: 44px;
+  box-sizing: border-box;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.problems-search-box:focus-within {
+  border-color: var(--mw-border-focus);
+  background: #FFFFFF;
+}
+
+.search-icon {
+  color: var(--mw-text-muted);
+  flex-shrink: 0;
+}
+
+.problems-search-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--mw-font-family);
+  font-size: 0.875rem;
+  color: var(--mw-text-primary);
+}
+
+.problems-search-input::placeholder {
+  color: var(--mw-text-muted);
+}
+
+.problems-filters-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.problems-filter-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.problems-filter-select {
+  height: 44px;
+  background: var(--mw-surface);
+  border: 1px solid var(--mw-border);
+  border-radius: 6px;
+  padding: 0 2rem 0 0.85rem;
+  font-family: var(--mw-font-family);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--mw-text-primary);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 140ms ease;
+  box-sizing: border-box;
+}
+
+.problems-filter-select:focus-visible {
+  border-color: var(--mw-border-focus);
+}
+
+.select-chevron {
+  position: absolute;
+  right: 0.75rem;
+  pointer-events: none;
+  color: var(--mw-text-secondary);
+}
+
+.problems-clear-filters-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--mw-text-secondary);
+  font-family: var(--mw-font-family);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0 0.75rem;
+  height: 44px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 140ms ease;
+  white-space: nowrap;
+}
+
+.problems-clear-filters-btn:hover {
+  color: var(--mw-primary-forest);
+  background: var(--mw-soft-sage);
+}
+
+/* ==========================================================================
+   4. Results Header
+   ========================================================================== */
+.problems-results-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: -0.25rem;
+  padding: 0 0.15rem;
+}
+
+.results-section-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--mw-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.results-count-pill {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--mw-text-secondary);
+}
+
+/* ==========================================================================
+   5. Problems Grid & Cards
+   ========================================================================== */
+.problems-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.problem-card {
+  background: var(--mw-surface);
+  border: 1px solid var(--mw-border);
+  border-radius: 8px;
+  padding: 1.35rem 1.4rem 1.25rem;
+  box-shadow: var(--mw-shadow-card);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.problem-card:hover {
+  border-color: var(--mw-border-focus);
+  transform: translateY(-1px);
+  box-shadow: var(--mw-shadow-hover);
+}
+
+.problem-card:focus-visible {
+  outline: 2px solid var(--mw-primary-forest);
+  outline-offset: 2px;
+}
+
+.problem-card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+/* Priority Badges */
+.problem-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.priority-critical {
+  color: var(--mw-critical-text);
+  background: var(--mw-critical-bg);
+  border-color: var(--mw-critical-border);
+}
+
+.priority-high {
+  color: var(--mw-high-text);
+  background: var(--mw-high-bg);
+  border-color: var(--mw-high-border);
+}
+
+.priority-medium {
+  color: var(--mw-medium-text);
+  background: var(--mw-medium-bg);
+  border-color: var(--mw-medium-border);
+}
+
+.priority-low {
+  color: var(--mw-low-text);
+  background: var(--mw-low-bg);
+  border-color: var(--mw-low-border);
+}
+
+/* Category Label */
+.problem-category-label {
+  font-size: 0.71875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--mw-text-secondary);
+  text-transform: uppercase;
+}
+
+/* Problem Card Main Content */
+.problem-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 1.1rem;
+}
+
+.problem-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--mw-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.problem-card-description {
+  margin: 0;
+  font-size: 0.84375rem;
+  line-height: 1.45;
+  color: var(--mw-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Problem Metadata (Location, Reports, Status) */
+.problem-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--mw-border-subtle);
+  border-bottom: 1px solid var(--mw-border-subtle);
+  margin-bottom: 0.85rem;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--mw-text-secondary);
+}
+
+.meta-icon {
+  color: var(--mw-text-muted);
+  flex-shrink: 0;
+}
+
+.meta-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Status Pill */
+.problem-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.71875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  width: fit-content;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-identified {
+  color: var(--mw-identified-text);
+  background: var(--mw-identified-bg);
+  border-color: var(--mw-identified-border);
+}
+.status-identified .status-dot { background-color: var(--mw-primary-forest); }
+
+.status-assigned {
+  color: var(--mw-assigned-text);
+  background: var(--mw-assigned-bg);
+  border-color: var(--mw-assigned-border);
+}
+.status-assigned .status-dot { background-color: #2563EB; }
+
+.status-in_progress {
+  color: var(--mw-in-progress-text);
+  background: var(--mw-in-progress-bg);
+  border-color: var(--mw-in-progress-border);
+}
+.status-in_progress .status-dot { background-color: #0D9488; }
+
+.status-resolved {
+  color: var(--mw-resolved-text);
+  background: var(--mw-resolved-bg);
+  border-color: var(--mw-resolved-border);
+}
+.status-resolved .status-dot { background-color: #16A34A; }
+
+/* Problem Card Bottom Action */
+.problem-card-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.25rem;
+}
+
+.view-details-btn {
+  border: none;
+  background: transparent;
+  color: var(--mw-primary-forest);
+  font-family: var(--mw-font-family);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: gap 140ms ease;
+}
+
+.problem-card:hover .view-details-btn {
+  gap: 0.55rem;
+}
+
+.problem-card-id {
+  font-size: 0.72rem;
+  color: var(--mw-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   6. Pagination (Minimalist Editorial Style)
+   ========================================================================== */
+.problems-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding-top: 1.5rem;
+}
+
+.pagination-btn {
+  border: 1px solid var(--mw-border);
+  background: var(--mw-surface);
+  color: var(--mw-text-secondary);
+  font-family: var(--mw-font-family);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 0.65rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 140ms ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--mw-primary-forest);
+  color: var(--mw-text-primary);
+}
+
+.pagination-btn.active {
+  background: var(--mw-primary-forest);
+  border-color: var(--mw-primary-forest);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: var(--mw-border-subtle);
+}
+
+.pagination-ellipsis {
+  color: var(--mw-text-muted);
+  padding: 0 0.35rem;
+  font-size: 0.875rem;
+}
+
+/* ==========================================================================
+   7. Loading Skeletons (6 Realistic Card Skeletons)
+   ========================================================================== */
+.skeleton-card {
+  cursor: default;
+  pointer-events: none;
+}
+
+.skeleton-box {
+  background: #E8EDE9;
+  background-image: linear-gradient(
+    90deg,
+    #E8EDE9 0px,
+    #F4F6F4 50%,
+    #E8EDE9 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.6s infinite ease-in-out;
+  border-radius: 4px;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-badge {
+  width: 54px;
+  height: 20px;
+}
+
+.skeleton-category {
+  width: 70px;
+  height: 16px;
+}
+
+.skeleton-title-1 {
+  width: 90%;
+  height: 18px;
+  margin-bottom: 6px;
+}
+
+.skeleton-title-2 {
+  width: 60%;
+  height: 18px;
+  margin-bottom: 8px;
+}
+
+.skeleton-desc-1 {
+  width: 100%;
+  height: 14px;
+  margin-bottom: 4px;
+}
+
+.skeleton-desc-2 {
+  width: 75%;
+  height: 14px;
+}
+
+.skeleton-meta-line {
+  width: 80%;
+  height: 14px;
+}
+
+.skeleton-status {
+  width: 95px;
+  height: 22px;
+}
+
+.skeleton-action {
+  width: 80px;
+  height: 16px;
+}
+
+/* ==========================================================================
+   8. Empty States & Error States
+   ========================================================================== */
+.problems-state-surface {
+  grid-column: 1 / -1;
+  background: var(--mw-surface);
+  border: 1px solid var(--mw-border);
+  border-radius: 8px;
+  padding: 4.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--mw-shadow-card);
+}
+
+.state-icon-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--mw-page-bg);
+  border: 1px solid var(--mw-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mw-primary-forest);
+  margin-bottom: 1.25rem;
+}
+
+.state-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--mw-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.state-description {
+  margin: 0 0 1.5rem;
+  font-size: 0.875rem;
+  color: var(--mw-text-secondary);
+  max-width: 440px;
+  line-height: 1.5;
+}
+
+.state-action-btn {
+  background: var(--mw-primary-forest);
+  color: #FFFFFF;
+  border: 1px solid var(--mw-primary-forest);
+  font-family: var(--mw-font-family);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.55rem 1.15rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 140ms ease;
+}
+
+.state-action-btn:hover {
+  background: var(--mw-primary-hover);
+  border-color: var(--mw-primary-hover);
+}
+
+.state-action-secondary-btn {
+  background: var(--mw-surface);
+  color: var(--mw-primary-forest);
+  border: 1px solid var(--mw-border);
+  font-family: var(--mw-font-family);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.55rem 1.15rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 140ms ease;
+}
+
+.state-action-secondary-btn:hover {
+  border-color: var(--mw-primary-forest);
+}
+
+/* ==========================================================================
+   Navigation Feedback Toast
+   ========================================================================== */
+.problems-nav-toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2.5rem;
+  background: var(--mw-primary-forest);
+  color: #FFFFFF;
+  padding: 0.85rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 8px 24px rgba(18, 60, 50, 0.25);
+  animation: toastFadeIn 200ms ease forwards;
+  z-index: 1000;
+}
+
+@keyframes toastFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-tag {
+  background: var(--mw-mint-accent);
+  color: var(--mw-primary-forest);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   12. Responsive Breakpoints
+   ========================================================================== */
+@media (max-width: 1180px) {
+  .problems-dashboard-container {
+    padding: 1.75rem 1.5rem 3rem;
+  }
+
+  .problems-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .problems-metrics-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .problems-metric-cell:nth-child(2) {
+    border-right: none;
+  }
+
+  .problems-metric-cell:nth-child(1),
+  .problems-metric-cell:nth-child(2) {
+    border-bottom: 1px solid var(--mw-border);
+  }
+
+  .problems-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .problems-filters-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .problems-filter-select-wrap {
+    flex: 1;
+  }
+
+  .problems-filter-select {
+    width: 100%;
+  }
+
+  .problems-welcome-banner {
+    min-height: 155px;
+    padding: 1.25rem 1.25rem 0.75rem;
+  }
+
+  .welcome-banner-heading {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 580px) {
+  .problems-dashboard-container {
+    padding: 1.25rem 1rem 2.5rem;
+  }
+
+  .problems-welcome-banner {
+    min-height: 130px;
+    padding: 1rem 1rem 0.5rem;
+  }
+
+  .welcome-banner-heading {
+    font-size: 1.35rem;
+  }
+
+  .problems-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .problems-metrics-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .problems-metric-cell {
+    border-right: none !important;
+    border-bottom: 1px solid var(--mw-border);
+  }
+
+  .problems-metric-cell:last-child {
+    border-bottom: none;
+  }
+
+  .problems-filters-group {
+    flex-direction: column;
+  }
+
+  .problems-filter-select-wrap {
+    width: 100%;
+  }
+
+  .problems-top-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .problems-nav-user {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* ==========================================================================
+   Coordinator Uncertain Reports Triage Banner & Nav Styles
+   ========================================================================== */
+.problems-uncertain-alert-banner {
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+  border: 1px solid #FCD34D;
+  border-radius: 10px;
+  padding: 1.15rem 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.problems-uncertain-alert-banner:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.14);
+}
+
+.uncertain-alert-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.uncertain-alert-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #FEF08A;
+  color: #B45309;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.uncertain-alert-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.uncertain-alert-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.uncertain-alert-title {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #92400E;
+}
+
+.uncertain-alert-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #FDE68A;
+  color: #78350F;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+}
+
+.uncertain-alert-desc {
+  font-size: 0.835rem;
+  color: #78350F;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.uncertain-alert-cta-btn {
+  background: #B45309;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 0.65rem 1.15rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.uncertain-alert-cta-btn:hover {
+  background: #92400E;
+  transform: translateY(-1px);
+}
+
+.uncertain-cta-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.12rem 0.48rem;
+  border-radius: 999px;
+}
+
+.problems-results-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.problems-uncertain-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.problems-uncertain-nav-btn:hover {
+  background: #FEF3C7;
+  border-color: #FCD34D;
+}
+
+.uncertain-nav-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #D97706;
+  display: inline-block;
+}
+
+.uncertain-nav-badge {
+  background: #B45309;
+  color: #FFFFFF;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+}
+
