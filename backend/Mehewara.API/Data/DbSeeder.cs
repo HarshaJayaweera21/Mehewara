@@ -712,7 +712,7 @@ public static class DbSeeder
             // 7. SEED ACTIVE WORK ORDER FOR BUSY CREW (ELECTRICAL DELTA)
             // ============================================================
 
-            var busyWorkOrderId = Guid.Parse("w0000000-0000-0000-0000-000000000001");
+            var busyWorkOrderId = Guid.Parse("ff000000-0000-0000-0000-000000000001");
             if (!await context.WorkOrders.AnyAsync(w => w.WorkOrderId == busyWorkOrderId))
             {
                 var busyWorkOrder = new WorkOrder
