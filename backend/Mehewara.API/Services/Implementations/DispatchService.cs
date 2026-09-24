@@ -612,7 +612,8 @@ public class DispatchService : IDispatchService
         };
         _context.ApprovalHistories.Add(approval);
 
-        ev.Status = "REJECTED";
+        // Note: Approval decision is recorded in approval_history (REJECTED).
+        // ev.Status remains its original status (COMPLETED) to conform with chk_workflow_events_status constraint.
         ev.WorkflowRun.Status = "WAITING";
         ev.WorkflowRun.CurrentStage = "WAITING_FOR_APPROVAL";
         ev.WorkflowRun.UpdatedAt = DateTime.UtcNow;
