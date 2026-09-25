@@ -1,464 +1,255 @@
-import React from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { User } from '../../types/auth';
-import { Header } from '../../components/common/Header';
+import { Icon, StatusBadge, mehewaraAssets } from '../../design-system/mehewara';
 import './LandingPage.css';
 
-export interface LandingPageProps {
+interface LandingPageProps {
   currentUser?: User | null;
   onLogout?: () => void;
   onOpenProfile?: () => void;
-  onNavigateToLogin: () => void;
-  onNavigateToReports: () => void;
+  onNavigateToLogin?: () => void;
+  onNavigateToReports?: () => void;
   onNavigateToProblems?: () => void;
+  onSignIn?: () => void;
+  onSignUp?: () => void;
 }
 
-// ─── Kinetic Letter Animation Helper ──────────────────────────────────────────
-const renderAnimatedLetters = (text: string, baseDelay = 0) => {
-  let charCounter = 0;
-  return text.split(' ').map((word, wordIndex) => (
-    <span key={`word-${wordIndex}`} className="landing-char-word">
-      {word.split('').map((char, charIdx) => {
-        const delay = baseDelay + charCounter * 22;
-        charCounter++;
-        return (
-          <span
-            key={`char-${wordIndex}-${charIdx}`}
-            className="landing-char"
-            style={{ animationDelay: `${delay}ms` }}
-          >
-            {char}
-          </span>
-        );
-      })}
-    </span>
-  ));
-};
+const reportExamples = [
+  { image: mehewaraAssets.problemDrainage, alt: 'Blocked roadside drain with wet pavement', icon: 'drainage' as const, category: 'Drainage', title: 'A blocked drain after heavy rain', location: 'Central College Road', status: 'in-progress' as const },
+  { image: mehewaraAssets.problemRoadPothole, alt: 'Pothole and cracked asphalt on a municipal road', icon: 'road' as const, category: 'Roads', title: 'A pothole on the daily route', location: 'Main Street', status: 'assigned' as const },
+  { image: mehewaraAssets.problemWaste, alt: 'Waste accumulated beside a public road', icon: 'waste' as const, category: 'Waste', title: 'Waste beside a public road', location: 'Central Market Road', status: 'identified' as const },
+  { image: mehewaraAssets.problemStreetlight, alt: 'Streetlight illuminating a municipal road at dusk', icon: 'electrical' as const, category: 'Streetlights', title: 'A streetlight lighting the way again', location: 'Station Road', status: 'resolved' as const },
+  { image: mehewaraAssets.problemEnvironment, alt: 'Fallen branch blocking a public footpath', icon: 'environment' as const, category: 'Environment', title: 'A fallen branch across a footpath', location: 'Park Lane', status: 'identified' as const },
+];
 
-export const LandingPage: React.FC<LandingPageProps> = ({
-  currentUser,
-  onLogout,
-  onOpenProfile,
-  onNavigateToLogin,
-  onNavigateToReports,
-  onNavigateToProblems,
-}) => {
-  const handleReportClick = () => {
-    if (currentUser) {
-      onNavigateToReports();
-    } else {
-      onNavigateToLogin();
-    }
+type ReportExample = (typeof reportExamples)[number];
+
+function ReportExampleCard({ report, decorative = false }: { report: ReportExample; decorative?: boolean }) {
+  return (
+    <article className="landing-report-card" aria-hidden={decorative || undefined}>
+      <div className="landing-report-image"><img src={report.image} alt={decorative ? '' : report.alt} width="1536" height="864" loading="lazy" /></div>
+      <div className="landing-report-body"><span className="landing-report-category"><Icon name={report.icon} size={16} /> {report.category}</span><h3>{report.title}</h3><p><Icon name="location" size={16} /> {report.location}</p><div className="landing-report-footer"><span>Example report</span><StatusBadge value={report.status} /></div></div>
+    </article>
+  );
+}
+
+const processSteps = [
+  { icon: 'document' as const, title: 'Tell us what you see', description: 'Add a photo, a location, and a few useful details. That is enough to start a report.' },
+  { icon: 'problems' as const, title: 'The right team sees it', description: 'Related reports come together so municipal coordinators can understand the full issue.' },
+  { icon: 'refresh' as const, title: 'Follow what happens', description: 'See the status change as work is assigned, carried out, and resolved.' },
+];
+
+export function LandingPage({ currentUser, onNavigateToLogin, onNavigateToReports, onSignIn: legacySignIn, onSignUp: legacySignUp }: LandingPageProps) {
+  const signIn = onNavigateToLogin ?? legacySignIn ?? (() => undefined);
+  const signUp = onNavigateToLogin ?? legacySignUp ?? signIn;
+  const navigateToReports = onNavigateToReports ?? (() => undefined);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const reportTrackRef = useRef<HTMLDivElement>(null);
+  const [activeReport, setActiveReport] = useState(0);
+  const [reportsVisible, setReportsVisible] = useState(false);
+  const [reportsHovered, setReportsHovered] = useState(false);
+  const [reportsKeyboardFocused, setReportsKeyboardFocused] = useState(false);
+  const [reportsTouched, setReportsTouched] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
+
+  const updateReportScroll = () => {
+    const track = reportTrackRef.current;
+    if (!track) return;
+    const cards = Array.from(track.querySelectorAll<HTMLElement>('.landing-report-card'));
+    if (cards.length < reportExamples.length + 1) return;
+    const step = cards[1].offsetLeft - cards[0].offsetLeft;
+    const cycleWidth = cards[reportExamples.length].offsetLeft - cards[0].offsetLeft;
+    if (track.scrollLeft >= cycleWidth - 1) track.scrollLeft -= cycleWidth;
+    const nextIndex = Math.min(reportExamples.length - 1, Math.max(0, Math.round(track.scrollLeft / step)));
+    setActiveReport((current) => current === nextIndex ? current : nextIndex);
   };
 
+  const scrollReports = useCallback((direction: -1 | 1) => {
+    const track = reportTrackRef.current;
+    const cards = track?.querySelectorAll<HTMLElement>('.landing-report-card');
+    if (!track || !cards || cards.length < 2) return;
+    const distance = cards[1].offsetLeft - cards[0].offsetLeft;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    track.scrollBy({ left: direction * distance, behavior: reducedMotion ? 'auto' : 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    const track = reportTrackRef.current;
+    if (!track || !('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver(([entry]) => setReportsVisible(entry.isIntersecting), { threshold: 0.35 });
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!reportsVisible || reportsHovered || reportsKeyboardFocused || reportsTouched) return;
+    const timer = window.setInterval(() => {
+      if (!document.hidden && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) scrollReports(1);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [reportsVisible, reportsHovered, reportsKeyboardFocused, reportsTouched, scrollReports]);
+
   return (
-    <div className="landing-container">
-      {/* Universal Adaptive Top Navigation Header */}
-      <div className="landing-header-wrap">
-        <Header
-          currentUser={currentUser}
-          onLogout={onLogout}
-          onOpenProfile={onOpenProfile}
-          onLoginClick={onNavigateToLogin}
-          onBrandClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          roleBadgeText={currentUser?.role === 'ADMIN' ? 'Municipal Coordinator' : 'Citizen Resident'}
-        />
-      </div>
+    <div className="landing-page" id="top">
+      <a className="landing-skip" href="#main-content">Skip to content</a>
+      <header className="landing-header">
+        <a className="landing-brand" href="#top" aria-label="Mehewara home" onClick={closeMenu}>
+          <img src={mehewaraAssets.mehewaraLogoCompact} alt="Mehewara" width="520" height="144" />
+        </a>
+        <button type="button" className="landing-menu-button" aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={menuOpen} aria-controls="landing-navigation" onClick={() => setMenuOpen((open) => !open)}>
+          <span aria-hidden="true" /><span aria-hidden="true" />
+        </button>
+        <nav id="landing-navigation" className={menuOpen ? 'landing-nav is-open' : 'landing-nav'} aria-label="Main navigation">
+          <a href="#how-it-works" onClick={closeMenu}>How it works</a>
+          <a href="#community" onClick={closeMenu}>Community issues</a>
+          <a href="#why-mehewara" onClick={closeMenu}>Why Mehewara</a>
+          <span className="landing-nav-divider" aria-hidden="true" />
+          <button className="landing-nav-login" type="button" onClick={() => { closeMenu(); signIn(); }}>Log in</button>
+          <button className="landing-nav-join" type="button" onClick={() => { closeMenu(); signUp(); }}>Get started <Icon name="arrow-right" size={16} /></button>
+        </nav>
+      </header>
 
-      {/* ====================================================================
-          1. Hero Section
-          ==================================================================== */}
-      <section className="landing-hero">
-        <div className="landing-hero-grid">
-          {/* Left Column: Narrative, Kinetic Letters & Primary CTA */}
-          <div className="landing-hero-content">
-            {/* Agentic AI System Badge */}
-            <div className="landing-ai-badge">
-              <span className="landing-ai-badge-icon" aria-hidden="true">✦</span>
-              <span className="landing-ai-badge-text">
-                An Agentic AI-Powered Municipal Works Management and Dispatch System
-              </span>
+      <main id="main-content">
+        <section className="landing-hero" aria-labelledby="landing-title">
+          <div className="landing-hero-inner">
+            <div className="landing-hero-copy">
+              <p className="landing-hero-overline"><span aria-hidden="true" /> Cleaner cities. Stronger communities.</p>
+              <h1 id="landing-title">Your street.<br /><span>A better city.</span></h1>
+              <p className="landing-hero-intro">From a blocked drain to a safer walkway, Mehewara helps you raise local concerns and see how they are handled.</p>
+              <div className="landing-hero-actions">
+                <button type="button" className="landing-button landing-button-dark" onClick={() => currentUser ? navigateToReports() : signUp()}>Report a problem <Icon name="arrow-right" size={20} /></button>
+                <a className="landing-button landing-button-outline" href="#how-it-works">See how it works</a>
+              </div>
+              <p className="landing-hero-note"><Icon name="info" size={16} /> Made for residents and municipal teams</p>
             </div>
 
-            {/* Kinetic Letter Animated Title */}
-            <h1 className="landing-hero-title">
-              <span className="landing-title-row">
-                {renderAnimatedLetters('Empowering Citizens.', 100)}
-              </span>
-              <span className="landing-title-row landing-highlight-text">
-                {renderAnimatedLetters('Resolving Municipal Problems.', 450)}
-              </span>
-            </h1>
-
-            {/* Professional Civic Description */}
-            <p className="landing-hero-desc">
-              Mehewara connects residents directly with local municipal councils across Sri Lanka.
-              Submit geotagged civic issues with photo evidence, while our autonomous agentic AI
-              clusters neighborhood reports into prioritized work orders for municipal field crews.
-            </p>
-
-            {/* Single Primary Call to Action Button */}
-            <div className="landing-hero-actions">
-              <button
-                type="button"
-                className="landing-cta-btn"
-                onClick={handleReportClick}
-                title={currentUser ? 'Open Citizen Reports Portal' : 'Sign in to submit a report'}
-              >
-                <svg className="landing-cta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                <span>Report an Issue</span>
-              </button>
-
-              {currentUser?.role === 'ADMIN' && onNavigateToProblems && (
-                <button
-                  type="button"
-                  className="landing-coordinator-link"
-                  onClick={onNavigateToProblems}
-                  title="Switch to Coordinator Problems Dashboard"
-                >
-                  <span>Operations Dashboard</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </button>
-              )}
-            </div>
-
-            {/* Metrics & Impact Bar */}
-            <div className="landing-hero-stats">
-              <div className="landing-stat-item">
-                <span className="landing-stat-number">5</span>
-                <span className="landing-stat-label">Civic Sectors</span>
+            <div className="landing-hero-visual" aria-label="Illustration of a report moving toward resolution">
+              <div className="hero-visual-halo" aria-hidden="true" />
+              <div className="hero-visual-caption">A clearer path from report to response</div>
+              <div className="hero-report-preview">
+                <div className="hero-preview-topline"><span><img src={mehewaraAssets.mehewaraLogoIcon} alt="" width="24" height="24" /> Community report</span><Icon name="document" size={20} /></div>
+                <img className="hero-preview-photo" src={mehewaraAssets.problemDrainage} alt="Blocked roadside drainage grate" width="1536" height="864" fetchPriority="high" />
+                <div className="hero-preview-content">
+                  <span className="hero-preview-category"><Icon name="drainage" size={16} /> Drainage</span>
+                  <h2>Blocked roadside drainage</h2>
+                  <p><Icon name="location" size={16} /> Central College Road</p>
+                  <div className="hero-preview-progress"><span>Report progress</span><StatusBadge value="in-progress" /></div>
+                  <div className="hero-progress-track" aria-hidden="true"><span /></div>
+                  <div className="hero-progress-labels"><span>Reported</span><span>In progress</span><span>Resolved</span></div>
+                </div>
               </div>
-              <div className="landing-stat-item">
-                <span className="landing-stat-number">100%</span>
-                <span className="landing-stat-label">Geo-Verified</span>
-              </div>
-              <div className="landing-stat-item">
-                <span className="landing-stat-number">Agentic</span>
-                <span className="landing-stat-label">AI Clustering</span>
-              </div>
-              <div className="landing-stat-item">
-                <span className="landing-stat-number">Real-Time</span>
-                <span className="landing-stat-label">Field Dispatch</span>
-              </div>
+              <div className="hero-update-card"><span className="hero-update-icon"><Icon name="bell" size={20} /></span><div><strong>Stay in the loop</strong><span>See each step as it happens</span></div></div>
+              <div className="hero-image-credit">Illustrative report preview</div>
             </div>
           </div>
+          <img className="landing-hero-city" src={mehewaraAssets.mehewaraWelcomeCityscape} alt="" aria-hidden="true" />
+        </section>
 
-          {/* Right Column: Floating Real-Time Incident Simulation Card */}
-          <div className="landing-hero-visual">
-            <div className="landing-showcase-card">
-              <div className="showcase-header">
-                <div className="showcase-badge">
-                  <span className="showcase-pulse-dot" />
-                  <span>Agentic AI Dispatch</span>
-                </div>
-                <span className="showcase-time">Just Now • Live</span>
-              </div>
+        <div className="landing-capabilities" aria-label="What Mehewara helps you do">
+          <div><Icon name="location" size={20} /><span>Put issues on the map</span></div>
+          <div><Icon name="reports" size={20} /><span>Bring related reports together</span></div>
+          <div><Icon name="refresh" size={20} /><span>See progress clearly</span></div>
+        </div>
 
-              <div className="showcase-incident">
-                <div className="showcase-incident-meta">
-                  <span className="showcase-pill showcase-pill-critical">HIGH PRIORITY</span>
-                  <span className="showcase-pill showcase-pill-category">DRAINAGE & ROADS</span>
-                </div>
-                <div className="showcase-incident-title">
-                  Main Canal Overflow & Road Cavity at Galle Road
-                </div>
+        <section id="how-it-works" className="landing-process landing-section" aria-labelledby="process-title">
+          <div className="landing-section-intro"><div><p className="landing-kicker">A simple process</p><h2 id="process-title">Your concern deserves<br />a clear next step.</h2></div><p>One place to report a local issue, understand its progress, and help your neighbourhood move forward.</p></div>
+          <div className="landing-process-grid">
+            {processSteps.map((step, index) => (
+              <article className="landing-process-step" key={step.title}>
+                <div className="landing-step-top"><span className="landing-step-icon"><Icon name={step.icon} size={24} /></span><span className="landing-step-number">0{index + 1}</span></div>
+                <h3>{step.title}</h3><p>{step.description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
 
-                <div className="showcase-cluster-box">
-                  <div className="showcase-cluster-title">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                      <polyline points="2 17 12 22 22 17" />
-                      <polyline points="2 12 12 17 22 12" />
-                    </svg>
-                    <span>Spatial Cluster: 4 Reports Synthesized into 1 Problem</span>
-                  </div>
-                  <div className="showcase-cluster-items">
-                    <div className="showcase-cluster-item">
-                      <span>• Report ID: d0000000-0005</span>
-                      <strong>Drainage clog</strong>
-                    </div>
-                    <div className="showcase-cluster-item">
-                      <span>• Report ID: d0000000-0006</span>
-                      <strong>Stagnant road flood</strong>
-                    </div>
-                  </div>
-                </div>
+        <section className="landing-city-moment" aria-labelledby="city-moment-title">
+          <img src={mehewaraAssets.mehewaraWelcomeBg} alt="" aria-hidden="true" width="1920" height="640" loading="lazy" />
+          <div className="landing-city-moment-copy">
+            <h2 id="city-moment-title">We all share<br /><span>this city.</span></h2>
+            <p>Every street, walkway and public space is worth caring for.</p>
+          </div>
+        </section>
 
-                <div className="showcase-progress-wrap">
-                  <div className="showcase-progress-header">
-                    <span>Field Crew #04 • In Progress</span>
-                    <span>75% Resolved</span>
-                  </div>
-                  <div className="showcase-progress-bar">
-                    <div className="showcase-progress-fill" />
-                  </div>
+        <section
+          id="community"
+          className="landing-community"
+          aria-labelledby="community-title"
+          onMouseEnter={() => setReportsHovered(true)}
+          onMouseLeave={() => setReportsHovered(false)}
+          onFocusCapture={(event) => {
+            if (event.target instanceof HTMLElement && event.target.matches(':focus-visible')) setReportsKeyboardFocused(true);
+          }}
+          onBlurCapture={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setReportsKeyboardFocused(false);
+          }}
+          onTouchStart={() => setReportsTouched(true)}
+          onTouchEnd={() => setReportsTouched(false)}
+          onTouchCancel={() => setReportsTouched(false)}
+        >
+          <div className="landing-community-inner">
+            <div className="landing-community-heading">
+              <div><p className="landing-kicker">The issues around us</p><h2 id="community-title">Every report tells us<br />where care is needed.</h2></div>
+              <div className="landing-community-side">
+                <p>From everyday road repairs to cleaner public spaces, clear reporting helps teams see what needs attention.</p>
+                <div className="landing-report-controls">
+                  <span aria-live={reportsHovered || reportsKeyboardFocused || reportsTouched ? 'polite' : 'off'} aria-label={`Example ${activeReport + 1} of ${reportExamples.length}`}>{String(activeReport + 1).padStart(2, '0')} <span>/</span> {String(reportExamples.length).padStart(2, '0')}</span>
+                  <button type="button" aria-label="Previous example reports" aria-controls="landing-report-track" disabled={activeReport === 0} onClick={() => scrollReports(-1)}><Icon name="arrow-left" size={20} /></button>
+                  <button type="button" aria-label="Next example reports" aria-controls="landing-report-track" onClick={() => scrollReports(1)}><Icon name="arrow-right" size={20} /></button>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ====================================================================
-          2. How It Works Section (Timeline-like Architectural Design)
-          ==================================================================== */}
-      <section className="landing-section">
-        <div className="landing-section-header">
-          <span className="landing-section-eyebrow">Municipal Workflow</span>
-          <h2 className="landing-section-title">How Mehewara Works</h2>
-          <p className="landing-section-desc">
-            A seamless timeline from the moment a citizen spots an issue to its permanent resolution
-            by municipal engineering divisions.
-          </p>
-        </div>
-
-        <div className="landing-timeline">
-          {/* Step 1 */}
-          <div className="timeline-step-card">
-            <div className="timeline-node-header">
-              <div className="timeline-step-number">01</div>
-              <div className="timeline-step-icon">📸</div>
+            <div
+              id="landing-report-track"
+              className="landing-report-track"
+              ref={reportTrackRef}
+              role="region"
+              aria-label="Example community reports"
+              tabIndex={0}
+              onScroll={updateReportScroll}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+                  event.preventDefault();
+                  scrollReports(event.key === 'ArrowRight' ? 1 : -1);
+                }
+              }}
+            >
+              {reportExamples.map((report) => (
+                <ReportExampleCard key={report.title} report={report} />
+              ))}
+              {reportExamples.map((report) => (
+                <ReportExampleCard key={`${report.title}-loop`} report={report} decorative />
+              ))}
             </div>
-            <span className="timeline-step-badge">Resident Submission</span>
-            <h3 className="timeline-step-title">Snap & Pinpoint</h3>
-            <p className="timeline-step-desc">
-              Citizens capture photos of the local issue, describe what needs repair, and pinpoint
-              the exact geographic coordinates on an interactive map.
-            </p>
+            <p className="landing-scroll-hint">Swipe to see more examples</p>
           </div>
+        </section>
 
-          {/* Step 2 */}
-          <div className="timeline-step-card">
-            <div className="timeline-node-header">
-              <div className="timeline-step-number">02</div>
-              <div className="timeline-step-icon">🤖</div>
+        <section id="why-mehewara" className="landing-story landing-section" aria-labelledby="story-title">
+          <div className="landing-story-visual"><img src={mehewaraAssets.problemEnvironment} alt="Fallen tree branch across a public footpath" width="1536" height="864" loading="lazy" /><div className="landing-story-tag"><Icon name="environment" size={20} /> Better public spaces begin with being heard.</div></div>
+          <div className="landing-story-copy">
+            <p className="landing-kicker">Why Mehewara</p><h2 id="story-title">People notice the details. Together, we can act on them.</h2>
+            <p>A branch across a footpath. A streetlight that needs attention. A problem that keeps returning. Mehewara gives those observations a useful place to go.</p>
+            <div className="landing-story-points">
+              <div><span><Icon name="users" size={20} /></span><p><strong>One shared view</strong>Residents and coordinators can follow the same issue.</p></div>
+              <div><span><Icon name="map" size={20} /></span><p><strong>Grounded in place</strong>Locations help teams understand the area affected.</p></div>
+              <div><span><Icon name="analytics" size={20} /></span><p><strong>A fuller picture</strong>Related concerns reveal patterns worth addressing.</p></div>
             </div>
-            <span className="timeline-step-badge">Agentic AI Processing</span>
-            <h3 className="timeline-step-title">Automated AI Clustering</h3>
-            <p className="timeline-step-desc">
-              Mehewara's autonomous agents cluster multiple resident reports from the same vicinity,
-              deduplicate overlapping entries, and assign severity priority based on civic impact.
-            </p>
+            <button type="button" className="landing-text-link" onClick={signUp}>Create your account <Icon name="arrow-right" size={20} /></button>
           </div>
+        </section>
 
-          {/* Step 3 */}
-          <div className="timeline-step-card">
-            <div className="timeline-node-header">
-              <div className="timeline-step-number">03</div>
-              <div className="timeline-step-icon">👷</div>
-            </div>
-            <span className="timeline-step-badge">Council Action</span>
-            <h3 className="timeline-step-title">Field Crew Dispatch</h3>
-            <p className="timeline-step-desc">
-              Municipal coordinators assign verified work orders directly to specialized engineering
-              crews, updating residents transparently as the problem is inspected and resolved.
-            </p>
-          </div>
-        </div>
-      </section>
+        <section className="landing-final-cta" aria-labelledby="final-cta-title">
+          <img className="landing-final-leaves" src={mehewaraAssets.mehewaraWelcomeLeaves} alt="" aria-hidden="true" />
+          <div><p className="landing-kicker">Your community starts here</p><h2 id="final-cta-title">See a problem? Help move it forward.</h2><p>Share a local concern and follow the response in one place.</p></div>
+          <button type="button" className="landing-button landing-button-light" onClick={signUp}>Get started <Icon name="arrow-right" size={20} /></button>
+        </section>
+      </main>
 
-      {/* ====================================================================
-          3. Municipal Problem Categories Section
-          ==================================================================== */}
-      <section className="landing-section" style={{ paddingTop: '1rem' }}>
-        <div className="landing-section-header">
-          <span className="landing-section-eyebrow">Civic Jurisdictions</span>
-          <h2 className="landing-section-title">Common Municipal Categories</h2>
-          <p className="landing-section-desc">
-            Mehewara is structured around the five key municipal infrastructure services maintained
-            by local councils.
-          </p>
-        </div>
-
-        <div className="landing-categories-grid">
-          <div className="category-card">
-            <div className="category-icon-wrap" style={{ background: '#FEE2E2', color: '#991B1B' }}>
-              🛣️
-            </div>
-            <h3 className="category-title">Roads & Pavements</h3>
-            <p className="category-desc">
-              Potholes, asphalt damage, broken sidewalks, hazardous curbs, and unpaved road surfaces.
-            </p>
-          </div>
-
-          <div className="category-card">
-            <div className="category-icon-wrap" style={{ background: '#CCFBF1', color: '#115E59' }}>
-              🌊
-            </div>
-            <h3 className="category-title">Drainage & Flooding</h3>
-            <p className="category-desc">
-              Blocked roadside drains, monsoon stormwater overflow, stagnant puddles, and broken culverts.
-            </p>
-          </div>
-
-          <div className="category-card">
-            <div className="category-icon-wrap" style={{ background: '#F3E8FF', color: '#6B21A8' }}>
-              🗑️
-            </div>
-            <h3 className="category-title">Waste Management</h3>
-            <p className="category-desc">
-              Uncollected roadside garbage, overflowing public dumpsters, and illegal neighborhood dumping.
-            </p>
-          </div>
-
-          <div className="category-card">
-            <div className="category-icon-wrap" style={{ background: '#FEF3C7', color: '#92400E' }}>
-              ⚡
-            </div>
-            <h3 className="category-title">Electrical & Lighting</h3>
-            <p className="category-desc">
-              Dark streetlights, damaged lamp posts, hanging power cables, and public electrical hazards.
-            </p>
-          </div>
-
-          <div className="category-card">
-            <div className="category-icon-wrap" style={{ background: '#DCFCE7', color: '#166534' }}>
-              🌳
-            </div>
-            <h3 className="category-title">Environment & Parks</h3>
-            <p className="category-desc">
-              Fallen tree branches, overgrown public vegetation, park maintenance, and safety concerns.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ====================================================================
-          4. Agentic AI Platform Capabilities (Why Mehewara)
-          ==================================================================== */}
-      <section className="landing-section" style={{ paddingTop: '1rem' }}>
-        <div className="landing-section-header">
-          <span className="landing-section-eyebrow">Platform Intelligence</span>
-          <h2 className="landing-section-title">Built for Real Civic Impact</h2>
-          <p className="landing-section-desc">
-            Engineered with modern civic-tech standards to eliminate bureaucracy and speed up council response.
-          </p>
-        </div>
-
-        <div className="landing-pillars-grid">
-          <div className="pillar-card">
-            <span className="pillar-badge">Spatial Intelligence</span>
-            <h3 className="pillar-title">Automated Deduplication</h3>
-            <p className="pillar-desc">
-              When 10 neighbors report the same damaged road, Mehewara doesn't create 10 disconnected tickets.
-              It clusters them into a single high-priority work order with combined citizen evidence.
-            </p>
-          </div>
-
-          <div className="pillar-card">
-            <span className="pillar-badge">End-to-End Tracking</span>
-            <h3 className="pillar-title">Transparent Governance</h3>
-            <p className="pillar-desc">
-              Every report receives a unique tracking ID. Citizens can verify when the council logged the issue,
-              when an engineer was assigned, and when the field team resolved it.
-            </p>
-          </div>
-
-          <div className="pillar-card">
-            <span className="pillar-badge">Engineering Coordination</span>
-            <h3 className="pillar-title">Council Field Dispatch</h3>
-            <p className="pillar-desc">
-              Direct municipal integration ensures problem details, GPS locations, and photo documentation
-              reach the correct department without middleman delays.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ====================================================================
-          5. Bottom Civic Call to Action Banner
-          ==================================================================== */}
-      <div className="landing-cta-section">
-        <div className="landing-cta-card">
-          <div className="landing-cta-content">
-            <h2 className="landing-cta-title">Help Shape a Cleaner, Safer Sri Lanka</h2>
-            <p className="landing-cta-subtitle">
-              Your reports provide the vital data municipal councils need to deploy maintenance crews
-              effectively. Start reporting civic issues today.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="landing-cta-white-btn"
-            onClick={handleReportClick}
-          >
-            <span>Report an Issue</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* ====================================================================
-          6. Municipal Footer
-          ==================================================================== */}
       <footer className="landing-footer">
-        <div className="landing-footer-inner">
-          <div className="landing-footer-top">
-            <div className="footer-brand-col">
-              <div className="footer-brand-title">මෙහෙවර • Mehewara</div>
-              <p className="footer-brand-desc">
-                An Agentic AI-Powered Municipal Works Management and Dispatch System designed for
-                seamless public engagement and rapid civic maintenance across Sri Lanka.
-              </p>
-            </div>
-
-            <div className="footer-links-grid">
-              <div className="footer-col">
-                <span className="footer-col-title">Municipal Categories</span>
-                <span className="footer-link-item">Roads & Pavements</span>
-                <span className="footer-link-item">Drainage & Flooding</span>
-                <span className="footer-link-item">Waste Management</span>
-                <span className="footer-link-item">Electrical & Lighting</span>
-                <span className="footer-link-item">Environment & Parks</span>
-              </div>
-
-              <div className="footer-col">
-                <span className="footer-col-title">Public Portal</span>
-                <span
-                  className="footer-link-item"
-                  style={{ cursor: 'pointer' }}
-                  onClick={handleReportClick}
-                >
-                  Report a Problem
-                </span>
-                <span
-                  className="footer-link-item"
-                  style={{ cursor: 'pointer' }}
-                  onClick={onNavigateToLogin}
-                >
-                  Resident Login / Sign Up
-                </span>
-                {currentUser?.role === 'ADMIN' && onNavigateToProblems && (
-                  <span
-                    className="footer-link-item"
-                    style={{ cursor: 'pointer' }}
-                    onClick={onNavigateToProblems}
-                  >
-                    Coordinator Dashboard
-                  </span>
-                )}
-              </div>
-
-              <div className="footer-col">
-                <span className="footer-col-title">Civic Hotlines</span>
-                <span className="footer-link-item">Emergency Services: 119</span>
-                <span className="footer-link-item">Disaster Management: 117</span>
-                <span className="footer-link-item">Municipal Council Dispatch: 1990</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="landing-footer-bottom">
-            <span>© {new Date().getFullYear()} Mehewara Municipal Public Operations. All rights reserved.</span>
-            <span>Agentic AI Powered Civic Infrastructure Platform</span>
-          </div>
-        </div>
+        <div className="landing-footer-main"><div><img src={mehewaraAssets.mehewaraLogoCompact} alt="Mehewara" width="520" height="144" /><p>Cleaner cities. Stronger communities.</p></div><nav aria-label="Footer navigation"><a href="#how-it-works">How it works</a><a href="#community">Community issues</a><a href="#why-mehewara">Why Mehewara</a><button type="button" onClick={signIn}>Log in</button></nav></div>
+        <p className="landing-footer-bottom">© {new Date().getFullYear()} Mehewara Municipal Services</p>
       </footer>
     </div>
   );
-};
+}

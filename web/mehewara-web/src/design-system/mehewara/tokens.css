@@ -1,0 +1,28 @@
+/* Mehewara core palette. Semantic badge colors are supplemental. */
+:root {
+  --mehewara-forest: #123C32;
+  --mehewara-primary-hover: #0D3028;
+  --mehewara-mint: #4FD1A1;
+  --mehewara-sage: #E5F6EE;
+  --mehewara-canvas: #F7F7F2;
+  --mehewara-white: #FFFFFF;
+  --mehewara-text: #18211E;
+  --mehewara-text-secondary: #68736E;
+  --mehewara-border: #DDE2DE;
+  --mehewara-radius: 12px;
+  --mehewara-font: Inter, "Segoe UI", Arial, sans-serif;
+}
+.mehewara-icon { display: inline-block; flex: none; vertical-align: middle; }
+.mehewara-badge { display: inline-flex; align-items: center; gap: 7px; min-height: 28px; padding: 3px 10px; box-sizing: border-box; border-radius: 999px; font: 600 12px/1.5 var(--mehewara-font); white-space: nowrap; }
+.mehewara-badge__dot { width: 6px; height: 6px; flex: none; border-radius: 50%; background: currentColor; }
+.mehewara-problem-image { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+.mehewara-decoration { pointer-events: none; user-select: none; }
+.mehewara-badge[data-kind="priority"][data-value="critical"] { color: #9F4742; background: #FAECEA; }
+.mehewara-badge[data-kind="priority"][data-value="high"] { color: #96552A; background: #FAEEE3; }
+.mehewara-badge[data-kind="priority"][data-value="medium"] { color: #81661F; background: #F6F0DC; }
+.mehewara-badge[data-kind="priority"][data-value="low"] { color: #3F6C53; background: #EAF3EB; }
+.mehewara-badge[data-kind="status"][data-value="identified"] { color: #53665C; background: #EDF2EE; }
+.mehewara-badge[data-kind="status"][data-value="assigned"] { color: #355D81; background: #EAF0F7; }
+.mehewara-badge[data-kind="status"][data-value="in-progress"] { color: #2F696D; background: #E7F2F1; }
+.mehewara-badge[data-kind="status"][data-value="resolved"] { color: #376A50; background: #E5F3E9; }
+@media (forced-colors: active) { .mehewara-badge { border: 1px solid CanvasText; } }
