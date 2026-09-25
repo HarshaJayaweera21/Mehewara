@@ -32,6 +32,7 @@ from tools.crew_tools import (
     check_crew_availability,
     get_crew_capabilities,
     get_recent_jobs,
+    reset_workflow_crew_context,
     set_workflow_crew_context,
 )
 
@@ -195,31 +196,31 @@ async def run_priority_recommendation(
     2. Inject tool outputs directly into the LLM prompt.
     3. Request structured Pydantic output.
     """
-    # 1. Set crew context for allow-listed tools
-    set_workflow_crew_context(available_crews)
+    # 1. Set crew context for allow-listed tools in coroutine-isolated ContextVar
+    token = set_workflow_crew_context(available_crews)
+    try:
+        # 2. Deterministically invoke tools to gather context (in-memory, ZERO SQL)
+        all_crews = get_crew_capabilities.invoke({})
+        required_cat = str(problem_data.get("category", "")).strip().upper()
+        matching_available = check_crew_availability.invoke({"crew_type": required_cat})
 
-    # 2. Deterministically invoke tools to gather context
-    all_crews = get_crew_capabilities.invoke({})
-    required_cat = str(problem_data.get("category", "")).strip().upper()
-    matching_available = check_crew_availability.invoke({"crew_type": required_cat})
+        # Check workloads for matching crews
+        crew_workloads: list[dict[str, Any]] = []
+        for c in all_crews:
+            cid = c.get("crewId")
+            if cid:
+                jobs = get_recent_jobs.invoke({"crew_id": cid})
+                if jobs:
+                    crew_workloads.extend(jobs)
 
-    # Check workloads for matching crews
-    crew_workloads: list[dict[str, Any]] = []
-    for c in all_crews:
-        cid = c.get("crewId")
-        if cid:
-            jobs = get_recent_jobs.invoke({"crew_id": cid})
-            if jobs:
-                crew_workloads.extend(jobs)
+        # If LLM is not configured, execute deterministic fallback
+        if not is_llm_configured():
+            logger.info("LLM not configured for Agent 3; executing deterministic fallback.")
+            return _generate_deterministic_fallback(problem_data, structured_report, all_crews)
 
-    # If LLM is not configured, execute deterministic fallback
-    if not is_llm_configured():
-        logger.info("LLM not configured for Agent 3; executing deterministic fallback.")
-        return _generate_deterministic_fallback(problem_data, structured_report, all_crews)
-
-    # 3. Construct user prompt with problem, Agent 1 facts, and tool outputs
-    prob_id = str(problem_data.get("problemId") or problem_data.get("problem_id") or "NEW_PROBLEM")
-    user_prompt = f"""Please assess the priority and recommend an available crew for this municipal problem:
+        # 3. Construct user prompt with problem, Agent 1 facts, and tool outputs
+        prob_id = str(problem_data.get("problemId") or problem_data.get("problem_id") or "NEW_PROBLEM")
+        user_prompt = f"""Please assess the priority and recommend an available crew for this municipal problem:
 
 --- CONSOLIDATED MUNICIPAL PROBLEM ---
 Problem ID: {prob_id}
@@ -246,38 +247,40 @@ Evaluate the severity, assign priority tier (CRITICAL/HIGH/MEDIUM/LOW) with scor
 Return your response conforming to the PriorityRecommendationOutput schema.
 """
 
-    try:
-        llm = get_llm()
-        structured_llm = llm.with_structured_output(PriorityRecommendationOutput)
+        try:
+            llm = get_llm()
+            structured_llm = llm.with_structured_output(PriorityRecommendationOutput)
 
-        result = await structured_llm.ainvoke([
-            SystemMessage(content=AGENT_3_SYSTEM_PROMPT),
-            HumanMessage(content=user_prompt),
-        ])
+            result = await structured_llm.ainvoke([
+                SystemMessage(content=AGENT_3_SYSTEM_PROMPT),
+                HumanMessage(content=user_prompt),
+            ])
 
-        if isinstance(result, PriorityRecommendationOutput):
-            result.problem_id = prob_id
-            # Enrich recommended_crew_name if missing
-            if not result.recommended_crew_name and result.recommended_crew_id:
-                for c in all_crews:
-                    if str(c.get("crewId")).lower() == str(result.recommended_crew_id).lower():
-                        result.recommended_crew_name = c.get("name")
-                        break
-            return result
+            if isinstance(result, PriorityRecommendationOutput):
+                result.problem_id = prob_id
+                # Enrich recommended_crew_name if missing
+                if not result.recommended_crew_name and result.recommended_crew_id:
+                    for c in all_crews:
+                        if str(c.get("crewId")).lower() == str(result.recommended_crew_id).lower():
+                            result.recommended_crew_name = c.get("name")
+                            break
+                return result
 
-        if isinstance(result, dict):
-            result["problemId"] = prob_id
-            parsed = PriorityRecommendationOutput(**result)
-            if not parsed.recommended_crew_name and parsed.recommended_crew_id:
-                for c in all_crews:
-                    if str(c.get("crewId")).lower() == str(parsed.recommended_crew_id).lower():
-                        parsed.recommended_crew_name = c.get("name")
-                        break
-            return parsed
+            if isinstance(result, dict):
+                result["problemId"] = prob_id
+                parsed = PriorityRecommendationOutput(**result)
+                if not parsed.recommended_crew_name and parsed.recommended_crew_id:
+                    for c in all_crews:
+                        if str(c.get("crewId")).lower() == str(parsed.recommended_crew_id).lower():
+                            parsed.recommended_crew_name = c.get("name")
+                            break
+                return parsed
 
-        logger.warning("Agent 3 returned unexpected type %s; falling back to deterministic calculation.", type(result))
-        return _generate_deterministic_fallback(problem_data, structured_report, all_crews)
+            logger.warning("Agent 3 returned unexpected type %s; falling back to deterministic calculation.", type(result))
+            return _generate_deterministic_fallback(problem_data, structured_report, all_crews)
 
-    except Exception as ex:
-        logger.exception("Agent 3 LLM invocation failed: %s; using deterministic fallback.", ex)
-        return _generate_deterministic_fallback(problem_data, structured_report, all_crews)
+        except Exception as ex:
+            logger.exception("Agent 3 LLM invocation failed: %s; using deterministic fallback.", ex)
+            return _generate_deterministic_fallback(problem_data, structured_report, all_crews)
+    finally:
+        reset_workflow_crew_context(token)
