@@ -25,17 +25,20 @@ public class ReportService : IReportService
     private readonly AppDbContext _context;
     private readonly IPhotoStorageService _photoStorageService;
     private readonly IAiWorkflowClient _aiWorkflowClient;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ReportService> _logger;
 
     public ReportService(
         AppDbContext context,
         IPhotoStorageService photoStorageService,
         IAiWorkflowClient aiWorkflowClient,
+        IServiceScopeFactory scopeFactory,
         ILogger<ReportService> logger)
     {
         _context = context;
         _photoStorageService = photoStorageService;
         _aiWorkflowClient = aiWorkflowClient;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -114,22 +117,36 @@ public class ReportService : IReportService
         _logger.LogInformation("Report {ReportId} created successfully for resident {ResidentId} with status PENDING",
             report.ReportId, residentId);
 
-        // Initiate AI workflow push trigger
+        // Initiate AI workflow push trigger in a safe background scope
+        var createdReportId = report.ReportId;
+        var createdWorkflowId = workflowRun.WorkflowRunId;
+
         _ = Task.Run(async () =>
         {
             try
             {
-                var triggered = await _aiWorkflowClient.TriggerWorkflowAsync(report, workflowRun.WorkflowRunId);
-                if (triggered)
+                using var scope = _scopeFactory.CreateScope();
+                var scopedContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var scopedAiClient = scope.ServiceProvider.GetRequiredService<IAiWorkflowClient>();
+
+                var scopedReport = await scopedContext.Reports
+                    .Include(r => r.Photos)
+                    .FirstOrDefaultAsync(r => r.ReportId == createdReportId);
+
+                if (scopedReport != null)
                 {
-                    report.Status = "PROCESSING";
-                    report.UpdatedAt = DateTime.UtcNow;
-                    await _context.SaveChangesAsync();
+                    var triggered = await scopedAiClient.TriggerWorkflowAsync(scopedReport, createdWorkflowId);
+                    if (triggered)
+                    {
+                        scopedReport.Status = "PROCESSING";
+                        scopedReport.UpdatedAt = DateTime.UtcNow;
+                        await scopedContext.SaveChangesAsync();
+                    }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Background trigger of AI workflow for Report {ReportId} logged error", report.ReportId);
+                _logger.LogWarning(ex, "Background trigger of AI workflow for Report {ReportId} logged error", createdReportId);
             }
         });
 
@@ -222,6 +239,7 @@ public class ReportService : IReportService
             .Include(r => r.Resident)
             .Include(r => r.Photos)
             .Include(r => r.Problem)
+            .Include(r => r.WorkflowRuns)
             .AsNoTracking()
             .FirstOrDefaultAsync(r => r.ReportId == reportId);
 
@@ -331,6 +349,7 @@ public class ReportService : IReportService
             Longitude = report.Longitude,
             Address = report.Address,
             Status = report.Status,
+            AiAnalysis = report.WorkflowRuns?.OrderByDescending(w => w.CreatedAt).FirstOrDefault()?.StateData,
             CreatedAt = report.CreatedAt,
             UpdatedAt = report.UpdatedAt,
             Photos = report.Photos.Select(p => new ReportPhotoDto

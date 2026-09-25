@@ -12,6 +12,7 @@ interface ReportsPageProps {
   token: string;
   onLogout: () => void;
   onOpenProfile: () => void;
+  onNavigateToProblems?: () => void;
 }
 
 const STATUS_FILTERS = ['ALL', 'PENDING', 'PROCESSING', 'ASSIGNED', 'RESOLVED', 'CANCELLED'];
@@ -21,6 +22,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
   token,
   onLogout,
   onOpenProfile,
+  onNavigateToProblems,
 }) => {
   const isAdmin = currentUser.role === 'ADMIN';
 
@@ -127,6 +129,17 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
               >
                 🏢 Coordinator All Reports
               </button>
+              {onNavigateToProblems && (
+                <button
+                  type="button"
+                  className="nav-tab-btn"
+                  onClick={onNavigateToProblems}
+                  style={{ borderColor: '#123C32', color: '#123C32', fontWeight: 600 }}
+                  title="Switch to Municipal Problems Dashboard"
+                >
+                  ⚡ Problems Dashboard
+                </button>
+              )}
             </div>
           )}
 

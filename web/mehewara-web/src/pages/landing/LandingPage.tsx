@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { User } from '../../types/auth';
 import { Icon, StatusBadge, mehewaraAssets } from '../../design-system/mehewara';
 import './LandingPage.css';
 
 interface LandingPageProps {
-  onSignIn: () => void;
-  onSignUp: () => void;
+  currentUser?: User | null;
+  onLogout?: () => void;
+  onOpenProfile?: () => void;
+  onNavigateToLogin?: () => void;
+  onNavigateToReports?: () => void;
+  onNavigateToProblems?: () => void;
+  onSignIn?: () => void;
+  onSignUp?: () => void;
 }
 
 const reportExamples = [
@@ -32,7 +39,10 @@ const processSteps = [
   { icon: 'refresh' as const, title: 'Follow what happens', description: 'See the status change as work is assigned, carried out, and resolved.' },
 ];
 
-export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
+export function LandingPage({ currentUser, onNavigateToLogin, onNavigateToReports, onSignIn: legacySignIn, onSignUp: legacySignUp }: LandingPageProps) {
+  const signIn = onNavigateToLogin ?? legacySignIn ?? (() => undefined);
+  const signUp = onNavigateToLogin ?? legacySignUp ?? signIn;
+  const navigateToReports = onNavigateToReports ?? (() => undefined);
   const [menuOpen, setMenuOpen] = useState(false);
   const reportTrackRef = useRef<HTMLDivElement>(null);
   const [activeReport, setActiveReport] = useState(0);
@@ -94,8 +104,8 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
           <a href="#community" onClick={closeMenu}>Community issues</a>
           <a href="#why-mehewara" onClick={closeMenu}>Why Mehewara</a>
           <span className="landing-nav-divider" aria-hidden="true" />
-          <button className="landing-nav-login" type="button" onClick={() => { closeMenu(); onSignIn(); }}>Log in</button>
-          <button className="landing-nav-join" type="button" onClick={() => { closeMenu(); onSignUp(); }}>Get started <Icon name="arrow-right" size={16} /></button>
+          <button className="landing-nav-login" type="button" onClick={() => { closeMenu(); signIn(); }}>Log in</button>
+          <button className="landing-nav-join" type="button" onClick={() => { closeMenu(); signUp(); }}>Get started <Icon name="arrow-right" size={16} /></button>
         </nav>
       </header>
 
@@ -107,7 +117,7 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
               <h1 id="landing-title">Your street.<br /><span>A better city.</span></h1>
               <p className="landing-hero-intro">From a blocked drain to a safer walkway, Mehewara helps you raise local concerns and see how they are handled.</p>
               <div className="landing-hero-actions">
-                <button type="button" className="landing-button landing-button-dark" onClick={onSignUp}>Report a problem <Icon name="arrow-right" size={20} /></button>
+                <button type="button" className="landing-button landing-button-dark" onClick={() => currentUser ? navigateToReports() : signUp()}>Report a problem <Icon name="arrow-right" size={20} /></button>
                 <a className="landing-button landing-button-outline" href="#how-it-works">See how it works</a>
               </div>
               <p className="landing-hero-note"><Icon name="info" size={16} /> Made for residents and municipal teams</p>
@@ -225,19 +235,19 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
               <div><span><Icon name="map" size={20} /></span><p><strong>Grounded in place</strong>Locations help teams understand the area affected.</p></div>
               <div><span><Icon name="analytics" size={20} /></span><p><strong>A fuller picture</strong>Related concerns reveal patterns worth addressing.</p></div>
             </div>
-            <button type="button" className="landing-text-link" onClick={onSignUp}>Create your account <Icon name="arrow-right" size={20} /></button>
+            <button type="button" className="landing-text-link" onClick={signUp}>Create your account <Icon name="arrow-right" size={20} /></button>
           </div>
         </section>
 
         <section className="landing-final-cta" aria-labelledby="final-cta-title">
           <img className="landing-final-leaves" src={mehewaraAssets.mehewaraWelcomeLeaves} alt="" aria-hidden="true" />
           <div><p className="landing-kicker">Your community starts here</p><h2 id="final-cta-title">See a problem? Help move it forward.</h2><p>Share a local concern and follow the response in one place.</p></div>
-          <button type="button" className="landing-button landing-button-light" onClick={onSignUp}>Get started <Icon name="arrow-right" size={20} /></button>
+          <button type="button" className="landing-button landing-button-light" onClick={signUp}>Get started <Icon name="arrow-right" size={20} /></button>
         </section>
       </main>
 
       <footer className="landing-footer">
-        <div className="landing-footer-main"><div><img src={mehewaraAssets.mehewaraLogoCompact} alt="Mehewara" width="520" height="144" /><p>Cleaner cities. Stronger communities.</p></div><nav aria-label="Footer navigation"><a href="#how-it-works">How it works</a><a href="#community">Community issues</a><a href="#why-mehewara">Why Mehewara</a><button type="button" onClick={onSignIn}>Log in</button></nav></div>
+        <div className="landing-footer-main"><div><img src={mehewaraAssets.mehewaraLogoCompact} alt="Mehewara" width="520" height="144" /><p>Cleaner cities. Stronger communities.</p></div><nav aria-label="Footer navigation"><a href="#how-it-works">How it works</a><a href="#community">Community issues</a><a href="#why-mehewara">Why Mehewara</a><button type="button" onClick={signIn}>Log in</button></nav></div>
         <p className="landing-footer-bottom">© {new Date().getFullYear()} Mehewara Municipal Services</p>
       </footer>
     </div>
