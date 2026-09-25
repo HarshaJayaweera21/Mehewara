@@ -1,0 +1,566 @@
+{
+  "assetCount": 62,
+  "svgCount": 52,
+  "webpCount": 10,
+  "totalBytes": 2941052,
+  "checks": [
+    {
+      "id": 1,
+      "file": "mehewara-logo-primary.svg",
+      "width": 600,
+      "height": 176,
+      "bytes": 21454,
+      "transparentPixels": 77747,
+      "passed": true
+    },
+    {
+      "id": 2,
+      "file": "mehewara-logo-white.svg",
+      "width": 600,
+      "height": 176,
+      "bytes": 21454,
+      "transparentPixels": 77747,
+      "passed": true
+    },
+    {
+      "id": 3,
+      "file": "mehewara-logo-icon.svg",
+      "width": 160,
+      "height": 160,
+      "bytes": 1046,
+      "transparentPixels": 13748,
+      "passed": true
+    },
+    {
+      "id": 4,
+      "file": "mehewara-logo-compact.svg",
+      "width": 520,
+      "height": 144,
+      "bytes": 5703,
+      "transparentPixels": 55649,
+      "passed": true
+    },
+    {
+      "id": 5,
+      "file": "mehewara-welcome-bg.webp",
+      "width": 1920,
+      "height": 640,
+      "bytes": 42324,
+      "transparentPixels": 0,
+      "passed": true
+    },
+    {
+      "id": 6,
+      "file": "mehewara-welcome-leaves.svg",
+      "width": 400,
+      "height": 640,
+      "bytes": 1483,
+      "transparentPixels": 157078,
+      "passed": true
+    },
+    {
+      "id": 7,
+      "file": "mehewara-welcome-cityscape.svg",
+      "width": 1200,
+      "height": 320,
+      "bytes": 5172,
+      "transparentPixels": 69769,
+      "passed": true
+    },
+    {
+      "id": 8,
+      "file": "mehewara-welcome-decoration.svg",
+      "width": 320,
+      "height": 320,
+      "bytes": 736,
+      "transparentPixels": 98132,
+      "passed": true
+    },
+    {
+      "id": 9,
+      "file": "mehewara-leaf-decoration.svg",
+      "width": 360,
+      "height": 360,
+      "bytes": 927,
+      "transparentPixels": 86406,
+      "passed": true
+    },
+    {
+      "id": 10,
+      "file": "mehewara-wave-pattern.svg",
+      "width": 1000,
+      "height": 400,
+      "bytes": 621,
+      "transparentPixels": 154211,
+      "passed": true
+    },
+    {
+      "id": 11,
+      "file": "mehewara-dot-pattern.svg",
+      "width": 320,
+      "height": 320,
+      "bytes": 379,
+      "transparentPixels": 100800,
+      "passed": true
+    },
+    {
+      "id": 12,
+      "file": "mehewara-circle-accent.svg",
+      "width": 400,
+      "height": 280,
+      "bytes": 373,
+      "transparentPixels": 59341,
+      "passed": true
+    },
+    {
+      "id": 13,
+      "file": "mehewara-line-accent.svg",
+      "width": 640,
+      "height": 24,
+      "bytes": 386,
+      "transparentPixels": 14102,
+      "passed": true
+    },
+    {
+      "id": 14,
+      "file": "problem-drainage.webp",
+      "width": 1536,
+      "height": 864,
+      "bytes": 409868,
+      "transparentPixels": 0,
+      "passed": true
+    },
+    {
+      "id": 15,
+      "file": "problem-road-pothole.webp",
+      "width": 1536,
+      "height": 864,
+      "bytes": 310696,
+      "transparentPixels": 0,
+      "passed": true
+    },
+    {
+      "id": 16,
+      "file": "problem-waste.webp",
+      "width": 1536,
+      "height": 864,
+      "bytes": 324592,
+      "transparentPixels": 0,
+      "passed": true
+    },
+    {
+      "id": 17,
+      "file": "problem-streetlight.webp",
+      "width": 1536,
+      "height": 864,
+      "bytes": 203628,
+      "transparentPixels": 0,
+      "passed": true
+    },
+    {
+      "id": 18,
+      "file": "problem-environment.webp",
+      "width": 1536,
+      "height": 864,
+      "bytes": 381398,
+      "transparentPixels": 0,
+      "passed": true
+    },
+    {
+      "id": 19,
+      "file": "problem-overflow-drain.webp",
+      "width": 1536,
+      "height": 864,
+      "bytes": 404504,
+      "transparentPixels": 0,
+      "passed": true
+    },
+    {
+      "id": 20,
+      "file": "problem-road-damage.webp",
+      "width": 1536,
+      "height": 864,
+      "bytes": 387372,
+      "transparentPixels": 0,
+      "passed": true
+    },
+    {
+      "id": 21,
+      "file": "problem-bus-stop-waste.webp",
+      "width": 1536,
+      "height": 864,
+      "bytes": 386144,
+      "transparentPixels": 0,
+      "passed": true
+    },
+    {
+      "id": 22,
+      "file": "empty-no-problems.svg",
+      "width": 480,
+      "height": 320,
+      "bytes": 1726,
+      "transparentPixels": 121594,
+      "passed": true
+    },
+    {
+      "id": 23,
+      "file": "empty-no-results.svg",
+      "width": 480,
+      "height": 320,
+      "bytes": 1762,
+      "transparentPixels": 127840,
+      "passed": true
+    },
+    {
+      "id": 24,
+      "file": "empty-error.svg",
+      "width": 480,
+      "height": 320,
+      "bytes": 1599,
+      "transparentPixels": 125226,
+      "passed": true
+    },
+    {
+      "id": 25,
+      "file": "icon-drainage.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 353,
+      "transparentPixels": 400,
+      "passed": true
+    },
+    {
+      "id": 26,
+      "file": "icon-road.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 309,
+      "transparentPixels": 434,
+      "passed": true
+    },
+    {
+      "id": 27,
+      "file": "icon-waste.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 319,
+      "transparentPixels": 386,
+      "passed": true
+    },
+    {
+      "id": 28,
+      "file": "icon-electrical.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 310,
+      "transparentPixels": 420,
+      "passed": true
+    },
+    {
+      "id": 29,
+      "file": "icon-environment.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 338,
+      "transparentPixels": 386,
+      "passed": true
+    },
+    {
+      "id": 30,
+      "file": "icon-dashboard.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 337,
+      "transparentPixels": 400,
+      "passed": true
+    },
+    {
+      "id": 31,
+      "file": "icon-reports.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 368,
+      "transparentPixels": 393,
+      "passed": true
+    },
+    {
+      "id": 32,
+      "file": "icon-problems.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 322,
+      "transparentPixels": 324,
+      "passed": true
+    },
+    {
+      "id": 33,
+      "file": "icon-work-orders.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 380,
+      "transparentPixels": 391,
+      "passed": true
+    },
+    {
+      "id": 34,
+      "file": "icon-map.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 315,
+      "transparentPixels": 354,
+      "passed": true
+    },
+    {
+      "id": 35,
+      "file": "icon-analytics.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 312,
+      "transparentPixels": 438,
+      "passed": true
+    },
+    {
+      "id": 36,
+      "file": "icon-users.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 370,
+      "transparentPixels": 373,
+      "passed": true
+    },
+    {
+      "id": 37,
+      "file": "icon-settings.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 449,
+      "transparentPixels": 353,
+      "passed": true
+    },
+    {
+      "id": 38,
+      "file": "icon-search.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 318,
+      "transparentPixels": 417,
+      "passed": true
+    },
+    {
+      "id": 39,
+      "file": "icon-filter.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 407,
+      "transparentPixels": 393,
+      "passed": true
+    },
+    {
+      "id": 40,
+      "file": "icon-location.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 354,
+      "transparentPixels": 384,
+      "passed": true
+    },
+    {
+      "id": 41,
+      "file": "icon-calendar.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 367,
+      "transparentPixels": 367,
+      "passed": true
+    },
+    {
+      "id": 42,
+      "file": "icon-document.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 361,
+      "transparentPixels": 401,
+      "passed": true
+    },
+    {
+      "id": 43,
+      "file": "icon-arrow-right.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 302,
+      "transparentPixels": 476,
+      "passed": true
+    },
+    {
+      "id": 44,
+      "file": "icon-arrow-left.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 301,
+      "transparentPixels": 476,
+      "passed": true
+    },
+    {
+      "id": 45,
+      "file": "icon-chevron-down.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 295,
+      "transparentPixels": 504,
+      "passed": true
+    },
+    {
+      "id": 46,
+      "file": "icon-bell.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 330,
+      "transparentPixels": 420,
+      "passed": true
+    },
+    {
+      "id": 47,
+      "file": "icon-user.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 325,
+      "transparentPixels": 401,
+      "passed": true
+    },
+    {
+      "id": 48,
+      "file": "icon-refresh.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 346,
+      "transparentPixels": 415,
+      "passed": true
+    },
+    {
+      "id": 49,
+      "file": "icon-warning.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 357,
+      "transparentPixels": 398,
+      "passed": true
+    },
+    {
+      "id": 50,
+      "file": "icon-info.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 314,
+      "transparentPixels": 404,
+      "passed": true
+    },
+    {
+      "id": 51,
+      "file": "icon-close.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 289,
+      "transparentPixels": 460,
+      "passed": true
+    },
+    {
+      "id": 52,
+      "file": "icon-grid.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 447,
+      "transparentPixels": 352,
+      "passed": true
+    },
+    {
+      "id": 53,
+      "file": "icon-list.svg",
+      "width": 24,
+      "height": 24,
+      "bytes": 313,
+      "transparentPixels": 474,
+      "passed": true
+    },
+    {
+      "id": 54,
+      "file": "priority-critical.svg",
+      "width": 102,
+      "height": 28,
+      "bytes": 364,
+      "transparentPixels": 126,
+      "passed": true
+    },
+    {
+      "id": 55,
+      "file": "priority-high.svg",
+      "width": 71,
+      "height": 28,
+      "bytes": 349,
+      "transparentPixels": 126,
+      "passed": true
+    },
+    {
+      "id": 56,
+      "file": "priority-medium.svg",
+      "width": 87,
+      "height": 28,
+      "bytes": 355,
+      "transparentPixels": 126,
+      "passed": true
+    },
+    {
+      "id": 57,
+      "file": "priority-low.svg",
+      "width": 63,
+      "height": 28,
+      "bytes": 346,
+      "transparentPixels": 126,
+      "passed": true
+    },
+    {
+      "id": 58,
+      "file": "status-identified.svg",
+      "width": 118,
+      "height": 28,
+      "bytes": 370,
+      "transparentPixels": 126,
+      "passed": true
+    },
+    {
+      "id": 59,
+      "file": "status-assigned.svg",
+      "width": 102,
+      "height": 28,
+      "bytes": 364,
+      "transparentPixels": 126,
+      "passed": true
+    },
+    {
+      "id": 60,
+      "file": "status-in-progress.svg",
+      "width": 126,
+      "height": 28,
+      "bytes": 373,
+      "transparentPixels": 126,
+      "passed": true
+    },
+    {
+      "id": 61,
+      "file": "status-resolved.svg",
+      "width": 102,
+      "height": 28,
+      "bytes": 364,
+      "transparentPixels": 126,
+      "passed": true
+    },
+    {
+      "id": 62,
+      "file": "mehewara-sidebar-bg.webp",
+      "width": 600,
+      "height": 1800,
+      "bytes": 12912,
+      "transparentPixels": 0,
+      "passed": true
+    }
+  ]
+}

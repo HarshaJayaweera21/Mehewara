@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { LoginPage } from './pages/auth/LoginPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import type { User } from './types/auth';
@@ -39,11 +39,11 @@ function App() {
     setViewMode('reports');
   };
 
-  const handleLoginSuccess = (user: User, accessToken: string) => {
+  const handleLoginSuccess = useCallback((user: User, accessToken: string) => {
     setCurrentUser(user);
     setToken(accessToken);
     setViewMode('reports');
-  };
+  }, []);
 
   // 1. Not Authenticated -> Show Login & Sign-up Portal
   if (!currentUser || !token) {

@@ -1,0 +1,40 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+const require=createRequire(import.meta.url);
+const {chromium}=require(process.argv[2]||'playwright');
+const out=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../public/assets/mehewara');
+const css=fs.readFileSync(path.join(out,'tokens.css'),'utf8');
+function luminance(hex){const c=hex.match(/[0-9a-f]{2}/gi).map(v=>parseInt(v,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return c[0]*.2126+c[1]*.7152+c[2]*.0722;}
+const contrasts=[...css.matchAll(/data-kind="(.*?)"\]\[data-value="(.*?)"\] \{ color: (#[A-Fa-f0-9]+); background: (#[A-Fa-f0-9]+);/g)].map(([,kind,value,foreground,background])=>{const l=[luminance(foreground),luminance(background)].sort((a,b)=>a-b);const ratio=(l[1]+.05)/(l[0]+.05);if(ratio<4.5)throw new Error('Insufficient label contrast: '+value);return {kind,value,foreground,background,ratio:Number(ratio.toFixed(2)),passesAA:true};});
+if(contrasts.length!==8)throw new Error('Expected eight badge treatments');
+fs.writeFileSync(path.join(out,'contrast.json'),JSON.stringify({minimumRequired:4.5,treatments:contrasts},null,2)+'\n');
+const browser=await chromium.launch({headless:true,...(process.argv[4]?{channel:process.argv[4]}:{})});
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:1100},deviceScaleFactor:1});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(pathToFileURL(path.join(out,'index.html')).href);
+ await page.evaluate(async()=>{for(const i of document.images)i.loading='eager';await Promise.all([...document.images].map(i=>i.decode()));});
+ if(await page.locator('.asset').count()!==62)throw new Error('Catalog inventory mismatch');
+ if(await page.locator('.asset .stage[download]').count()!==62)throw new Error('Missing independent download links');
+ const ratio=await page.locator('.problem>img').first().evaluate(i=>i.clientWidth/i.clientHeight);
+ if(Math.abs(ratio-16/9)>.02)throw new Error('Problem-card preview aspect ratio is incorrect');
+ if(process.argv[3])await page.screenshot({path:path.join(process.argv[3],'mehewara-catalog-desktop.png')});
+ await page.locator('#search').fill('pothole');
+ if(await page.locator('.asset:visible').count()!==1)throw new Error('Catalog search failed');
+ await page.locator('#search').fill('');
+ await page.locator('#category').selectOption({label:'UI icons'});
+ if(await page.locator('.asset:visible').count()!==24)throw new Error('UI icon category count mismatch');
+ await page.locator('.asset-group[data-group="UI icons"]').scrollIntoViewIfNeeded();
+ if(process.argv[3])await page.screenshot({path:path.join(process.argv[3],'mehewara-icons-review.png')});
+ await page.locator('#category').selectOption({label:'All assets'});
+ await page.setViewportSize({width:375,height:900});
+ await page.evaluate(()=>window.scrollTo(0,0));
+ const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);
+ if(overflow)throw new Error('Mobile catalog horizontal overflow');
+ if(process.argv[3])await page.screenshot({path:path.join(process.argv[3],'mehewara-catalog-mobile.png')});
+ if(errors.length)throw new Error(errors.join('\n'));
+ console.log('Browser checks passed: all images decode, 62 downloads, search/filter, no mobile overflow, no page errors.');
+ console.log('All eight badge labels pass 4.5:1. Lowest measured contrast:',Math.min(...contrasts.map(c=>c.ratio)));
+} finally {await browser.close();}

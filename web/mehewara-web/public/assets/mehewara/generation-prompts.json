@@ -1,0 +1,47 @@
+{
+  "method": "Built-in image_gen tool; one separate generation per asset",
+  "reference": "User-supplied Mehewara visual reference board; treated as visual guidance.",
+  "processing": "Resized to consistent specified dimensions and encoded to WebP quality 86 using Sharp. No compositing or board slicing.",
+  "prompts": [
+    {
+      "file": "problem-drainage.webp",
+      "prompt": "Use case: photorealistic-natural. Create ONE standalone municipal problem-card photograph, not a sheet. Subject: blocked roadside metal drainage grate with trapped leaves, silt and small debris, wet asphalt pavement and concrete curb, municipal roadside greenery. No people, no text, no watermark. Premium documentary editorial photo, believable Sri Lankan town context, neutral slightly warm daylight, restrained forest greens, natural detailed textures, 35mm perspective, medium-close composition. Landscape 16:9, requested 1536x864. Consistent photo-series treatment: softly diffused light, realistic color, moderate contrast, no HDR, no vignette. Fill frame, no border."
+    },
+    {
+      "file": "problem-road-pothole.webp",
+      "prompt": "Use case: photorealistic-natural. Create ONE standalone municipal problem-card photograph, not a sheet. Subject: A large deep pothole in municipal asphalt road, broken cracked edges, realistic gravel exposed, low roadside greenery and modest urban buildings softly out of focus. Daylight. Premium documentary editorial photo, believable Sri Lankan town context, restrained natural forest greens, neutral slightly warm color, realistic detailed textures, 35mm perspective, medium-close composition. Landscape 16:9, requested 1536x864. Consistent photo-series treatment: softly diffused natural light (except requested dusk), moderate contrast, no HDR, no vignette. No people, no text, no watermark. Fill frame, no border."
+    },
+    {
+      "file": "problem-waste.webp",
+      "prompt": "Use case: photorealistic-natural. Create ONE standalone municipal problem-card photograph, not a sheet. Subject: Illegal waste accumulation beside a municipal roadside: several black and pale garbage bags, small scattered household debris, concrete curb, leafy surroundings. Clean deliberate documentary composition. Daylight. Premium documentary editorial photo, believable Sri Lankan town context, restrained natural forest greens, neutral slightly warm color, realistic detailed textures, 35mm perspective, medium-close composition. Landscape 16:9, requested 1536x864. Consistent photo-series treatment: softly diffused natural light (except requested dusk), moderate contrast, no HDR, no vignette. No people, no text, no watermark. Fill frame, no border."
+    },
+    {
+      "file": "problem-streetlight.webp",
+      "prompt": "Use case: photorealistic-natural. Create ONE standalone municipal problem-card photograph, not a sheet. Subject: A municipal streetlight prominently illuminated with a warm white lamp, graceful simple dark pole, modest road and tropical trees below, deep blue dusk sky. Believable evening photograph, restrained exposure, natural warm lamp glow. Premium documentary editorial photo, believable Sri Lankan town context, restrained natural forest greens, neutral slightly warm color, realistic detailed textures, 35mm perspective, medium-close composition. Landscape 16:9, requested 1536x864. Consistent photo-series treatment: softly diffused natural light (except requested dusk), moderate contrast, no HDR, no vignette. No people, no text, no watermark. Fill frame, no border."
+    },
+    {
+      "file": "problem-environment.webp",
+      "prompt": "Use case: photorealistic-natural. Create ONE standalone municipal problem-card photograph, not a sheet. Subject: A fallen substantial tree branch obstructing a municipal pedestrian paved pathway, green leaves still attached, suburban tropical roadside, clear visible blockage, no disaster drama. Daylight. Premium documentary editorial photo, believable Sri Lankan town context, restrained natural forest greens, neutral slightly warm color, realistic detailed textures, 35mm perspective, medium-close composition. Landscape 16:9, requested 1536x864. Consistent photo-series treatment: softly diffused natural light (except requested dusk), moderate contrast, no HDR, no vignette. No people, no text, no watermark. Fill frame, no border."
+    },
+    {
+      "file": "problem-overflow-drain.webp",
+      "prompt": "Use case: photorealistic-natural. Create ONE standalone municipal problem-card photograph, not a sheet. Subject: Municipal storm drain overflowing with water visibly flowing from the clogged curb inlet over the roadside asphalt, rippling runoff, wet concrete gutter, restrained greenery. Daylight after rain. Premium documentary editorial photo, believable Sri Lankan town context, restrained natural forest greens, neutral slightly warm color, realistic detailed textures, 35mm perspective, medium-close composition. Landscape 16:9, requested 1536x864. Consistent photo-series treatment: softly diffused natural light (except requested dusk), moderate contrast, no HDR, no vignette. No people, no text, no watermark. Fill frame, no border."
+    },
+    {
+      "file": "problem-road-damage.webp",
+      "prompt": "Use case: photorealistic-natural. Create ONE standalone municipal problem-card photograph, not a sheet. Subject: Damaged municipal asphalt road surface with a network of wide cracks and crumbling fractured patches, distinct from a single pothole, low oblique close view with curb and street context. Daylight. Premium documentary editorial photo, believable Sri Lankan town context, restrained natural forest greens, neutral slightly warm color, realistic detailed textures, 35mm perspective, medium-close composition. Landscape 16:9, requested 1536x864. Consistent photo-series treatment: softly diffused natural light (except requested dusk), moderate contrast, no HDR, no vignette. No people, no text, no watermark. Fill frame, no border."
+    },
+    {
+      "file": "problem-bus-stop-waste.webp",
+      "prompt": "Use case: photorealistic-natural. Create ONE standalone municipal problem-card photograph, not a sheet. Subject: Litter and garbage bags accumulated beside a simple municipal bus shelter with bench and plain blank shelter panels, realistic tropical roadside. No advertisements or writing. Daylight. Premium documentary editorial photo, believable Sri Lankan town context, restrained natural forest greens, neutral slightly warm color, realistic detailed textures, 35mm perspective, medium-close composition. Landscape 16:9, requested 1536x864. Consistent photo-series treatment: softly diffused natural light (except requested dusk), moderate contrast, no HDR, no vignette. No people, no text, no watermark. Fill frame, no border."
+    },
+    {
+      "file": "mehewara-welcome-bg.webp",
+      "prompt": "Create ONE standalone wide dashboard welcome background illustration. Landscape 3:1 composition, 1920x640 preferred. Premium minimal editorial botanical municipal illustration, warm off-white #F7F7F2 and very light sage #E5F6EE ground. Soft layered municipal town skyline and trees along the BOTTOM quarter, small subtle clock tower at lower right, subtle hills, elegant large abstract leaves entering from LEFT edge. Muted mint #4FD1A1 and forest green #123C32 used at very low contrast. Large CENTER and upper-center region almost empty and pale for later centered welcome text. Crisp softly shaped editorial vector-like illustration, graceful leaves, restrained details, no outlines heavier than thin. No text, no logo, no UI, no cards, no frame, not an asset board. Calm civic natural trustworthy design. No purple, no 3D, no grain."
+    },
+    {
+      "file": "mehewara-sidebar-bg.webp",
+      "prompt": "Create ONE standalone tall dashboard sidebar background, portrait exactly 1:3 composition 600x1800 preferred. Almost white warm #F7F7F2 base with exceptionally faint soft sage #E5F6EE botanical leaves in upper left and very faint municipal landscape and tiny clock tower along bottom edge. Premium minimal editorial illustration. Shapes at approximately 4 to 8 percent visual contrast, softly defined, lots of open space throughout the center for navigation overlay. Muted mint and forest green at extremely low opacity. No text, no logo, no UI, no border, no cards, no asset board, no 3D. Must not compete with dark navigation labels."
+    }
+  ]
+}

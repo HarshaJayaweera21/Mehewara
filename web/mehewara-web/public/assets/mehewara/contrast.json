@@ -1,0 +1,69 @@
+{
+  "minimumRequired": 4.5,
+  "treatments": [
+    {
+      "kind": "priority",
+      "value": "critical",
+      "foreground": "#9F4742",
+      "background": "#FAECEA",
+      "ratio": 5.28,
+      "passesAA": true
+    },
+    {
+      "kind": "priority",
+      "value": "high",
+      "foreground": "#96552A",
+      "background": "#FAEEE3",
+      "ratio": 5.07,
+      "passesAA": true
+    },
+    {
+      "kind": "priority",
+      "value": "medium",
+      "foreground": "#81661F",
+      "background": "#F6F0DC",
+      "ratio": 4.78,
+      "passesAA": true
+    },
+    {
+      "kind": "priority",
+      "value": "low",
+      "foreground": "#3F6C53",
+      "background": "#EAF3EB",
+      "ratio": 5.32,
+      "passesAA": true
+    },
+    {
+      "kind": "status",
+      "value": "identified",
+      "foreground": "#53665C",
+      "background": "#EDF2EE",
+      "ratio": 5.42,
+      "passesAA": true
+    },
+    {
+      "kind": "status",
+      "value": "assigned",
+      "foreground": "#355D81",
+      "background": "#EAF0F7",
+      "ratio": 6.03,
+      "passesAA": true
+    },
+    {
+      "kind": "status",
+      "value": "in-progress",
+      "foreground": "#2F696D",
+      "background": "#E7F2F1",
+      "ratio": 5.46,
+      "passesAA": true
+    },
+    {
+      "kind": "status",
+      "value": "resolved",
+      "foreground": "#376A50",
+      "background": "#E5F3E9",
+      "ratio": 5.49,
+      "passesAA": true
+    }
+  ]
+}
