@@ -14,11 +14,10 @@
 --   4. reports
 --   5. report_photos
 --   6. problems
---   7. report_problems
---   8. work_orders
---   9. approval_history
---  10. workflow_runs
---  11. workflow_events
+--   7. work_orders
+--   8. approval_history
+--   9. workflow_runs
+--  10. workflow_events
 --
 -- Important:
 --   PostgreSQL is the authoritative data store.
@@ -184,6 +183,9 @@ CREATE TABLE reports (
     report_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     resident_id UUID NOT NULL,
+
+    -- Current EF Core relationship: each Report links to zero or one Problem.
+    problem_id UUID,
 
     description TEXT NOT NULL,
 
@@ -374,57 +376,23 @@ CREATE TABLE problems (
 
 
 -- ============================================================
--- 7. REPORT_PROBLEMS
+-- Report -> Problem relationship (one-to-many)
 -- ============================================================
--- Many-to-many relationship:
+-- One report can link to zero or one problem. A problem can link to many
+-- reports. This matches the current EF Core Report.ProblemId mapping.
 --
---       REPORTS N:M PROBLEMS
---
--- via this bridge table.
---
--- IMPORTANT:
---   There is NO confidence column.
---
--- AI confidence/evidence belongs in workflow event data.
+-- The Problem table is declared after Reports, so add the foreign key here.
 -- ============================================================
 
-CREATE TABLE report_problems (
-    report_problem_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    report_id UUID NOT NULL,
-
-    problem_id UUID NOT NULL,
-
-    link_type VARCHAR(30) NOT NULL,
-
-    linked_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_report_problems_report
-        FOREIGN KEY (report_id)
-        REFERENCES reports(report_id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_report_problems_problem
-        FOREIGN KEY (problem_id)
-        REFERENCES problems(problem_id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT uq_report_problem
-        UNIQUE (report_id, problem_id),
-
-    CONSTRAINT chk_report_problems_link_type
-        CHECK (
-            link_type IN (
-                'DUPLICATE',
-                'RELATED',
-                'PRIMARY'
-            )
-        )
-);
+ALTER TABLE reports
+    ADD CONSTRAINT fk_reports_problem
+    FOREIGN KEY (problem_id)
+    REFERENCES problems(problem_id)
+    ON DELETE SET NULL;
 
 
 -- ============================================================
--- 8. WORK_ORDERS
+-- 7. WORK_ORDERS
 -- ============================================================
 -- Represents actual authorized work.
 --
@@ -512,7 +480,7 @@ CREATE TABLE work_orders (
 
 
 -- ============================================================
--- 9. APPROVAL_HISTORY
+-- 8. APPROVAL_HISTORY
 -- ============================================================
 -- Records human approval/rejection/revision decisions.
 --
@@ -555,7 +523,7 @@ CREATE TABLE approval_history (
 
 
 -- ============================================================
--- 10. WORKFLOW_RUNS
+-- 9. WORKFLOW_RUNS
 -- ============================================================
 -- Represents one complete execution of the Agentic AI workflow.
 --
@@ -624,7 +592,7 @@ CREATE TABLE workflow_runs (
 
 
 -- ============================================================
--- 11. WORKFLOW_EVENTS
+-- 10. WORKFLOW_EVENTS
 -- ============================================================
 -- Stores individual agent/stage execution records.
 --
@@ -738,6 +706,10 @@ CREATE INDEX idx_reports_status
     ON reports(status);
 
 
+CREATE INDEX idx_reports_problem_id
+    ON reports(problem_id);
+
+
 CREATE INDEX idx_reports_category
     ON reports(category);
 
@@ -776,16 +748,6 @@ CREATE INDEX idx_problems_priority_score
 
 CREATE INDEX idx_problems_location
     ON problems(latitude, longitude);
-
-
--- Report/problem relationships
-
-CREATE INDEX idx_report_problems_report_id
-    ON report_problems(report_id);
-
-
-CREATE INDEX idx_report_problems_problem_id
-    ON report_problems(problem_id);
 
 
 -- Work orders
