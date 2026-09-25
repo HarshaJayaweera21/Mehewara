@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   loginWithCredentials,
   registerResident,
@@ -41,9 +41,14 @@ const resolveImageUrl = (url?: string | null) => {
 interface LoginPageProps {
   onLoginSuccess?: (user: User, accessToken: string) => void;
   onNavigateToReports?: () => void;
+  onNavigateToLanding?: () => void;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigateToReports }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({
+  onLoginSuccess,
+  onNavigateToReports,
+  onNavigateToLanding,
+}) => {
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
   const [publicView, setPublicView] = useState<'landing' | 'auth'>('landing');
 
@@ -80,6 +85,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
   const [editPhone, setEditPhone] = useState('');
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  const googleInitializedRef = useRef(false);
 
   useEffect(() => {
     if (!googleClientId || currentUser || activeTab !== 'signin' || publicView !== 'auth') return;
@@ -87,24 +93,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
     const setupGoogleButton = () => {
       if (!window.google?.accounts?.id) return false;
 
-      window.google.accounts.id.initialize({
-        client_id: googleClientId,
-        callback: async (response) => {
-          try {
-            setLoading(true);
-            setError(null);
-            const authData = await loginWithGoogle(response.credential);
-            localStorage.setItem('mehewara_token', authData.accessToken);
-            localStorage.setItem('mehewara_user', JSON.stringify(authData.user));
-            setCurrentUser(authData.user);
-            onLoginSuccess?.(authData.user, authData.accessToken);
-          } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Google authentication failed.');
-          } finally {
-            setLoading(false);
-          }
-        },
-      });
+      if (!googleInitializedRef.current) {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: async (response) => {
+            try {
+              setLoading(true);
+              setError(null);
+              const authData = await loginWithGoogle(response.credential);
+              localStorage.setItem('mehewara_token', authData.accessToken);
+              localStorage.setItem('mehewara_user', JSON.stringify(authData.user));
+              setCurrentUser(authData.user);
+              onLoginSuccess?.(authData.user, authData.accessToken);
+            } catch (err: unknown) {
+              setError(err instanceof Error ? err.message : 'Google authentication failed.');
+            } finally {
+              setLoading(false);
+            }
+          },
+        });
+        googleInitializedRef.current = true;
+      }
 
       const btnContainer = document.getElementById('google-btn-rendered');
       if (btnContainer) {
@@ -439,6 +448,37 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
 
   return (
     <div className="login-container">
+      {onNavigateToLanding && (
+        <button
+          type="button"
+          onClick={onNavigateToLanding}
+          className="login-back-home-btn"
+          style={{
+            position: 'absolute',
+            top: '1.5rem',
+            left: '1.5rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            background: 'rgba(255, 255, 255, 0.95)',
+            border: '1px solid #DDE2DE',
+            borderRadius: '20px',
+            padding: '0.45rem 1rem',
+            fontSize: '0.85rem',
+            fontWeight: 650,
+            color: '#123C32',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            zIndex: 10,
+            transition: 'all 140ms ease',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          <span>Back to Home</span>
+        </button>
+      )}
       <div className="login-card">
         <div className="login-header">
           <div className="brand-badge">

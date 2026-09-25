@@ -78,7 +78,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ token, rep
           <div className="modal-header-left">
             <h2 className="modal-title">Report Details & Workflow Status</h2>
             <div className="report-id-badge" onClick={handleCopyId} title="Click to copy Report UUID">
-              <span>ID: {reportId}</span>
+              <span>Report ID: {reportId}</span>
               <button type="button" className="copy-btn">{copied ? '✓ Copied' : '📋'}</button>
             </div>
           </div>

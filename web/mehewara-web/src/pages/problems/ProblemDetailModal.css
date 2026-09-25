@@ -1,0 +1,813 @@
+/* ==========================================================================
+   Mehewara — Problem Detail Modal
+   Premium editorial popup with stacked modal support
+   ========================================================================== */
+
+/* ---------- Level 1: Backdrop Overlay ---------- */
+.pdm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(18, 33, 30, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: pdmOverlayIn 200ms ease forwards;
+}
+
+@keyframes pdmOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ---------- Modal Container ---------- */
+.pdm-modal {
+  background: var(--mw-surface, #FFFFFF);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 24px 80px rgba(18, 60, 50, 0.18),
+    0 8px 24px rgba(18, 60, 50, 0.08),
+    0 0 0 1px rgba(18, 60, 50, 0.05);
+  animation: pdmSlideUp 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+}
+
+@keyframes pdmSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---------- Modal Header ---------- */
+.pdm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.5rem 1.75rem 1rem;
+  border-bottom: 1px solid var(--mw-border-subtle, #EBEFEA);
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.pdm-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.pdm-title {
+  margin: 0;
+  font-family: var(--mw-font-family, 'DM Sans', sans-serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--mw-text-primary, #18211E);
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.pdm-id-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--mw-page-bg, #F7F7F2);
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.7rem;
+  color: var(--mw-text-secondary, #68736E);
+  width: fit-content;
+}
+
+.pdm-id-copy-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--mw-text-muted, #8F9995);
+  line-height: 1;
+}
+
+.pdm-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  background: var(--mw-surface, #FFFFFF);
+  color: var(--mw-text-secondary, #68736E);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 140ms ease;
+}
+
+.pdm-close-btn:hover {
+  background: var(--mw-page-bg, #F7F7F2);
+  border-color: var(--mw-text-muted, #8F9995);
+  color: var(--mw-text-primary, #18211E);
+}
+
+/* ---------- Modal Scrollable Body ---------- */
+.pdm-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0;
+}
+
+.pdm-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pdm-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pdm-body::-webkit-scrollbar-thumb {
+  background: var(--mw-border, #DDE2DE);
+  border-radius: 3px;
+}
+
+/* ---------- Status Bar ---------- */
+.pdm-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem 1.75rem;
+  border-bottom: 1px solid var(--mw-border-subtle, #EBEFEA);
+  background: var(--mw-surface-subtle, #FBFBFA);
+  flex-wrap: wrap;
+}
+
+.pdm-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.65rem;
+  border-radius: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.pdm-priority-critical {
+  color: var(--mw-critical-text, #991B1B);
+  background: var(--mw-critical-bg, #FEF2F2);
+  border-color: var(--mw-critical-border, #FEE2E2);
+}
+
+.pdm-priority-high {
+  color: var(--mw-high-text, #C2410C);
+  background: var(--mw-high-bg, #FFF7ED);
+  border-color: var(--mw-high-border, #FFEDD5);
+}
+
+.pdm-priority-medium {
+  color: var(--mw-medium-text, #B45309);
+  background: var(--mw-medium-bg, #FFFBEB);
+  border-color: var(--mw-medium-border, #FEF3C7);
+}
+
+.pdm-priority-low {
+  color: var(--mw-low-text, #3D5A4C);
+  background: var(--mw-low-bg, #F0F4F2);
+  border-color: var(--mw-low-border, #E1E8E4);
+}
+
+.pdm-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 5px;
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.pdm-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.pdm-status-identified    { color: #123C32; background: #E5F6EE; border-color: #D1EAE0; }
+.pdm-status-identified .pdm-status-dot { background-color: #123C32; }
+.pdm-status-assigned      { color: #1E40AF; background: #EFF6FF; border-color: #DBEAFE; }
+.pdm-status-assigned .pdm-status-dot { background-color: #2563EB; }
+.pdm-status-in_progress   { color: #0F766E; background: #F0FDFA; border-color: #CCFBF1; }
+.pdm-status-in_progress .pdm-status-dot { background-color: #0D9488; }
+.pdm-status-resolved      { color: #166534; background: #F0FDF4; border-color: #DCFCE7; }
+.pdm-status-resolved .pdm-status-dot { background-color: #16A34A; }
+.pdm-status-awaiting_assignment { color: #1E40AF; background: #EFF6FF; border-color: #DBEAFE; }
+.pdm-status-awaiting_assignment .pdm-status-dot { background-color: #2563EB; }
+
+.pdm-category-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 5px;
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--mw-text-secondary, #68736E);
+  background: var(--mw-page-bg, #F7F7F2);
+  border: 1px solid var(--mw-border, #DDE2DE);
+}
+
+/* ---------- Content Sections ---------- */
+.pdm-section {
+  padding: 1.15rem 1.75rem;
+  border-bottom: 1px solid var(--mw-border-subtle, #EBEFEA);
+}
+
+.pdm-section:last-child {
+  border-bottom: none;
+}
+
+.pdm-section-label {
+  margin: 0 0 0.6rem;
+  font-family: var(--mw-font-family, 'DM Sans', sans-serif);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--mw-text-muted, #8F9995);
+}
+
+.pdm-description-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--mw-text-primary, #18211E);
+}
+
+/* ---------- Timeline (Dates) ---------- */
+.pdm-timeline-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.pdm-timeline-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pdm-timeline-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mw-text-muted, #8F9995);
+}
+
+.pdm-timeline-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--mw-text-primary, #18211E);
+}
+
+/* ---------- Location ---------- */
+.pdm-address-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.pdm-address-icon {
+  color: var(--mw-primary-forest, #123C32);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.pdm-address-text {
+  font-size: 0.9rem;
+  color: var(--mw-text-primary, #18211E);
+  line-height: 1.45;
+}
+
+.pdm-map-container {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--mw-border, #DDE2DE);
+}
+
+/* ---------- Linked Reports ---------- */
+.pdm-reports-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.pdm-report-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--mw-surface-subtle, #FBFBFA);
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 140ms ease;
+  margin-bottom: 0.5rem;
+}
+
+.pdm-report-row:last-child {
+  margin-bottom: 0;
+}
+
+.pdm-report-row:hover {
+  border-color: var(--mw-primary-forest, #123C32);
+  background: var(--mw-soft-sage, #E5F6EE);
+  box-shadow: 0 2px 6px rgba(18, 60, 50, 0.06);
+}
+
+.pdm-report-row-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.pdm-report-id-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mw-primary-forest, #123C32);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pdm-report-id-prefix {
+  font-family: var(--mw-font-family, 'DM Sans', sans-serif);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mw-text-secondary, #68736E);
+  flex-shrink: 0;
+}
+
+.pdm-report-desc {
+  font-size: 0.8rem;
+  color: var(--mw-text-secondary, #68736E);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.pdm-report-status-mini {
+  font-size: 0.65rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+}
+
+.pdm-report-status-pending    { color: #B45309; background: #FFFBEB; border-color: #FEF3C7; }
+.pdm-report-status-processing { color: #0F766E; background: #F0FDFA; border-color: #CCFBF1; }
+.pdm-report-status-assigned   { color: #1E40AF; background: #EFF6FF; border-color: #DBEAFE; }
+.pdm-report-status-resolved   { color: #166534; background: #F0FDF4; border-color: #DCFCE7; }
+.pdm-report-status-cancelled  { color: #991B1B; background: #FEF2F2; border-color: #FEE2E2; }
+
+.pdm-report-arrow {
+  color: var(--mw-text-muted, #8F9995);
+  flex-shrink: 0;
+  transition: transform 140ms ease, color 140ms ease;
+}
+
+.pdm-report-row:hover .pdm-report-arrow {
+  color: var(--mw-primary-forest, #123C32);
+  transform: translateX(2px);
+}
+
+.pdm-view-all-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: transparent;
+  border: 1px solid var(--mw-primary-forest, #123C32);
+  border-radius: 8px;
+  color: var(--mw-primary-forest, #123C32);
+  font-family: var(--mw-font-family, 'DM Sans', sans-serif);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.pdm-view-all-btn:hover {
+  background: var(--mw-soft-sage, #E5F6EE);
+}
+
+.pdm-no-reports {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: var(--mw-text-muted, #8F9995);
+  font-size: 0.85rem;
+}
+
+/* ---------- Modal Footer ---------- */
+.pdm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.85rem 1.75rem;
+  border-top: 1px solid var(--mw-border-subtle, #EBEFEA);
+  flex-shrink: 0;
+}
+
+.pdm-close-footer-btn {
+  padding: 0.5rem 1.25rem;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  background: var(--mw-surface, #FFFFFF);
+  color: var(--mw-text-primary, #18211E);
+  font-family: var(--mw-font-family, 'DM Sans', sans-serif);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.pdm-close-footer-btn:hover {
+  background: var(--mw-page-bg, #F7F7F2);
+  border-color: var(--mw-text-muted, #8F9995);
+}
+
+/* ---------- Loading & Error States ---------- */
+.pdm-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 4rem 2rem;
+  color: var(--mw-text-secondary, #68736E);
+  font-size: 0.875rem;
+}
+
+.pdm-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--mw-border, #DDE2DE);
+  border-top-color: var(--mw-primary-forest, #123C32);
+  border-radius: 50%;
+  animation: pdmSpin 700ms linear infinite;
+}
+
+@keyframes pdmSpin {
+  to { transform: rotate(360deg); }
+}
+
+.pdm-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.pdm-error-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--mw-critical-bg, #FEF2F2);
+  border: 1px solid var(--mw-critical-border, #FEE2E2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mw-critical-text, #991B1B);
+}
+
+.pdm-error-text {
+  font-size: 0.875rem;
+  color: var(--mw-text-secondary, #68736E);
+  max-width: 360px;
+  line-height: 1.5;
+}
+
+.pdm-retry-btn {
+  padding: 0.5rem 1.15rem;
+  background: var(--mw-primary-forest, #123C32);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 7px;
+  font-family: var(--mw-font-family, 'DM Sans', sans-serif);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.pdm-retry-btn:hover {
+  background: var(--mw-primary-hover, #0D3028);
+}
+
+
+/* ==========================================================================
+   Stacked Modals (Level 2+): All Reports / Individual Report Detail
+   ========================================================================== */
+
+.pdm-stacked-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: rgba(18, 33, 30, 0.35);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: pdmOverlayIn 160ms ease forwards;
+}
+
+.pdm-stacked-overlay-l3 {
+  z-index: 700;
+}
+
+.pdm-stacked-modal {
+  background: var(--mw-surface, #FFFFFF);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 640px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 24px 80px rgba(18, 60, 50, 0.2),
+    0 8px 24px rgba(18, 60, 50, 0.1);
+  animation: pdmSlideUp 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+}
+
+/* ---------- Report Detail (Stacked) ---------- */
+.pdm-rd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 0.85rem;
+  border-bottom: 1px solid var(--mw-border-subtle, #EBEFEA);
+  flex-shrink: 0;
+}
+
+.pdm-rd-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.pdm-rd-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--mw-text-primary, #18211E);
+  letter-spacing: -0.01em;
+}
+
+.pdm-rd-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0;
+}
+
+.pdm-rd-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.pdm-rd-body::-webkit-scrollbar-thumb {
+  background: var(--mw-border, #DDE2DE);
+  border-radius: 3px;
+}
+
+.pdm-rd-section {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--mw-border-subtle, #EBEFEA);
+}
+
+.pdm-rd-section:last-child {
+  border-bottom: none;
+}
+
+.pdm-rd-section-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--mw-text-muted, #8F9995);
+}
+
+.pdm-rd-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.pdm-rd-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.pdm-rd-info-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--mw-text-muted, #8F9995);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pdm-rd-info-value {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--mw-text-primary, #18211E);
+}
+
+.pdm-rd-desc-text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--mw-text-primary, #18211E);
+}
+
+/* Report Photos Grid */
+.pdm-rd-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.65rem;
+}
+
+.pdm-rd-photo-card {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  aspect-ratio: 4 / 3;
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.pdm-rd-photo-card:hover {
+  border-color: var(--mw-primary-forest, #123C32);
+  box-shadow: 0 2px 8px rgba(18, 60, 50, 0.1);
+}
+
+.pdm-rd-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pdm-rd-no-photos {
+  text-align: center;
+  padding: 1rem;
+  color: var(--mw-text-muted, #8F9995);
+  font-size: 0.825rem;
+}
+
+/* Resident info card */
+.pdm-rd-resident-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--mw-page-bg, #F7F7F2);
+  border: 1px solid var(--mw-border-subtle, #EBEFEA);
+  border-radius: 8px;
+}
+
+.pdm-rd-resident-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--mw-soft-sage, #E5F6EE);
+  color: var(--mw-primary-forest, #123C32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.pdm-rd-resident-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--mw-text-primary, #18211E);
+}
+
+.pdm-rd-resident-id {
+  font-size: 0.72rem;
+  color: var(--mw-text-muted, #8F9995);
+}
+
+.pdm-rd-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--mw-border-subtle, #EBEFEA);
+  flex-shrink: 0;
+}
+
+/* ---------- All Reports List Header ---------- */
+.pdm-all-reports-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pdm-all-reports-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mw-text-muted, #8F9995);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  .pdm-overlay,
+  .pdm-stacked-overlay {
+    padding: 0.75rem;
+  }
+
+  .pdm-modal {
+    max-height: 92vh;
+    border-radius: 12px;
+  }
+
+  .pdm-header {
+    padding: 1.15rem 1.25rem 0.85rem;
+  }
+
+  .pdm-section {
+    padding: 1rem 1.25rem;
+  }
+
+  .pdm-status-bar {
+    padding: 0.85rem 1.25rem;
+  }
+
+  .pdm-title {
+    font-size: 1.15rem;
+  }
+
+  .pdm-timeline-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pdm-stacked-modal {
+    max-width: 100%;
+    max-height: 90vh;
+  }
+
+  .pdm-rd-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pdm-rd-photos-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
