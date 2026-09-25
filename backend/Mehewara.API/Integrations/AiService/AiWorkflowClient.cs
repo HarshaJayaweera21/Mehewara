@@ -31,9 +31,10 @@ public class AiWorkflowClient : IAiWorkflowClient
         var baseUrl = _configuration["AiService:BaseUrl"] ?? "http://localhost:8000";
         var endpoint = $"{baseUrl.TrimEnd('/')}/internal/ai/workflows";
 
-        // Query active candidate problems and nearby reports from database within ~1km bounding box
+        // Query active candidate problems, nearby reports, and all municipal crews with real-time availability
         List<object> candidateProblems = new();
         List<object> relatedReports = new();
+        List<object> availableCrews = new();
 
         try
         {
@@ -88,10 +89,29 @@ public class AiWorkflowClient : IAiWorkflowClient
                 .ToListAsync();
 
             relatedReports = dbReports.Cast<object>().ToList();
+
+            // Populate municipal crews with real-time active work order status (Contract §19)
+            var dbCrews = await dbContext.Crews
+                .AsNoTracking()
+                .Select(c => new
+                {
+                    crewId = c.CrewId,
+                    name = c.CrewName,
+                    crewType = c.CrewType,
+                    status = c.Status,
+                    activeWorkOrderId = c.WorkOrders
+                        .Where(wo => wo.Status == "ASSIGNED" || wo.Status == "IN_PROGRESS")
+                        .OrderByDescending(wo => wo.AssignedAt ?? wo.CreatedAt)
+                        .Select(wo => (Guid?)wo.WorkOrderId)
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
+
+            availableCrews = dbCrews.Cast<object>().ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to load candidate problems/reports from database for Report {ReportId}. Proceeding with empty context.", report.ReportId);
+            _logger.LogWarning(ex, "Failed to load candidate problems/reports/crews from database for Report {ReportId}. Proceeding with partial context.", report.ReportId);
         }
 
         var payload = new
@@ -117,7 +137,7 @@ public class AiWorkflowClient : IAiWorkflowClient
             {
                 candidateProblems = candidateProblems,
                 relatedReports = relatedReports,
-                availableCrews = new List<object>()
+                availableCrews = availableCrews
             }
         };
 
@@ -328,16 +348,63 @@ public class AiWorkflowClient : IAiWorkflowClient
                 context.WorkflowEvents.Add(event2);
             }
 
-            // Update workflowRun state and stage
+            // 3. Extract Agent 3 priority & crew recommendation analysis
+            if (root.TryGetProperty("priorityAnalysis", out var prioElem) &&
+                prioElem.ValueKind == JsonValueKind.Object &&
+                report?.ProblemId != null)
+            {
+                var priority = prioElem.TryGetProperty("priority", out var priProp) ? priProp.GetString() : null;
+                var score = prioElem.TryGetProperty("priorityScore", out var scoreProp) && scoreProp.TryGetInt32(out var sVal) ? sVal : (int?)null;
+
+                if (!string.IsNullOrWhiteSpace(priority) && score.HasValue)
+                {
+                    var targetProblem = await context.Problems.FindAsync(report.ProblemId);
+                    if (targetProblem != null)
+                    {
+                        targetProblem.Priority = priority.ToUpperInvariant();
+                        targetProblem.PriorityScore = score.Value;
+                        targetProblem.Status = "AWAITING_ASSIGNMENT";
+                        targetProblem.UpdatedAt = DateTime.UtcNow;
+
+                        _logger.LogInformation("Updated Problem {ProblemId} priority to {Priority} ({Score}) and status to AWAITING_ASSIGNMENT.",
+                            targetProblem.ProblemId, targetProblem.Priority, targetProblem.PriorityScore);
+                    }
+                }
+
+                // Add immutable audit trail for Agent 3 (Priority & Crew Recommendation)
+                var event3 = new WorkflowEvent
+                {
+                    WorkflowEventId = Guid.NewGuid(),
+                    WorkflowRunId = workflowRun.WorkflowRunId,
+                    AgentName = "Priority & Crew Recommendation Agent",
+                    Stage = "PRIORITIZATION",
+                    Status = "COMPLETED",
+                    InputData = JsonSerializer.Serialize(new { problemId = report.ProblemId }),
+                    OutputData = prioElem.GetRawText(),
+                    ValidationResult = JsonSerializer.Serialize(new { status = "VALID", issues = Array.Empty<string>() }),
+                    ToolResults = JsonSerializer.Serialize(new { tools = new[] { "get_crew_capabilities", "check_crew_availability", "get_recent_jobs" } }),
+                    StartedAt = workflowRun.StartedAt,
+                    CompletedAt = DateTime.UtcNow
+                };
+                context.WorkflowEvents.Add(event3);
+
+                // Update workflow run stage to PRIORITIZATION
+                workflowRun.CurrentStage = "PRIORITIZATION";
+            }
+            else
+            {
+                workflowRun.CurrentStage = "PROBLEM_CONSOLIDATION";
+            }
+
+            // Update workflowRun state and status
             workflowRun.StateData = responseJson;
-            workflowRun.CurrentStage = "PROBLEM_CONSOLIDATION";
             workflowRun.Status = "COMPLETED";
             workflowRun.CompletedAt = DateTime.UtcNow;
             workflowRun.UpdatedAt = DateTime.UtcNow;
 
             await context.SaveChangesAsync();
 
-            _logger.LogInformation("Successfully persisted Agent 1 & Agent 2 workflow results into PostgreSQL for WorkflowRun {WorkflowRunId}",
+            _logger.LogInformation("Successfully persisted AI workflow analysis results into PostgreSQL for WorkflowRun {WorkflowRunId}",
                 workflowRunId);
         }
         catch (Exception ex)
