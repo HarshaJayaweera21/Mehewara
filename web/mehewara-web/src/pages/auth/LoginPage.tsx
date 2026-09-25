@@ -8,6 +8,8 @@ import {
   removeProfilePhoto,
 } from '../../services/api';
 import type { User } from '../../types/auth';
+import { LandingPage } from '../landing/LandingPage';
+import { AuthShell } from '../landing/AuthShell';
 import './LoginPage.css';
 
 declare global {
@@ -43,6 +45,7 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigateToReports }) => {
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
+  const [publicView, setPublicView] = useState<'landing' | 'auth'>('landing');
 
   // Sign In state
   const [email, setEmail] = useState('');
@@ -79,7 +82,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
   useEffect(() => {
-    if (!googleClientId || currentUser || activeTab !== 'signin') return;
+    if (!googleClientId || currentUser || activeTab !== 'signin' || publicView !== 'auth') return;
 
     const setupGoogleButton = () => {
       if (!window.google?.accounts?.id) return false;
@@ -125,7 +128,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
       }, 150);
       return () => clearInterval(interval);
     }
-  }, [googleClientId, currentUser, activeTab]);
+  }, [googleClientId, currentUser, activeTab, publicView, onLoginSuccess]);
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,6 +275,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
     setCurrentUser(null);
     setEmail('');
     setPassword('');
+    setPublicView('landing');
     setIsEditingProfile(false);
     setError(null);
     setSuccessMsg(null);
@@ -286,6 +290,152 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
   };
 
   const fullImageUrl = resolveImageUrl(currentUser?.profileImageUrl);
+
+  if (!currentUser) {
+    if (publicView === 'landing') {
+      return (
+        <LandingPage
+          onSignIn={() => {
+            setActiveTab('signin');
+            setError(null);
+            setPublicView('auth');
+          }}
+          onSignUp={() => {
+            setActiveTab('signup');
+            setError(null);
+            setPublicView('auth');
+          }}
+        />
+      );
+    }
+
+    const authPanel = (
+      <>
+        {error && <div className="error-banner" role="alert">{error}</div>}
+        {successMsg && <div className="success-banner" role="status">{successMsg}</div>}
+
+        <div className="auth-tabs" aria-label="Account access">
+          <button
+            type="button"
+            className={`auth-tab ${activeTab === 'signin' ? 'active' : ''}`}
+            aria-pressed={activeTab === 'signin'}
+            onClick={() => {
+              setActiveTab('signin');
+              setError(null);
+            }}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            className={`auth-tab ${activeTab === 'signup' ? 'active' : ''}`}
+            aria-pressed={activeTab === 'signup'}
+            onClick={() => {
+              setActiveTab('signup');
+              setError(null);
+            }}
+          >
+            Create account
+          </button>
+        </div>
+
+        {activeTab === 'signin' ? (
+          <>
+            <form className="login-form" onSubmit={handleSignInSubmit}>
+              <div className="form-group">
+                <label htmlFor="email">Email address</label>
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="resident@example.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="password">Password</label>
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
+              <button type="submit" className="submit-btn" disabled={loading}>
+                {loading ? 'Signing in…' : 'Sign in to Mehewara'}
+              </button>
+            </form>
+
+            <div className="divider"><span>or continue with</span></div>
+            {googleClientId ? (
+              <div id="google-btn-rendered" className="google-render-target" />
+            ) : (
+              <button type="button" className="google-btn" onClick={handleGoogleFallbackClick} disabled={loading}>
+                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                  <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z" />
+                  <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" />
+                  <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707 0-.59.102-1.167.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" />
+                  <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" />
+                </svg>
+                Sign in with Google
+              </button>
+            )}
+          </>
+        ) : (
+          <form className="login-form" onSubmit={handleSignUpSubmit}>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="regFirstName">First name</label>
+                <input id="regFirstName" type="text" autoComplete="given-name" placeholder="Kasun" value={regFirstName} onChange={(event) => setRegFirstName(event.target.value)} disabled={loading} required />
+              </div>
+              <div className="form-group">
+                <label htmlFor="regLastName">Last name</label>
+                <input id="regLastName" type="text" autoComplete="family-name" placeholder="Perera" value={regLastName} onChange={(event) => setRegLastName(event.target.value)} disabled={loading} required />
+              </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="regEmail">Email address</label>
+              <input id="regEmail" type="email" autoComplete="email" placeholder="kasun@example.com" value={regEmail} onChange={(event) => setRegEmail(event.target.value)} disabled={loading} required />
+            </div>
+            <div className="form-group">
+              <label htmlFor="regPhone">Phone number <span className="optional-label">Optional</span></label>
+              <input id="regPhone" type="tel" autoComplete="tel" placeholder="+94 77 123 4567" value={regPhone} onChange={(event) => setRegPhone(event.target.value)} disabled={loading} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="regPassword">Password</label>
+              <input id="regPassword" type="password" autoComplete="new-password" placeholder="At least 6 characters" value={regPassword} onChange={(event) => setRegPassword(event.target.value)} disabled={loading} required minLength={6} />
+            </div>
+            <button type="submit" className="submit-btn" disabled={loading}>
+              {loading ? 'Creating account…' : 'Create resident account'}
+            </button>
+          </form>
+        )}
+      </>
+    );
+
+    return (
+      <AuthShell
+        mode={activeTab}
+        onBack={() => {
+          setError(null);
+          setPublicView('landing');
+        }}
+        onSwitch={() => {
+          setError(null);
+          setActiveTab((tab) => tab === 'signin' ? 'signup' : 'signin');
+        }}
+      >
+        {authPanel}
+      </AuthShell>
+    );
+  }
 
   return (
     <div className="login-container">
