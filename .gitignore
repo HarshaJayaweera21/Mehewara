@@ -516,6 +516,7 @@ downloads/*
 
 
 *.md
+!/plan.md
 
 # ============================================================
 # GRAPHIFY (Code Knowledge Graph Artifacts)

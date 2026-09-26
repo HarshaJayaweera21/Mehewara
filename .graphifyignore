@@ -1,0 +1,18 @@
+# Additional Graphify exclusions for generated files and build artifacts.
+# The root and nested .gitignore files are already respected.
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+*.generated.py
+
+# Flutter platform icon variants and launch assets.
+**/mipmap-*/ic_launcher.png
+**/AppIcon.appiconset/
+**/LaunchImage.imageset/
+mobile/mehewara_mobile/web/icons/
+mobile/mehewara_mobile/web/favicon.png
+
+# Framework starter artwork.
+**/react.svg
+**/vite.svg

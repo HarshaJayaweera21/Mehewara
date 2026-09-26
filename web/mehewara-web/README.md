@@ -1,75 +1,43 @@
-# React + TypeScript + Vite
+# Mehewara web application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Updated 2026-09-26 from the React code. See the [root guide](../../README.md) and [implemented API reference](<../../Mehewara_API_Contract (1).md>).
 
-Currently, two official plugins are available:
+## Implemented screens
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Landing page; email/password login and registration; Google sign-in when configured; profile and profile-picture management; resident/coordinator reports; Problems and unlinked-report review; crew list/detail; recommendation edit/approve/reject/regenerate controls.
 
-## React Compiler
+`src/App.tsx` selects screens with local `viewMode` state. React Router is not installed. User/token data are stored in browser localStorage. The website calls ASP.NET, not FastAPI. Server checks remain authoritative; showing a control does not prove its operation succeeds.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Run locally
 
-## Expanding the ESLint configuration
+Install Node.js/npm compatible with the checked-in Vite/package versions. From this directory:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```powershell
+npm ci
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Use the address printed by Vite, normally `http://localhost:5173`. Start PostgreSQL and ASP.NET first; start AI for report processing.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+The service files under `src/services` hard-code `http://localhost:5194/api`. There is no implemented environment variable for replacing that API base address. Google sign-in reads `VITE_GOOGLE_CLIENT_ID` from Vite's environment; the server has a separate Google client setting.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```powershell
+npm run build
+npm run lint
+npm run preview
 ```
+
+There is no test script or checked-in React test suite. These commands were not run during documentation alignment.
+
+## Current limitations
+
+- No WorkOrder monitoring/execution screen or connected Flutter handoff.
+- Manual Problem link/create operations fail against current database constraints.
+- Regenerate currently saves a request without rerunning AI.
+- Rejection creates a cancelled WorkOrder on the server.
+- Recommendation validation labels do not establish an Agent 4 check.
+- Some AI recommendation IDs cannot be read by the backend.
+- Photo files go through ASP.NET to Cloudinary, not a direct signed upload URL.
+- Hosted use requires changing the local API base and backend allowed origins.
+
+The implementation uses React/TypeScript/Vite and Leaflet. The earlier generic Vite template instructions did not describe the application and have been replaced.

@@ -6,6 +6,8 @@ using Mehewara.API.Exceptions;
 using Mehewara.API.Models;
 using Mehewara.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Npgsql;
 
 namespace Mehewara.API.Services.Implementations;
 
@@ -51,23 +53,16 @@ public class DispatchService : IDispatchService
             .AsNoTracking()
             .ToDictionaryAsync(c => c.CrewId, c => c.CrewName);
 
-        var problemIds = allEvents
-            .Where(e => e.WorkflowRun.ProblemId.HasValue)
-            .Select(e => e.WorkflowRun.ProblemId!.Value)
-            .Distinct()
-            .ToList();
-
-        var approvalDict = await _context.ApprovalHistories
-            .Include(a => a.WorkOrder)
+        var recommendationIds = allEvents.Select(e => e.WorkflowEventId).ToList();
+        var approvals = await _context.ApprovalHistories
             .AsNoTracking()
-            .Where(a => problemIds.Contains(a.WorkOrder.ProblemId))
-            .GroupBy(a => a.WorkOrder.ProblemId)
-            .Select(g => new
-            {
-                ProblemId = g.Key,
-                LatestDecision = g.OrderByDescending(a => a.CreatedAt).Select(a => a.Decision).FirstOrDefault()
-            })
-            .ToDictionaryAsync(x => x.ProblemId, x => x.LatestDecision);
+            .Where(a => a.RecommendationId.HasValue && recommendationIds.Contains(a.RecommendationId.Value))
+            .ToListAsync();
+        var approvalDict = approvals
+            .GroupBy(a => a.RecommendationId!.Value)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(a => a.CreatedAt).ThenByDescending(a => a.ApprovalId).First().Decision);
 
         var listItems = new List<RecommendationListItemDto>();
 
@@ -98,8 +93,7 @@ public class DispatchService : IDispatchService
             }
 
             string? reviewDecision = null;
-            if (ev.WorkflowRun.ProblemId.HasValue &&
-                approvalDict.TryGetValue(ev.WorkflowRun.ProblemId.Value, out var decision))
+            if (approvalDict.TryGetValue(ev.WorkflowEventId, out var decision))
             {
                 reviewDecision = decision;
             }
@@ -178,7 +172,7 @@ public class DispatchService : IDispatchService
             .AsNoTracking()
             .FirstOrDefaultAsync(e => e.WorkflowEventId == recommendationId);
 
-        if (ev == null || string.IsNullOrWhiteSpace(ev.OutputData))
+        if (ev == null || ev.Stage != "PRIORITIZATION" || string.IsNullOrWhiteSpace(ev.OutputData))
         {
             return null;
         }
@@ -218,10 +212,10 @@ public class DispatchService : IDispatchService
         }
 
         var approval = await _context.ApprovalHistories
-            .Include(a => a.WorkOrder)
             .AsNoTracking()
-            .Where(a => a.WorkOrder.ProblemId == problemId)
+            .Where(a => a.RecommendationId == recommendationId)
             .OrderByDescending(a => a.CreatedAt)
+            .ThenByDescending(a => a.ApprovalId)
             .FirstOrDefaultAsync();
 
         RecommendationValidationDto validation = new();
@@ -273,26 +267,28 @@ public class DispatchService : IDispatchService
 
     public async Task<RecommendationDetailDto> EditRecommendationAsync(Guid recommendationId, EditRecommendationRequest request, Guid adminUserId)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await LockRowAsync("SELECT 1 FROM workflow_events WHERE workflow_event_id = @id FOR UPDATE", recommendationId);
+
         var ev = await _context.WorkflowEvents
             .Include(e => e.WorkflowRun)
                 .ThenInclude(r => r.Problem)
             .FirstOrDefaultAsync(e => e.WorkflowEventId == recommendationId);
 
-        if (ev == null || string.IsNullOrWhiteSpace(ev.OutputData))
+        if (ev == null || ev.Stage != "PRIORITIZATION" || string.IsNullOrWhiteSpace(ev.OutputData))
         {
             throw new NotFoundException("The requested recommendation was not found.", "RECOMMENDATION_NOT_FOUND");
         }
 
-        var problemId = ev.WorkflowRun.ProblemId;
-        if (problemId.HasValue)
-        {
-            var isApproved = await _context.ApprovalHistories
-                .AnyAsync(a => a.WorkOrder.ProblemId == problemId.Value && a.Decision == "APPROVED");
+        var reviewDecision = await _context.ApprovalHistories
+            .Where(a => a.RecommendationId == recommendationId)
+            .OrderByDescending(a => a.CreatedAt)
+            .Select(a => a.Decision)
+            .FirstOrDefaultAsync();
 
-            if (isApproved)
-            {
-                throw new ConflictException("Cannot edit a recommendation that has already been approved.", "ALREADY_APPROVED");
-            }
+        if (reviewDecision is "APPROVED" or "REJECTED")
+        {
+            throw new ConflictException("Cannot edit a recommendation that has already been reviewed.", "ALREADY_REVIEWED");
         }
 
         Agent3RecommendationPayload payload;
@@ -350,11 +346,26 @@ public class DispatchService : IDispatchService
             Issues = issues
         };
 
-        ev.OutputData = JsonSerializer.Serialize(payload, _jsonOptions);
+        var beforeData = ev.OutputData;
+        var afterData = JsonSerializer.Serialize(payload, _jsonOptions);
+        ev.OutputData = afterData;
         ev.ValidationResult = JsonSerializer.Serialize(validation, _jsonOptions);
         ev.CompletedAt = DateTime.UtcNow;
 
+        _context.ActivityHistories.Add(new ActivityHistory
+        {
+            ActivityId = Guid.NewGuid(),
+            ActorUserId = adminUserId,
+            Action = "RECOMMENDATION_EDITED",
+            RecommendationId = recommendationId,
+            BeforeData = beforeData,
+            AfterData = afterData,
+            Note = request.EditReason.Trim(),
+            CreatedAt = DateTime.UtcNow
+        });
+
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         var updated = await GetRecommendationByIdAsync(recommendationId);
         return updated!;
@@ -362,14 +373,28 @@ public class DispatchService : IDispatchService
 
     public async Task<ApproveRecommendationResponseDto> ApproveRecommendationAsync(Guid recommendationId, ApproveRecommendationRequest request, Guid adminUserId)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await LockRowAsync("SELECT 1 FROM workflow_events WHERE workflow_event_id = @id FOR UPDATE", recommendationId);
+
         // 1. Recommendation exists
         var ev = await _context.WorkflowEvents
             .Include(e => e.WorkflowRun)
             .FirstOrDefaultAsync(e => e.WorkflowEventId == recommendationId);
 
-        if (ev == null || string.IsNullOrWhiteSpace(ev.OutputData))
+        if (ev == null || ev.Stage != "PRIORITIZATION" || string.IsNullOrWhiteSpace(ev.OutputData))
         {
             throw new NotFoundException("The requested recommendation was not found.", "RECOMMENDATION_NOT_FOUND");
+        }
+
+        var existingDecision = await _context.ApprovalHistories
+            .Where(a => a.RecommendationId == recommendationId)
+            .OrderByDescending(a => a.CreatedAt)
+            .Select(a => a.Decision)
+            .FirstOrDefaultAsync();
+
+        if (existingDecision is "APPROVED" or "REJECTED")
+        {
+            throw new ConflictException("This recommendation has already been reviewed.", "ALREADY_REVIEWED");
         }
 
         Agent3RecommendationPayload payload;
@@ -386,6 +411,8 @@ public class DispatchService : IDispatchService
         var targetProblemId = payload.ProblemId != Guid.Empty
             ? payload.ProblemId
             : (ev.WorkflowRun.ProblemId ?? Guid.Empty);
+
+        await LockRowAsync("SELECT 1 FROM problems WHERE problem_id = @id FOR UPDATE", targetProblemId);
 
         // 2. Problem exists
         var problem = await _context.Problems.FindAsync(targetProblemId);
@@ -414,6 +441,7 @@ public class DispatchService : IDispatchService
             throw new ValidationException("No crew was recommended for dispatch.");
         }
 
+        await LockRowAsync("SELECT 1 FROM crews WHERE crew_id = @id FOR UPDATE", payload.RecommendedCrewId.Value);
         var crew = await _context.Crews.FindAsync(payload.RecommendedCrewId.Value);
         if (crew == null)
         {
@@ -445,9 +473,9 @@ public class DispatchService : IDispatchService
                 "CREW_CONFLICT");
         }
 
-        // 9. Recommendation has not already been approved
+        // 9. The Problem has no previously approved WorkOrder
         var alreadyApproved = await _context.ApprovalHistories
-            .AnyAsync(a => a.WorkOrder.ProblemId == targetProblemId && a.Decision == "APPROVED");
+            .AnyAsync(a => a.WorkOrder != null && a.WorkOrder.ProblemId == targetProblemId && a.Decision == "APPROVED");
 
         if (alreadyApproved)
         {
@@ -469,6 +497,7 @@ public class DispatchService : IDispatchService
             WorkOrderId = Guid.NewGuid(),
             ProblemId = targetProblemId,
             CrewId = crew.CrewId,
+            RecommendationId = recommendationId,
             Priority = payload.Priority.ToUpperInvariant(),
             Title = problem.Title,
             Instructions = $"Dispatched to resolve {problem.Title} ({problem.Category}) at {problem.Address}.",
@@ -483,6 +512,7 @@ public class DispatchService : IDispatchService
         {
             ApprovalId = Guid.NewGuid(),
             WorkOrderId = workOrder.WorkOrderId,
+            RecommendationId = recommendationId,
             DecidedBy = adminUserId,
             Decision = "APPROVED",
             Reason = !string.IsNullOrWhiteSpace(request.Reason)
@@ -516,7 +546,15 @@ public class DispatchService : IDispatchService
             report.UpdatedAt = DateTime.UtcNow;
         }
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateException ex) when (IsDispatchUniquenessConflict(ex))
+        {
+            throw new ConflictException("The recommendation or crew was assigned by another request. Refresh and try again.", "DISPATCH_CONFLICT");
+        }
 
         _logger.LogInformation(
             "Recommendation {RecId} approved by {AdminId}. WorkOrder {WoId} created for Crew {CrewId}.",
@@ -543,13 +581,27 @@ public class DispatchService : IDispatchService
 
     public async Task<RejectRecommendationResponseDto> RejectRecommendationAsync(Guid recommendationId, RejectRecommendationRequest request, Guid adminUserId)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await LockRowAsync("SELECT 1 FROM workflow_events WHERE workflow_event_id = @id FOR UPDATE", recommendationId);
+
         var ev = await _context.WorkflowEvents
             .Include(e => e.WorkflowRun)
             .FirstOrDefaultAsync(e => e.WorkflowEventId == recommendationId);
 
-        if (ev == null || string.IsNullOrWhiteSpace(ev.OutputData))
+        if (ev == null || ev.Stage != "PRIORITIZATION" || string.IsNullOrWhiteSpace(ev.OutputData))
         {
             throw new NotFoundException("The requested recommendation was not found.", "RECOMMENDATION_NOT_FOUND");
+        }
+
+        var existingDecision = await _context.ApprovalHistories
+            .Where(a => a.RecommendationId == recommendationId)
+            .OrderByDescending(a => a.CreatedAt)
+            .Select(a => a.Decision)
+            .FirstOrDefaultAsync();
+
+        if (existingDecision is "APPROVED" or "REJECTED")
+        {
+            throw new ConflictException("This recommendation has already been reviewed.", "ALREADY_REVIEWED");
         }
 
         Agent3RecommendationPayload payload;
@@ -567,44 +619,21 @@ public class DispatchService : IDispatchService
             ? payload.ProblemId
             : (ev.WorkflowRun.ProblemId ?? Guid.Empty);
 
+        await LockRowAsync("SELECT 1 FROM problems WHERE problem_id = @id FOR UPDATE", targetProblemId);
+
         var alreadyApproved = await _context.ApprovalHistories
-            .AnyAsync(a => a.WorkOrder.ProblemId == targetProblemId && a.Decision == "APPROVED");
+            .AnyAsync(a => a.WorkOrder != null && a.WorkOrder.ProblemId == targetProblemId && a.Decision == "APPROVED");
 
         if (alreadyApproved)
         {
             throw new ConflictException("Cannot reject a recommendation that has already been approved.", "ALREADY_APPROVED");
         }
 
-        var problem = await _context.Problems.FindAsync(targetProblemId);
-
-        // Find or fallback to a crew reference to satisfy the FK constraint
-        var crewId = payload.RecommendedCrewId;
-        if (!crewId.HasValue)
-        {
-            var fallbackCrew = await _context.Crews.FirstOrDefaultAsync();
-            crewId = fallbackCrew?.CrewId ?? Guid.Empty;
-        }
-
-        // To record rejection in approval_history while honoring work_order_id foreign key:
-        // Create a CANCELLED WorkOrder representing the rejected recommendation record
-        var cancelledWorkOrder = new WorkOrder
-        {
-            WorkOrderId = Guid.NewGuid(),
-            ProblemId = targetProblemId,
-            CrewId = crewId.Value,
-            Priority = payload.Priority ?? "MEDIUM",
-            Title = $"[Rejected Recommendation] {problem?.Title ?? "Municipal Problem"}",
-            Status = "CANCELLED",
-            Instructions = $"Recommendation rejected: {request.Reason.Trim()}",
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-        _context.WorkOrders.Add(cancelledWorkOrder);
-
         var approval = new ApprovalHistory
         {
             ApprovalId = Guid.NewGuid(),
-            WorkOrderId = cancelledWorkOrder.WorkOrderId,
+            WorkOrderId = null,
+            RecommendationId = recommendationId,
             DecidedBy = adminUserId,
             Decision = "REJECTED",
             Reason = request.Reason.Trim(),
@@ -618,7 +647,15 @@ public class DispatchService : IDispatchService
         ev.WorkflowRun.CurrentStage = "WAITING_FOR_APPROVAL";
         ev.WorkflowRun.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateException ex) when (IsDispatchUniquenessConflict(ex))
+        {
+            throw new ConflictException("This recommendation was reviewed by another request. Refresh and try again.", "ALREADY_REVIEWED");
+        }
 
         _logger.LogInformation("Recommendation {RecId} rejected by {AdminId}. Reason: {Reason}",
             recommendationId, adminUserId, request.Reason);
@@ -672,5 +709,34 @@ public class DispatchService : IDispatchService
             RequestedBy = adminUserId,
             RequestedAt = DateTime.UtcNow
         };
+    }
+
+    private async Task LockRowAsync(string sql, Guid id)
+    {
+        await using var command = _context.Database.GetDbConnection().CreateCommand();
+        command.Transaction = _context.Database.CurrentTransaction!.GetDbTransaction();
+        command.CommandText = sql;
+
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "id";
+        parameter.Value = id;
+        command.Parameters.Add(parameter);
+
+        await command.ExecuteScalarAsync();
+    }
+
+    private static bool IsDispatchUniquenessConflict(DbUpdateException exception)
+    {
+        if (exception.InnerException is not PostgresException postgresException ||
+            postgresException.SqlState != PostgresErrorCodes.UniqueViolation)
+        {
+            return false;
+        }
+
+        return postgresException.ConstraintName is
+            "idx_work_orders_recommendation_id" or
+            "ux_work_orders_active_crew" or
+            "ux_work_orders_active_problem" or
+            "ux_approval_history_terminal_recommendation";
     }
 }

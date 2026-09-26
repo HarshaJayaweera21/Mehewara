@@ -3,6 +3,7 @@ using System;
 using Mehewara.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Mehewara.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260926050014_LinkApprovalHistoryToRecommendation")]
+    partial class LinkApprovalHistoryToRecommendation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,73 +24,6 @@ namespace Mehewara.API.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("Mehewara.API.Models.ActivityHistory", b =>
-                {
-                    b.Property<Guid>("ActivityId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("activity_id")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasColumnName("action");
-
-                    b.Property<Guid>("ActorUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("actor_user_id");
-
-                    b.Property<string>("AfterData")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("after_data");
-
-                    b.Property<string>("BeforeData")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("before_data");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("Note")
-                        .HasColumnType("text")
-                        .HasColumnName("note");
-
-                    b.Property<Guid?>("RecommendationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("recommendation_id");
-
-                    b.Property<Guid?>("WorkOrderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("work_order_id");
-
-                    b.HasKey("ActivityId");
-
-                    b.HasIndex("ActorUserId", "CreatedAt")
-                        .HasDatabaseName("idx_activity_history_actor_time");
-
-                    b.HasIndex("RecommendationId", "CreatedAt")
-                        .HasDatabaseName("idx_activity_history_recommendation_time");
-
-                    b.HasIndex("WorkOrderId", "CreatedAt")
-                        .HasDatabaseName("idx_activity_history_work_order_time");
-
-                    b.ToTable("activity_history", null, t =>
-                        {
-                            t.HasCheckConstraint("chk_activity_history_action", "action IN ('RECOMMENDATION_EDITED', 'WORK_ORDER_STARTED', 'WORK_ORDER_COMPLETED')");
-
-                            t.HasCheckConstraint("chk_activity_history_edit_reason", "action <> 'RECOMMENDATION_EDITED' OR NULLIF(BTRIM(note), '') IS NOT NULL");
-
-                            t.HasCheckConstraint("chk_activity_history_target", "(action = 'RECOMMENDATION_EDITED' AND recommendation_id IS NOT NULL AND work_order_id IS NULL) OR (action IN ('WORK_ORDER_STARTED', 'WORK_ORDER_COMPLETED') AND work_order_id IS NOT NULL AND recommendation_id IS NULL)");
-                        });
-                });
 
             modelBuilder.Entity("Mehewara.API.Models.ApprovalHistory", b =>
                 {
@@ -138,11 +74,6 @@ namespace Mehewara.API.Migrations
 
                     b.HasIndex("WorkOrderId")
                         .HasDatabaseName("idx_approval_history_work_order_id");
-
-                    b.HasIndex(new[] { "RecommendationId" }, "IX_ApprovalHistory_TerminalRecommendation")
-                        .IsUnique()
-                        .HasDatabaseName("ux_approval_history_terminal_recommendation")
-                        .HasFilter("recommendation_id IS NOT NULL AND decision IN ('APPROVED', 'REJECTED')");
 
                     b.ToTable("approval_history", null, t =>
                         {
@@ -624,10 +555,6 @@ namespace Mehewara.API.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("problem_id");
 
-                    b.Property<Guid?>("RecommendationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("recommendation_id");
-
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("started_at");
@@ -666,23 +593,8 @@ namespace Mehewara.API.Migrations
                     b.HasIndex("ProblemId")
                         .HasDatabaseName("idx_work_orders_problem_id");
 
-                    b.HasIndex("RecommendationId")
-                        .IsUnique()
-                        .HasDatabaseName("idx_work_orders_recommendation_id")
-                        .HasFilter("recommendation_id IS NOT NULL");
-
                     b.HasIndex("Status")
                         .HasDatabaseName("idx_work_orders_status");
-
-                    b.HasIndex(new[] { "CrewId" }, "IX_WorkOrders_ActiveCrew")
-                        .IsUnique()
-                        .HasDatabaseName("ux_work_orders_active_crew")
-                        .HasFilter("status IN ('ASSIGNED', 'IN_PROGRESS')");
-
-                    b.HasIndex(new[] { "ProblemId" }, "IX_WorkOrders_ActiveProblem")
-                        .IsUnique()
-                        .HasDatabaseName("ux_work_orders_active_problem")
-                        .HasFilter("status IN ('ASSIGNED', 'IN_PROGRESS')");
 
                     b.ToTable("work_orders", null, t =>
                         {
@@ -858,31 +770,6 @@ namespace Mehewara.API.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Mehewara.API.Models.ActivityHistory", b =>
-                {
-                    b.HasOne("Mehewara.API.Models.User", "ActorUser")
-                        .WithMany()
-                        .HasForeignKey("ActorUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Mehewara.API.Models.WorkflowEvent", "Recommendation")
-                        .WithMany()
-                        .HasForeignKey("RecommendationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Mehewara.API.Models.WorkOrder", "WorkOrder")
-                        .WithMany()
-                        .HasForeignKey("WorkOrderId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("ActorUser");
-
-                    b.Navigation("Recommendation");
-
-                    b.Navigation("WorkOrder");
-                });
-
             modelBuilder.Entity("Mehewara.API.Models.ApprovalHistory", b =>
                 {
                     b.HasOne("Mehewara.API.Models.User", "DecidedByUser")
@@ -972,16 +859,9 @@ namespace Mehewara.API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Mehewara.API.Models.WorkflowEvent", "Recommendation")
-                        .WithMany()
-                        .HasForeignKey("RecommendationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("Crew");
 
                     b.Navigation("Problem");
-
-                    b.Navigation("Recommendation");
                 });
 
             modelBuilder.Entity("Mehewara.API.Models.WorkflowEvent", b =>
