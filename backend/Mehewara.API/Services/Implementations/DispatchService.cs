@@ -455,33 +455,14 @@ public class DispatchService : IDispatchService
                 throw new ValidationException($"Crew type '{crew.CrewType}' does not match required specialty '{payload.RequiredCrewType}'.");
             }
 
-            // 8. Crew status == "AVAILABLE" (evaluated against locked, freshly committed row)
-            if (!string.Equals(crew.Status, "AVAILABLE", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new ConflictException(
-                    $"Recommended crew '{crew.CrewName}' is currently {crew.Status}.",
-                    "CREW_NOT_AVAILABLE");
-            }
-
-            // 9. No conflicting active WorkOrder for this crew
-            var hasConflict = await _context.WorkOrders.AnyAsync(w =>
-                w.CrewId == crew.CrewId && (w.Status == "ASSIGNED" || w.Status == "IN_PROGRESS"));
-
-            if (hasConflict)
-            {
-                throw new ConflictException(
-                    $"Crew '{crew.CrewName}' already has an active work order in progress.",
-                    "CREW_CONFLICT");
-            }
-
-            // 10. Actor is authorized as Admin
+            // 8. Actor is authorized as Admin
             var adminUser = await _context.Users.FindAsync(adminUserId);
             if (adminUser == null)
             {
                 throw new UnauthorizedException("Coordinator account not recognized.", "UNAUTHORIZED");
             }
 
-            // ALL 10 CHECKS PASSED -> Create WorkOrder and propagate statuses
+            // Checks passed -> Create WorkOrder in ASSIGNED status (queued for squad)
             var workOrder = new WorkOrder
             {
                 WorkOrderId = Guid.NewGuid(),
@@ -489,7 +470,9 @@ public class DispatchService : IDispatchService
                 CrewId = crew.CrewId,
                 Priority = payload.Priority.ToUpperInvariant(),
                 Title = problem.Title,
-                Instructions = $"Dispatched to resolve {problem.Title} ({problem.Category}) at {problem.Address}.",
+                Instructions = !string.IsNullOrWhiteSpace(request.Instructions)
+                    ? request.Instructions.Trim()
+                    : $"Dispatched to resolve {problem.Title} ({problem.Category}) at {problem.Address}.",
                 Status = "ASSIGNED",
                 AssignedAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow,
@@ -509,10 +492,6 @@ public class DispatchService : IDispatchService
                 CreatedAt = DateTime.UtcNow
             };
             _context.ApprovalHistories.Add(approval);
-
-            // Update Crew Status
-            crew.Status = "BUSY";
-            crew.UpdatedAt = DateTime.UtcNow;
 
             // Update Problem Status
             problem.Status = "ASSIGNED";

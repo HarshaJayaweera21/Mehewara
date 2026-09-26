@@ -62,7 +62,9 @@ public class CrewService : ICrewService
             .Select(g => new
             {
                 CrewId = g.Key,
-                WorkOrderId = g.OrderByDescending(w => w.AssignedAt ?? w.CreatedAt)
+                WorkOrderId = g.OrderBy(w => w.Status == "IN_PROGRESS" ? 0 : 1)
+                               .ThenByDescending(w => w.Priority == "CRITICAL" ? 4 : w.Priority == "HIGH" ? 3 : w.Priority == "MEDIUM" ? 2 : 1)
+                               .ThenByDescending(w => w.AssignedAt ?? w.CreatedAt)
                                .Select(w => w.WorkOrderId)
                                .FirstOrDefault()
             })
@@ -178,7 +180,9 @@ public class CrewService : ICrewService
         var activeWorkOrderId = await _context.WorkOrders
             .AsNoTracking()
             .Where(w => w.CrewId == crew.CrewId && (w.Status == "ASSIGNED" || w.Status == "IN_PROGRESS"))
-            .OrderByDescending(w => w.AssignedAt ?? w.CreatedAt)
+            .OrderBy(w => w.Status == "IN_PROGRESS" ? 0 : 1)
+            .ThenByDescending(w => w.Priority == "CRITICAL" ? 4 : w.Priority == "HIGH" ? 3 : w.Priority == "MEDIUM" ? 2 : 1)
+            .ThenByDescending(w => w.AssignedAt ?? w.CreatedAt)
             .Select(w => (Guid?)w.WorkOrderId)
             .FirstOrDefaultAsync();
 
@@ -216,7 +220,7 @@ public class CrewService : ICrewService
         }
 
         var hasActiveJob = await _context.WorkOrders
-            .AnyAsync(w => w.CrewId == crewId && (w.Status == "ASSIGNED" || w.Status == "IN_PROGRESS"));
+            .AnyAsync(w => w.CrewId == crewId && w.Status == "IN_PROGRESS");
 
         if (hasActiveJob && normalized == "UNAVAILABLE")
         {
@@ -261,10 +265,33 @@ public class CrewService : ICrewService
             .Include(w => w.Problem)
             .AsNoTracking()
             .Where(w => w.CrewId == crewId)
-            .OrderByDescending(w => w.AssignedAt ?? w.CreatedAt)
             .ToListAsync();
 
-        return workOrders.Select(w => new CrewWorkOrderItemDto
+        static int GetStatusTier(string status) => status switch
+        {
+            "IN_PROGRESS" => 0,
+            "ASSIGNED" => 1,
+            _ => 2
+        };
+
+        static int GetPriorityWeight(string priority) => priority.ToUpperInvariant() switch
+        {
+            "CRITICAL" => 4,
+            "HIGH" => 3,
+            "MEDIUM" => 2,
+            "LOW" => 1,
+            _ => 0
+        };
+
+        var sorted = workOrders
+            .OrderBy(w => GetStatusTier(w.Status))
+            .ThenByDescending(w => GetStatusTier(w.Status) == 1 ? GetPriorityWeight(w.Priority) : 0)
+            .ThenByDescending(w => GetStatusTier(w.Status) == 1 ? (w.Problem?.PriorityScore ?? 0) : 0)
+            .ThenBy(w => GetStatusTier(w.Status) == 1 ? (w.AssignedAt ?? w.CreatedAt) : DateTime.MaxValue)
+            .ThenByDescending(w => GetStatusTier(w.Status) == 2 ? (w.CompletedAt ?? w.UpdatedAt) : DateTime.MinValue)
+            .ToList();
+
+        return sorted.Select(w => new CrewWorkOrderItemDto
         {
             Id = w.WorkOrderId,
             ProblemId = w.ProblemId,
@@ -273,6 +300,7 @@ public class CrewService : ICrewService
             ProblemCategory = w.Problem?.Category,
             ProblemAddress = w.Problem?.Address,
             Priority = w.Priority,
+            PriorityScore = w.Problem?.PriorityScore ?? 0,
             Status = w.Status,
             Instructions = w.Instructions,
             AssignedAt = w.AssignedAt,

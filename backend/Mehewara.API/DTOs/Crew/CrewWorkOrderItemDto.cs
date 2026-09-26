@@ -9,6 +9,7 @@ public class CrewWorkOrderItemDto
     public string? ProblemCategory { get; set; }
     public string? ProblemAddress { get; set; }
     public string Priority { get; set; } = string.Empty;
+    public int PriorityScore { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? Instructions { get; set; }
     public DateTime? AssignedAt { get; set; }
