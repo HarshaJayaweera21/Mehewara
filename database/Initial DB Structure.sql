@@ -425,6 +425,8 @@ CREATE TABLE work_orders (
 
     crew_id UUID NOT NULL,
 
+    recommendation_id UUID,
+
     priority VARCHAR(20) NOT NULL,
 
     title VARCHAR(200) NOT NULL,
@@ -670,6 +672,12 @@ ALTER TABLE approval_history
     REFERENCES workflow_events(workflow_event_id)
     ON DELETE RESTRICT;
 
+ALTER TABLE work_orders
+    ADD CONSTRAINT "FK_work_orders_workflow_events_recommendation_id"
+    FOREIGN KEY (recommendation_id)
+    REFERENCES workflow_events(workflow_event_id)
+    ON DELETE RESTRICT;
+
 
 -- ============================================================
 -- INDEXES
@@ -765,6 +773,9 @@ CREATE INDEX idx_work_orders_problem_id
 
 CREATE INDEX idx_work_orders_crew_id
     ON work_orders(crew_id);
+
+CREATE INDEX idx_work_orders_recommendation_id
+    ON work_orders(recommendation_id);
 
 
 CREATE INDEX idx_work_orders_status

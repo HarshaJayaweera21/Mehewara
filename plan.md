@@ -12,7 +12,7 @@ Source inspection confirmed these gaps:
 | --------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------ |
 | Recommendation review | List, detail, edit, approve, reject, regenerate routes exist | Correct validation, decision tracking, and client contracts        |
 | Approval              | Creates an assigned WorkOrder                                | Protect against simultaneous approvals and stale crew availability |
-| Rejection             | Source now records a decision without a WorkOrder; migration pending | Apply the review migration and verify it against PostgreSQL |
+| Rejection             | Source records a decision without a WorkOrder; inspected Docker schema has the needed columns, FK, and index but no EF history | Verify live behavior and resolve migration-history ambiguity before future EF deployment |
 | Regeneration          | Records a request without executing it                       | Actually rerun existing Agent 3 and persist progress/results       |
 | Work execution        | WorkOrder model exists                                       | Build read, start, and completion operations                       |
 | React                 | Dispatch screens exist; crew leader job dashboard is absent  | Fix integration, add WorkOrder monitoring, and build crew job execution |
@@ -95,7 +95,7 @@ WorkOrders are created through approval. The lifecycle is `ASSIGNED → IN_PROGR
 
 Use forward EF migrations and an explicit migration deployment step, replacing reliance on `EnsureCreated`. Check schema/migration history and conflicting active orders before upgrading. Preserve legacy records; do not guess ambiguous recommendation links or delete rejection placeholders.
 
-The first review-history slice is implemented in source: new decisions link to the recommendation, and rejection no longer creates a WorkOrder. The EF migration and both manual SQL paths are prepared in `database/migrations/MANUAL_APPLY.txt`. Docker has not been updated. WorkOrder-to-recommendation linkage, atomic approval concurrency protection, and regeneration remain later steps in this plan.
+The review-history slice is implemented in source: new decisions link to the recommendation, and rejection no longer creates a WorkOrder. The inspected Docker database already has the review-history columns, foreign key, and index, but its EF migration-history table was absent in later checks; how it reached that state remains unverified. Do not rerun the first migration on that schema. WorkOrder-to-recommendation linkage is also implemented in source with EF migration `20260926054657_LinkWorkOrderToRecommendation`; its schema-only SQL and manual deployment instructions are in `database/migrations/MANUAL_APPLY_WORK_ORDER.txt`. This second change has not been applied to Docker. Atomic approval concurrency protection and regeneration remain later steps.
 
 ## 4. Client implementation and delivery order
 

@@ -471,6 +471,7 @@ public class DispatchService : IDispatchService
             WorkOrderId = Guid.NewGuid(),
             ProblemId = targetProblemId,
             CrewId = crew.CrewId,
+            RecommendationId = recommendationId,
             Priority = payload.Priority.ToUpperInvariant(),
             Title = problem.Title,
             Instructions = $"Dispatched to resolve {problem.Title} ({problem.Category}) at {problem.Address}.",

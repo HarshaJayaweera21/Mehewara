@@ -511,6 +511,9 @@ public class AppDbContext : DbContext
                 .HasColumnName("crew_id")
                 .IsRequired();
 
+            entity.Property(w => w.RecommendationId)
+                .HasColumnName("recommendation_id");
+
             entity.Property(w => w.Priority)
                 .HasColumnName("priority")
                 .HasMaxLength(20)
@@ -564,6 +567,11 @@ public class AppDbContext : DbContext
                 .HasForeignKey(w => w.CrewId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(w => w.Recommendation)
+                .WithMany()
+                .HasForeignKey(w => w.RecommendationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // CHECK constraints
             entity.ToTable("work_orders", table =>
             {
@@ -582,6 +590,9 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(w => w.CrewId)
                 .HasDatabaseName("idx_work_orders_crew_id");
+
+            entity.HasIndex(w => w.RecommendationId)
+                .HasDatabaseName("idx_work_orders_recommendation_id");
 
             entity.HasIndex(w => w.Status)
                 .HasDatabaseName("idx_work_orders_status");
