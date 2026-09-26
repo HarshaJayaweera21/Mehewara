@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../models/work_order_model.dart';
 import '../../../services/crew_service.dart';
+import 'problem_detail_screen.dart';
 
 class CrewJobsScreen extends StatefulWidget {
   final CrewService crewService;
@@ -26,6 +27,20 @@ class _CrewJobsScreenState extends State<CrewJobsScreen> {
   void initState() {
     super.initState();
     _loadWorkOrders();
+  }
+
+  void _openProblemDetails(WorkOrderModel order, {WorkOrderModel? currentActive}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProblemDetailScreen(
+          workOrder: order,
+          crewService: widget.crewService,
+          onWorkOrderUpdated: _loadWorkOrders,
+          hasOtherActiveMission: currentActive != null && currentActive.id != order.id,
+        ),
+      ),
+    );
   }
 
   Future<void> _loadWorkOrders() async {
@@ -746,169 +761,199 @@ class _CrewJobsScreenState extends State<CrewJobsScreen> {
 
     return Card(
       elevation: 2,
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: AppColors.mintAccent, width: 1.5),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.statusBusyBg,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        children: const [
-                          Icon(Icons.bolt, size: 14, color: AppColors.statusBusyText),
-                          SizedBox(width: 4),
-                          Text(
-                            'LIVE ON-SITE',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.statusBusyText,
+      child: InkWell(
+        onTap: () => _openProblemDetails(order, currentActive: order),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.statusBusyBg,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          children: const [
+                            Icon(Icons.bolt, size: 14, color: AppColors.statusBusyText),
+                            SizedBox(width: 4),
+                            Text(
+                              'LIVE ON-SITE',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.statusBusyText,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Started $startedTime',
+                        style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: priorityBg,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: priorityColor.withValues(alpha: 0.4)),
+                    ),
+                    child: Text(
+                      'PRIORITY: ${order.priority}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: priorityColor,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Started $startedTime',
-                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                order.problemTitle,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                  height: 1.25,
+                ),
+              ),
+              if (order.problemCategory != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Category: ${order.problemCategory}',
+                  style: const TextStyle(fontSize: 12, color: AppColors.primaryForest, fontWeight: FontWeight.w600),
+                ),
+              ],
+              if (order.problemAddress != null && order.problemAddress!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.location_on_outlined, size: 15, color: AppColors.textSecondary),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        order.problemAddress!,
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
                     ),
                   ],
                 ),
+              ],
+              if (order.instructions != null && order.instructions!.isNotEmpty) ...[
+                const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: priorityBg,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: priorityColor.withValues(alpha: 0.4)),
+                    color: AppColors.canvasBg,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.borderSubtle),
                   ),
-                  child: Text(
-                    'PRIORITY: ${order.priority}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: priorityColor,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'COORDINATOR DISPATCH INSTRUCTIONS',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textMuted,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        order.instructions!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textPrimary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              order.problemTitle,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-                height: 1.25,
+              const SizedBox(height: 12),
+              // Tappable Details Callout
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: AppColors.softSage.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.mintAccent.withValues(alpha: 0.5)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Row(
+                      children: [
+                        Icon(Icons.map_outlined, size: 14, color: AppColors.primaryForest),
+                        SizedBox(width: 6),
+                        Text(
+                          'View Problem Scope, Description & Location Map',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primaryForest),
+                        ),
+                      ],
+                    ),
+                    Icon(Icons.arrow_forward_ios, size: 11, color: AppColors.primaryForest),
+                  ],
+                ),
               ),
-            ),
-            if (order.problemCategory != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Category: ${order.problemCategory}',
-                style: const TextStyle(fontSize: 12, color: AppColors.primaryForest, fontWeight: FontWeight.w600),
-              ),
-            ],
-            if (order.problemAddress != null && order.problemAddress!.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 14),
+              // Action Buttons
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.location_on_outlined, size: 15, color: AppColors.textSecondary),
-                  const SizedBox(width: 4),
                   Expanded(
-                    child: Text(
-                      order.problemAddress!,
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    flex: 3,
+                    child: ElevatedButton.icon(
+                      onPressed: _isActionLoading ? null : () => _handleCompleteWork(order),
+                      icon: const Icon(Icons.check_circle_outline, size: 16),
+                      label: const Text('Complete Work'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryForest,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: OutlinedButton.icon(
+                      onPressed: _isActionLoading ? null : () => _handleReportIssue(order),
+                      icon: const Icon(Icons.report_problem_outlined, size: 16, color: AppColors.priorityCritical),
+                      label: const Text('Blocker / Issue', style: TextStyle(color: AppColors.priorityCritical)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: const BorderSide(color: AppColors.priorityCritical),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
                     ),
                   ),
                 ],
               ),
             ],
-            if (order.instructions != null && order.instructions!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.canvasBg,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.borderSubtle),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'COORDINATOR DISPATCH INSTRUCTIONS',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textMuted,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      order.instructions!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textPrimary,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 16),
-            // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: ElevatedButton.icon(
-                    onPressed: _isActionLoading ? null : () => _handleCompleteWork(order),
-                    icon: const Icon(Icons.check_circle_outline, size: 16),
-                    label: const Text('Complete Work'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryForest,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 2,
-                  child: OutlinedButton.icon(
-                    onPressed: _isActionLoading ? null : () => _handleReportIssue(order),
-                    icon: const Icon(Icons.report_problem_outlined, size: 16, color: AppColors.priorityCritical),
-                    label: const Text('Blocker / Issue', style: TextStyle(color: AppColors.priorityCritical)),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: const BorderSide(color: AppColors.priorityCritical),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -926,151 +971,181 @@ class _CrewJobsScreenState extends State<CrewJobsScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: isNextUp
             ? BorderSide(color: AppColors.mintAccent.withValues(alpha: 0.6), width: 1.2)
             : const BorderSide(color: AppColors.borderSubtle),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: isNextUp ? AppColors.softSage : AppColors.canvasBg,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: isNextUp ? AppColors.mintAccent : AppColors.borderDefault,
-                        ),
-                      ),
-                      child: Text(
-                        isNextUp ? '#$queueRank NEXT UP' : '#$queueRank IN QUEUE',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: isNextUp ? AppColors.primaryForest : AppColors.textSecondary,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                    ),
-                    if (order.priorityScore > 0) ...[
-                      const SizedBox(width: 6),
+      child: InkWell(
+        onTap: () => _openProblemDetails(order, currentActive: currentActive),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
-                          color: AppColors.canvasBg,
+                          color: isNextUp ? AppColors.softSage : AppColors.canvasBg,
                           borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: isNextUp ? AppColors.mintAccent : AppColors.borderDefault,
+                          ),
                         ),
                         child: Text(
-                          'SCORE ${order.priorityScore}',
-                          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.textMuted),
+                          isNextUp ? '#$queueRank NEXT UP' : '#$queueRank IN QUEUE',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: isNextUp ? AppColors.primaryForest : AppColors.textSecondary,
+                            letterSpacing: 0.4,
+                          ),
                         ),
                       ),
+                      if (order.priorityScore > 0) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.canvasBg,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'SCORE ${order.priorityScore}',
+                            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.textMuted),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: priorityBg,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: priorityColor.withValues(alpha: 0.4)),
                   ),
-                  child: Text(
-                    order.priority,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: priorityColor,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: priorityBg,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: priorityColor.withValues(alpha: 0.4)),
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              order.problemTitle,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            if (order.problemCategory != null) ...[
-              const SizedBox(height: 3),
-              Text(
-                'Category: ${order.problemCategory}',
-                style: const TextStyle(fontSize: 11, color: AppColors.primaryForest, fontWeight: FontWeight.w600),
-              ),
-            ],
-            if (order.problemAddress != null && order.problemAddress!.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
-                  const SizedBox(width: 4),
-                  Expanded(
                     child: Text(
-                      order.problemAddress!,
-                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      order.priority,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: priorityColor,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ],
-            if (order.instructions != null && order.instructions!.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
+              Text(
+                order.problemTitle,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              if (order.problemCategory != null) ...[
+                const SizedBox(height: 3),
+                Text(
+                  'Category: ${order.problemCategory}',
+                  style: const TextStyle(fontSize: 11, color: AppColors.primaryForest, fontWeight: FontWeight.w600),
+                ),
+              ],
+              if (order.problemAddress != null && order.problemAddress!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        order.problemAddress!,
+                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (order.instructions != null && order.instructions!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.canvasBg,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Instructions: ${order.instructions}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, color: AppColors.textPrimary),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
+              // Tappable Details Callout
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.canvasBg,
                   borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.borderSubtle),
                 ),
-                child: Text(
-                  'Instructions: ${order.instructions}',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11, color: AppColors.textPrimary),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Row(
+                      children: [
+                        Icon(Icons.map_outlined, size: 13, color: AppColors.primaryForest),
+                        SizedBox(width: 6),
+                        Text(
+                          'Tap to view description, location map & reports',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primaryForest),
+                        ),
+                      ],
+                    ),
+                    Icon(Icons.arrow_forward_ios, size: 10, color: AppColors.primaryForest),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Start Job Button (Enforces Single Active Invariant)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isActionLoading
+                      ? null
+                      : () => _handleStartWork(order, currentActive: currentActive),
+                  icon: Icon(
+                    canStart ? Icons.play_arrow_rounded : Icons.lock_outline,
+                    size: 16,
+                  ),
+                  label: Text(
+                    canStart
+                        ? 'Start Work Order'
+                        : 'Locked (Active Mission In Progress)',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: canStart ? AppColors.primaryForest : AppColors.surfaceSubtle,
+                    foregroundColor: canStart ? Colors.white : AppColors.textMuted,
+                    elevation: canStart ? 1 : 0,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
                 ),
               ),
             ],
-            const SizedBox(height: 12),
-            // Start Job Button (Enforces Single Active Invariant)
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isActionLoading
-                    ? null
-                    : () => _handleStartWork(order, currentActive: currentActive),
-                icon: Icon(
-                  canStart ? Icons.play_arrow_rounded : Icons.lock_outline,
-                  size: 16,
-                ),
-                label: Text(
-                  canStart
-                      ? 'Start Work Order'
-                      : 'Locked (Active Mission In Progress)',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: canStart ? AppColors.primaryForest : AppColors.surfaceSubtle,
-                  foregroundColor: canStart ? Colors.white : AppColors.textMuted,
-                  elevation: canStart ? 1 : 0,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -1088,63 +1163,73 @@ class _CrewJobsScreenState extends State<CrewJobsScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    order.problemTitle,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _openProblemDetails(order),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      order.problemTitle,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: statusBg,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    order.status,
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      color: statusColor,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: statusBg,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      order.status,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
+                      ),
                     ),
                   ),
+                ],
+              ),
+              if (order.completionNotes != null && order.completionNotes!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Notes: ${order.completionNotes}',
+                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                 ),
               ],
-            ),
-            if (order.completionNotes != null && order.completionNotes!.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Text(
-                'Notes: ${order.completionNotes}',
-                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    order.problemCategory ?? 'GENERAL',
+                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        dateFormat.format(order.completedAt ?? order.createdAt),
+                        style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.chevron_right, size: 14, color: AppColors.textMuted),
+                    ],
+                  ),
+                ],
               ),
             ],
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  order.problemCategory ?? 'GENERAL',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  dateFormat.format(order.completedAt ?? order.createdAt),
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );

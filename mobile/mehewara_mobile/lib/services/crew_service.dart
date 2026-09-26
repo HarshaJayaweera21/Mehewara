@@ -127,5 +127,17 @@ class CrewService {
       statusCode: 500,
     );
   }
+
+  /// Fetch full problem details including linked resident reports
+  Future<Map<String, dynamic>> getProblemDetails(String problemId) async {
+    final response = await _apiClient.get('/problems/$problemId');
+    if (response is Map<String, dynamic>) {
+      return response;
+    }
+    throw ApiException(
+      message: 'Invalid response from fetching problem details',
+      statusCode: 500,
+    );
+  }
 }
 

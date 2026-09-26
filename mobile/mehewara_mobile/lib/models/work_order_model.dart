@@ -3,8 +3,12 @@ class WorkOrderModel {
   final String problemId;
   final String title;
   final String problemTitle;
+  final String? problemDescription;
   final String? problemCategory;
   final String? problemAddress;
+  final double latitude;
+  final double longitude;
+  final int reportCount;
   final String priority;
   final int priorityScore;
   final String status;
@@ -20,8 +24,12 @@ class WorkOrderModel {
     required this.problemId,
     required this.title,
     required this.problemTitle,
+    this.problemDescription,
     this.problemCategory,
     this.problemAddress,
+    this.latitude = 0.0,
+    this.longitude = 0.0,
+    this.reportCount = 0,
     required this.priority,
     this.priorityScore = 0,
     required this.status,
@@ -38,6 +46,7 @@ class WorkOrderModel {
   bool get isQueued => status == 'ASSIGNED';
   bool get isCompleted => status == 'COMPLETED';
   bool get isClosed => status == 'COMPLETED' || status == 'CANCELLED' || status == 'FAILED';
+  bool get hasValidCoordinates => latitude != 0.0 && longitude != 0.0;
 
   int get priorityWeight {
     switch (priority.toUpperCase()) {
@@ -60,10 +69,22 @@ class WorkOrderModel {
       problemId: json['problemId'] ?? '',
       title: json['title'] ?? '',
       problemTitle: json['problemTitle'] ?? json['title'] ?? '',
+      problemDescription: json['problemDescription'] ?? json['description'],
       problemCategory: json['problemCategory'],
       problemAddress: json['problemAddress'],
+      latitude: json['latitude'] is num
+          ? (json['latitude'] as num).toDouble()
+          : double.tryParse(json['latitude']?.toString() ?? '0') ?? 0.0,
+      longitude: json['longitude'] is num
+          ? (json['longitude'] as num).toDouble()
+          : double.tryParse(json['longitude']?.toString() ?? '0') ?? 0.0,
+      reportCount: json['reportCount'] is int
+          ? json['reportCount']
+          : int.tryParse(json['reportCount']?.toString() ?? '0') ?? 0,
       priority: (json['priority'] ?? 'MEDIUM').toString().toUpperCase(),
-      priorityScore: json['priorityScore'] is int ? json['priorityScore'] : int.tryParse(json['priorityScore']?.toString() ?? '0') ?? 0,
+      priorityScore: json['priorityScore'] is int
+          ? json['priorityScore']
+          : int.tryParse(json['priorityScore']?.toString() ?? '0') ?? 0,
       status: (json['status'] ?? 'ASSIGNED').toString().toUpperCase(),
       instructions: json['instructions'],
       assignedAt: json['assignedAt'] != null ? DateTime.tryParse(json['assignedAt']) : null,
@@ -76,3 +97,4 @@ class WorkOrderModel {
     );
   }
 }
+

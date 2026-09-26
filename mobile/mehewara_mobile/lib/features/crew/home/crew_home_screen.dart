@@ -6,6 +6,7 @@ import '../../../services/crew_service.dart';
 import '../widgets/crew_status_badge.dart';
 import '../widgets/status_toggle_switch.dart';
 import '../widgets/active_work_order_card.dart';
+import '../jobs/problem_detail_screen.dart';
 
 class CrewHomeScreen extends StatefulWidget {
   final CrewService crewService;
@@ -33,6 +34,20 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  void _openProblemDetails(WorkOrderModel order) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProblemDetailScreen(
+          workOrder: order,
+          crewService: widget.crewService,
+          onWorkOrderUpdated: _loadData,
+          hasOtherActiveMission: _inProgressOrder != null && _inProgressOrder!.id != order.id,
+        ),
+      ),
+    );
   }
 
   Future<void> _loadData() async {
@@ -263,107 +278,136 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
             if (_inProgressOrder != null)
               ActiveWorkOrderCard(
                 workOrder: _inProgressOrder!,
-                onViewDetails: widget.onNavigateToJobs,
+                onViewDetails: () => _openProblemDetails(_inProgressOrder!),
               )
             else if (_queuedOrders.isNotEmpty)
               Card(
                 elevation: 1,
+                clipBehavior: Clip.antiAlias,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                   side: BorderSide(color: AppColors.mintAccent.withValues(alpha: 0.5)),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppColors.softSage,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              '#1 NEXT UP IN QUEUE',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.primaryForest,
-                                letterSpacing: 0.4,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppColors.canvasBg,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: AppColors.borderDefault),
-                            ),
-                            child: Text(
-                              'PRIORITY: ${_queuedOrders.first.priority}',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        _queuedOrders.first.problemTitle,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      if (_queuedOrders.first.problemAddress != null &&
-                          _queuedOrders.first.problemAddress!.isNotEmpty) ...[
-                        const SizedBox(height: 6),
+                child: InkWell(
+                  onTap: () => _openProblemDetails(_queuedOrders.first),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
-                            const SizedBox(width: 4),
-                            Expanded(
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.softSage,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                '#1 NEXT UP IN QUEUE',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primaryForest,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.canvasBg,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: AppColors.borderDefault),
+                              ),
                               child: Text(
-                                _queuedOrders.first.problemAddress!,
-                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                'PRIORITY: ${_queuedOrders.first.priority}',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ],
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Text(
-                            '${_queuedOrders.length} task(s) awaiting execution in squad queue',
-                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: widget.onNavigateToJobs,
-                          icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                          label: const Text('Open Queue & Start Mission'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryForest,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        const SizedBox(height: 10),
+                        Text(
+                          _queuedOrders.first.problemTitle,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
                           ),
                         ),
-                      ),
-                    ],
+                        if (_queuedOrders.first.problemAddress != null &&
+                            _queuedOrders.first.problemAddress!.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  _queuedOrders.first.problemAddress!,
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: AppColors.canvasBg,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AppColors.borderSubtle),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: const [
+                              Row(
+                                children: [
+                                  Icon(Icons.map_outlined, size: 13, color: AppColors.primaryForest),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Tap to view description, map & reports',
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primaryForest),
+                                  ),
+                                ],
+                              ),
+                              Icon(Icons.arrow_forward_ios, size: 10, color: AppColors.primaryForest),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Text(
+                              '${_queuedOrders.length} task(s) awaiting execution in squad queue',
+                              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: widget.onNavigateToJobs,
+                            icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                            label: const Text('Open Queue & Start Mission'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryForest,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               )
