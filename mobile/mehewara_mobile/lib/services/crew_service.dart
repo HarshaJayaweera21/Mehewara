@@ -80,4 +80,52 @@ class CrewService {
     }
     return [];
   }
+
+  /// Start working on an assigned work order (transitions ASSIGNED -> IN_PROGRESS)
+  Future<WorkOrderModel> startWorkOrder(String workOrderId) async {
+    final response = await _apiClient.post('/work-orders/$workOrderId/start');
+    if (response is Map<String, dynamic>) {
+      return WorkOrderModel.fromJson(response);
+    }
+    throw ApiException(
+      message: 'Invalid response from starting work order',
+      statusCode: 500,
+    );
+  }
+
+  /// Complete an in-progress work order with mandatory remediation notes
+  Future<WorkOrderModel> completeWorkOrder(String workOrderId, String completionNotes) async {
+    final response = await _apiClient.post(
+      '/work-orders/$workOrderId/complete',
+      body: {
+        'completionNotes': completionNotes.trim(),
+      },
+    );
+    if (response is Map<String, dynamic>) {
+      return WorkOrderModel.fromJson(response);
+    }
+    throw ApiException(
+      message: 'Invalid response from completing work order',
+      statusCode: 500,
+    );
+  }
+
+  /// Report an impediment, blocker, or cancellation on a work order
+  Future<WorkOrderModel> reportWorkOrderIssue(String workOrderId, String reason, {String action = 'FAIL'}) async {
+    final response = await _apiClient.post(
+      '/work-orders/$workOrderId/report-issue',
+      body: {
+        'reason': reason.trim(),
+        'action': action,
+      },
+    );
+    if (response is Map<String, dynamic>) {
+      return WorkOrderModel.fromJson(response);
+    }
+    throw ApiException(
+      message: 'Invalid response from reporting work order issue',
+      statusCode: 500,
+    );
+  }
 }
+

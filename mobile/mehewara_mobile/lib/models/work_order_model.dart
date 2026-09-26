@@ -6,6 +6,7 @@ class WorkOrderModel {
   final String? problemCategory;
   final String? problemAddress;
   final String priority;
+  final int priorityScore;
   final String status;
   final String? instructions;
   final DateTime? assignedAt;
@@ -22,6 +23,7 @@ class WorkOrderModel {
     this.problemCategory,
     this.problemAddress,
     required this.priority,
+    this.priorityScore = 0,
     required this.status,
     this.instructions,
     this.assignedAt,
@@ -32,7 +34,25 @@ class WorkOrderModel {
   });
 
   bool get isActive => status == 'ASSIGNED' || status == 'IN_PROGRESS';
+  bool get isInProgress => status == 'IN_PROGRESS';
+  bool get isQueued => status == 'ASSIGNED';
   bool get isCompleted => status == 'COMPLETED';
+  bool get isClosed => status == 'COMPLETED' || status == 'CANCELLED' || status == 'FAILED';
+
+  int get priorityWeight {
+    switch (priority.toUpperCase()) {
+      case 'CRITICAL':
+        return 4;
+      case 'HIGH':
+        return 3;
+      case 'MEDIUM':
+        return 2;
+      case 'LOW':
+        return 1;
+      default:
+        return 0;
+    }
+  }
 
   factory WorkOrderModel.fromJson(Map<String, dynamic> json) {
     return WorkOrderModel(
@@ -43,6 +63,7 @@ class WorkOrderModel {
       problemCategory: json['problemCategory'],
       problemAddress: json['problemAddress'],
       priority: (json['priority'] ?? 'MEDIUM').toString().toUpperCase(),
+      priorityScore: json['priorityScore'] is int ? json['priorityScore'] : int.tryParse(json['priorityScore']?.toString() ?? '0') ?? 0,
       status: (json['status'] ?? 'ASSIGNED').toString().toUpperCase(),
       instructions: json['instructions'],
       assignedAt: json['assignedAt'] != null ? DateTime.tryParse(json['assignedAt']) : null,

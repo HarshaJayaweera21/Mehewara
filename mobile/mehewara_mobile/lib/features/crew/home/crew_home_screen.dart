@@ -23,7 +23,8 @@ class CrewHomeScreen extends StatefulWidget {
 
 class _CrewHomeScreenState extends State<CrewHomeScreen> {
   CrewModel? _crew;
-  WorkOrderModel? _activeWorkOrder;
+  WorkOrderModel? _inProgressOrder;
+  List<WorkOrderModel> _queuedOrders = [];
   bool _isLoading = true;
   bool _isTogglingStatus = false;
   String? _errorMessage;
@@ -42,25 +43,13 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
 
     try {
       final crew = await widget.crewService.getCrewProfile();
-      WorkOrderModel? activeOrder;
+      WorkOrderModel? inProgress;
+      List<WorkOrderModel> queued = [];
 
       try {
         final orders = await widget.crewService.getCrewWorkOrders();
-        activeOrder = orders.firstWhere(
-          (o) => o.isActive,
-          orElse: () => orders.isNotEmpty ? orders.first : WorkOrderModel(
-            id: '',
-            problemId: '',
-            title: '',
-            problemTitle: '',
-            priority: '',
-            status: 'NONE',
-            createdAt: DateTime.now(),
-          ),
-        );
-        if (activeOrder.status == 'NONE' || !activeOrder.isActive) {
-          activeOrder = null;
-        }
+        inProgress = orders.where((o) => o.isInProgress).firstOrNull;
+        queued = orders.where((o) => o.isQueued).toList();
       } catch (_) {
         // Work orders fetch optional
       }
@@ -68,7 +57,8 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
       if (mounted) {
         setState(() {
           _crew = crew;
-          _activeWorkOrder = activeOrder;
+          _inProgressOrder = inProgress;
+          _queuedOrders = queued;
           _isLoading = false;
         });
       }
@@ -252,27 +242,130 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
                     letterSpacing: 0.6,
                   ),
                 ),
-                if (_activeWorkOrder != null)
-                  GestureDetector(
-                    onTap: widget.onNavigateToJobs,
-                    child: const Text(
-                      'View All Jobs →',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primaryForest,
-                      ),
+                GestureDetector(
+                  onTap: widget.onNavigateToJobs,
+                  child: Text(
+                    _queuedOrders.isNotEmpty
+                        ? 'Queue (${_queuedOrders.length} pending) →'
+                        : 'View All Jobs →',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primaryForest,
                     ),
                   ),
+                ),
               ],
             ),
 
             const SizedBox(height: 10),
 
-            if (_activeWorkOrder != null)
+            if (_inProgressOrder != null)
               ActiveWorkOrderCard(
-                workOrder: _activeWorkOrder!,
+                workOrder: _inProgressOrder!,
                 onViewDetails: widget.onNavigateToJobs,
+              )
+            else if (_queuedOrders.isNotEmpty)
+              Card(
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(color: AppColors.mintAccent.withValues(alpha: 0.5)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.softSage,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              '#1 NEXT UP IN QUEUE',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primaryForest,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.canvasBg,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: AppColors.borderDefault),
+                            ),
+                            child: Text(
+                              'PRIORITY: ${_queuedOrders.first.priority}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _queuedOrders.first.problemTitle,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      if (_queuedOrders.first.problemAddress != null &&
+                          _queuedOrders.first.problemAddress!.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                _queuedOrders.first.problemAddress!,
+                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Text(
+                            '${_queuedOrders.length} task(s) awaiting execution in squad queue',
+                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: widget.onNavigateToJobs,
+                          icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                          label: const Text('Open Queue & Start Mission'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryForest,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               )
             else
               Card(
