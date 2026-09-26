@@ -267,6 +267,9 @@ public class DispatchService : IDispatchService
 
     public async Task<RecommendationDetailDto> EditRecommendationAsync(Guid recommendationId, EditRecommendationRequest request, Guid adminUserId)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await LockRowAsync("SELECT 1 FROM workflow_events WHERE workflow_event_id = @id FOR UPDATE", recommendationId);
+
         var ev = await _context.WorkflowEvents
             .Include(e => e.WorkflowRun)
                 .ThenInclude(r => r.Problem)
@@ -343,11 +346,26 @@ public class DispatchService : IDispatchService
             Issues = issues
         };
 
-        ev.OutputData = JsonSerializer.Serialize(payload, _jsonOptions);
+        var beforeData = ev.OutputData;
+        var afterData = JsonSerializer.Serialize(payload, _jsonOptions);
+        ev.OutputData = afterData;
         ev.ValidationResult = JsonSerializer.Serialize(validation, _jsonOptions);
         ev.CompletedAt = DateTime.UtcNow;
 
+        _context.ActivityHistories.Add(new ActivityHistory
+        {
+            ActivityId = Guid.NewGuid(),
+            ActorUserId = adminUserId,
+            Action = "RECOMMENDATION_EDITED",
+            RecommendationId = recommendationId,
+            BeforeData = beforeData,
+            AfterData = afterData,
+            Note = request.EditReason.Trim(),
+            CreatedAt = DateTime.UtcNow
+        });
+
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         var updated = await GetRecommendationByIdAsync(recommendationId);
         return updated!;

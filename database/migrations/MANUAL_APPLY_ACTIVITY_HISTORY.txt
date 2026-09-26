@@ -1,0 +1,42 @@
+# Apply the human activity-history table manually
+
+The supplied backup and checked-in schema have no activity-history table. This guide checks the current Docker database again before creating one. The manual SQL is for the previously inspected `mehewara_db` without EF migration history. It does not create migration-history entries.
+
+Back up the current database. From the repository root in PowerShell, run this read-only preflight:
+
+```powershell
+$preflightSql = @'
+SELECT current_database(), to_regclass('public.activity_history'),
+       to_regclass('public.users'), to_regclass('public.workflow_events'),
+       to_regclass('public.work_orders'),
+       to_regclass('public."__EFMigrationsHistory"');
+'@
+$preflightSql | docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Proceed only if this is the intended database, `activity_history` is empty/missing, all three referenced tables exist, and EF history is absent. If the table or EF history exists, stop and inspect it rather than running this script.
+
+Apply the schema-only SQL:
+
+```powershell
+Get-Content -Raw -LiteralPath 'database/migrations/20260926084022_AddActivityHistory.sql' |
+    docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Successful output ends in `COMMIT`. If an error occurs before `COMMIT`, the transaction rolls back. Verify the table, columns, checks, foreign keys, and indexes:
+
+```powershell
+$verifySql = @'
+SELECT column_name, data_type, is_nullable FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'activity_history'
+ORDER BY ordinal_position;
+SELECT conname, contype FROM pg_constraint
+WHERE conrelid = 'public.activity_history'::regclass ORDER BY conname;
+SELECT indexname FROM pg_indexes
+WHERE schemaname = 'public' AND tablename = 'activity_history'
+ORDER BY indexname;
+'@
+$verifySql | docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+The table stores human recommendation edits and, when the crew APIs are built, work-order start/completion actions. Approval/rejection rows remain in `approval_history`; AI execution stays in `workflow_events`. The edit API writes its activity row in the same transaction as the changed recommendation. This manual SQL does not repair absent EF history. The EF Core migration `20260926084022_AddActivityHistory` and `20260926084022_AddActivityHistory_EF.sql` are for databases with a complete, consistent migration history; neither is the apply path for the database described above.

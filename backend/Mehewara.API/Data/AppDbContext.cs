@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<Crew> Crews { get; set; }
     public DbSet<WorkOrder> WorkOrders { get; set; }
     public DbSet<ApprovalHistory> ApprovalHistories { get; set; }
+    public DbSet<ActivityHistory> ActivityHistories { get; set; }
     public DbSet<WorkflowRun> WorkflowRuns { get; set; }
     public DbSet<WorkflowEvent> WorkflowEvents { get; set; }
 
@@ -882,6 +883,45 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(w => w.StartedAt)
                 .HasDatabaseName("idx_workflow_events_started_at");
+        });
+
+        modelBuilder.Entity<ActivityHistory>(entity =>
+        {
+            entity.ToTable("activity_history", table =>
+            {
+                table.HasCheckConstraint("chk_activity_history_action",
+                    "action IN ('RECOMMENDATION_EDITED', 'WORK_ORDER_STARTED', 'WORK_ORDER_COMPLETED')");
+                table.HasCheckConstraint("chk_activity_history_target",
+                    "(action = 'RECOMMENDATION_EDITED' AND recommendation_id IS NOT NULL AND work_order_id IS NULL) " +
+                    "OR (action IN ('WORK_ORDER_STARTED', 'WORK_ORDER_COMPLETED') AND work_order_id IS NOT NULL AND recommendation_id IS NULL)");
+                table.HasCheckConstraint("chk_activity_history_edit_reason",
+                    "action <> 'RECOMMENDATION_EDITED' OR NULLIF(BTRIM(note), '') IS NOT NULL");
+            });
+
+            entity.HasKey(a => a.ActivityId);
+            entity.Property(a => a.ActivityId).HasColumnName("activity_id").HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(a => a.ActorUserId).HasColumnName("actor_user_id").IsRequired();
+            entity.Property(a => a.Action).HasColumnName("action").HasMaxLength(40).IsRequired();
+            entity.Property(a => a.RecommendationId).HasColumnName("recommendation_id");
+            entity.Property(a => a.WorkOrderId).HasColumnName("work_order_id");
+            entity.Property(a => a.BeforeData).HasColumnName("before_data").HasColumnType("jsonb").IsRequired();
+            entity.Property(a => a.AfterData).HasColumnName("after_data").HasColumnType("jsonb").IsRequired();
+            entity.Property(a => a.Note).HasColumnName("note");
+            entity.Property(a => a.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP").IsRequired();
+
+            entity.HasOne(a => a.ActorUser).WithMany().HasForeignKey(a => a.ActorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(a => a.Recommendation).WithMany().HasForeignKey(a => a.RecommendationId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(a => a.WorkOrder).WithMany().HasForeignKey(a => a.WorkOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(a => new { a.RecommendationId, a.CreatedAt })
+                .HasDatabaseName("idx_activity_history_recommendation_time");
+            entity.HasIndex(a => new { a.WorkOrderId, a.CreatedAt })
+                .HasDatabaseName("idx_activity_history_work_order_time");
+            entity.HasIndex(a => new { a.ActorUserId, a.CreatedAt })
+                .HasDatabaseName("idx_activity_history_actor_time");
         });
     }
 }
