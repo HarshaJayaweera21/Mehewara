@@ -592,7 +592,19 @@ public class AppDbContext : DbContext
                 .HasDatabaseName("idx_work_orders_crew_id");
 
             entity.HasIndex(w => w.RecommendationId)
+                .IsUnique()
+                .HasFilter("recommendation_id IS NOT NULL")
                 .HasDatabaseName("idx_work_orders_recommendation_id");
+
+            entity.HasIndex(w => w.CrewId, "IX_WorkOrders_ActiveCrew")
+                .IsUnique()
+                .HasFilter("status IN ('ASSIGNED', 'IN_PROGRESS')")
+                .HasDatabaseName("ux_work_orders_active_crew");
+
+            entity.HasIndex(w => w.ProblemId, "IX_WorkOrders_ActiveProblem")
+                .IsUnique()
+                .HasFilter("status IN ('ASSIGNED', 'IN_PROGRESS')")
+                .HasDatabaseName("ux_work_orders_active_problem");
 
             entity.HasIndex(w => w.Status)
                 .HasDatabaseName("idx_work_orders_status");
@@ -671,6 +683,11 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(a => a.RecommendationId)
                 .HasDatabaseName("idx_approval_history_recommendation_id");
+
+            entity.HasIndex(a => a.RecommendationId, "IX_ApprovalHistory_TerminalRecommendation")
+                .IsUnique()
+                .HasFilter("recommendation_id IS NOT NULL AND decision IN ('APPROVED', 'REJECTED')")
+                .HasDatabaseName("ux_approval_history_terminal_recommendation");
 
             entity.HasIndex(a => a.DecidedBy)
                 .HasDatabaseName("idx_approval_history_decided_by");

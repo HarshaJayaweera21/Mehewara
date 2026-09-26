@@ -774,8 +774,17 @@ CREATE INDEX idx_work_orders_problem_id
 CREATE INDEX idx_work_orders_crew_id
     ON work_orders(crew_id);
 
-CREATE INDEX idx_work_orders_recommendation_id
-    ON work_orders(recommendation_id);
+CREATE UNIQUE INDEX idx_work_orders_recommendation_id
+    ON work_orders(recommendation_id)
+    WHERE recommendation_id IS NOT NULL;
+
+CREATE UNIQUE INDEX ux_work_orders_active_crew
+    ON work_orders(crew_id)
+    WHERE status IN ('ASSIGNED', 'IN_PROGRESS');
+
+CREATE UNIQUE INDEX ux_work_orders_active_problem
+    ON work_orders(problem_id)
+    WHERE status IN ('ASSIGNED', 'IN_PROGRESS');
 
 
 CREATE INDEX idx_work_orders_status
@@ -797,6 +806,10 @@ CREATE INDEX idx_approval_history_work_order_id
 
 CREATE INDEX idx_approval_history_recommendation_id
     ON approval_history(recommendation_id);
+
+CREATE UNIQUE INDEX ux_approval_history_terminal_recommendation
+    ON approval_history(recommendation_id)
+    WHERE recommendation_id IS NOT NULL AND decision IN ('APPROVED', 'REJECTED');
 
 
 CREATE INDEX idx_approval_history_decided_by

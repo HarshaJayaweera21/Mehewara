@@ -6,6 +6,8 @@ using Mehewara.API.Exceptions;
 using Mehewara.API.Models;
 using Mehewara.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Npgsql;
 
 namespace Mehewara.API.Services.Implementations;
 
@@ -353,6 +355,9 @@ public class DispatchService : IDispatchService
 
     public async Task<ApproveRecommendationResponseDto> ApproveRecommendationAsync(Guid recommendationId, ApproveRecommendationRequest request, Guid adminUserId)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await LockRowAsync("SELECT 1 FROM workflow_events WHERE workflow_event_id = @id FOR UPDATE", recommendationId);
+
         // 1. Recommendation exists
         var ev = await _context.WorkflowEvents
             .Include(e => e.WorkflowRun)
@@ -389,6 +394,8 @@ public class DispatchService : IDispatchService
             ? payload.ProblemId
             : (ev.WorkflowRun.ProblemId ?? Guid.Empty);
 
+        await LockRowAsync("SELECT 1 FROM problems WHERE problem_id = @id FOR UPDATE", targetProblemId);
+
         // 2. Problem exists
         var problem = await _context.Problems.FindAsync(targetProblemId);
         if (problem == null)
@@ -416,6 +423,7 @@ public class DispatchService : IDispatchService
             throw new ValidationException("No crew was recommended for dispatch.");
         }
 
+        await LockRowAsync("SELECT 1 FROM crews WHERE crew_id = @id FOR UPDATE", payload.RecommendedCrewId.Value);
         var crew = await _context.Crews.FindAsync(payload.RecommendedCrewId.Value);
         if (crew == null)
         {
@@ -520,7 +528,15 @@ public class DispatchService : IDispatchService
             report.UpdatedAt = DateTime.UtcNow;
         }
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateException ex) when (IsDispatchUniquenessConflict(ex))
+        {
+            throw new ConflictException("The recommendation or crew was assigned by another request. Refresh and try again.", "DISPATCH_CONFLICT");
+        }
 
         _logger.LogInformation(
             "Recommendation {RecId} approved by {AdminId}. WorkOrder {WoId} created for Crew {CrewId}.",
@@ -547,6 +563,9 @@ public class DispatchService : IDispatchService
 
     public async Task<RejectRecommendationResponseDto> RejectRecommendationAsync(Guid recommendationId, RejectRecommendationRequest request, Guid adminUserId)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await LockRowAsync("SELECT 1 FROM workflow_events WHERE workflow_event_id = @id FOR UPDATE", recommendationId);
+
         var ev = await _context.WorkflowEvents
             .Include(e => e.WorkflowRun)
             .FirstOrDefaultAsync(e => e.WorkflowEventId == recommendationId);
@@ -582,6 +601,8 @@ public class DispatchService : IDispatchService
             ? payload.ProblemId
             : (ev.WorkflowRun.ProblemId ?? Guid.Empty);
 
+        await LockRowAsync("SELECT 1 FROM problems WHERE problem_id = @id FOR UPDATE", targetProblemId);
+
         var alreadyApproved = await _context.ApprovalHistories
             .AnyAsync(a => a.WorkOrder != null && a.WorkOrder.ProblemId == targetProblemId && a.Decision == "APPROVED");
 
@@ -608,7 +629,15 @@ public class DispatchService : IDispatchService
         ev.WorkflowRun.CurrentStage = "WAITING_FOR_APPROVAL";
         ev.WorkflowRun.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateException ex) when (IsDispatchUniquenessConflict(ex))
+        {
+            throw new ConflictException("This recommendation was reviewed by another request. Refresh and try again.", "ALREADY_REVIEWED");
+        }
 
         _logger.LogInformation("Recommendation {RecId} rejected by {AdminId}. Reason: {Reason}",
             recommendationId, adminUserId, request.Reason);
@@ -662,5 +691,34 @@ public class DispatchService : IDispatchService
             RequestedBy = adminUserId,
             RequestedAt = DateTime.UtcNow
         };
+    }
+
+    private async Task LockRowAsync(string sql, Guid id)
+    {
+        await using var command = _context.Database.GetDbConnection().CreateCommand();
+        command.Transaction = _context.Database.CurrentTransaction!.GetDbTransaction();
+        command.CommandText = sql;
+
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "id";
+        parameter.Value = id;
+        command.Parameters.Add(parameter);
+
+        await command.ExecuteScalarAsync();
+    }
+
+    private static bool IsDispatchUniquenessConflict(DbUpdateException exception)
+    {
+        if (exception.InnerException is not PostgresException postgresException ||
+            postgresException.SqlState != PostgresErrorCodes.UniqueViolation)
+        {
+            return false;
+        }
+
+        return postgresException.ConstraintName is
+            "idx_work_orders_recommendation_id" or
+            "ux_work_orders_active_crew" or
+            "ux_work_orders_active_problem" or
+            "ux_approval_history_terminal_recommendation";
     }
 }
