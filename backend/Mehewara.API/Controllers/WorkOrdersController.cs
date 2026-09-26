@@ -34,6 +34,7 @@ public class WorkOrdersController : ControllerBase
     {
         var workOrder = await _context.WorkOrders
             .Include(w => w.Problem)
+                .ThenInclude(p => p!.Reports)
             .AsNoTracking()
             .FirstOrDefaultAsync(w => w.WorkOrderId == workOrderId);
 
@@ -363,8 +364,12 @@ public class WorkOrdersController : ControllerBase
             ProblemId = w.ProblemId,
             Title = w.Title,
             ProblemTitle = w.Problem?.Title ?? w.Title,
+            ProblemDescription = w.Problem?.Description,
             ProblemCategory = w.Problem?.Category,
             ProblemAddress = w.Problem?.Address,
+            Latitude = w.Problem?.Latitude ?? 0,
+            Longitude = w.Problem?.Longitude ?? 0,
+            ReportCount = w.Problem?.Reports?.Count ?? 0,
             Priority = w.Priority,
             PriorityScore = w.Problem?.PriorityScore ?? 0,
             Status = w.Status,
