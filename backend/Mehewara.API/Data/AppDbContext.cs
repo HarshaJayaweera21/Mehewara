@@ -607,8 +607,10 @@ public class AppDbContext : DbContext
                 .HasDefaultValueSql("gen_random_uuid()");
 
             entity.Property(a => a.WorkOrderId)
-                .HasColumnName("work_order_id")
-                .IsRequired();
+                .HasColumnName("work_order_id");
+
+            entity.Property(a => a.RecommendationId)
+                .HasColumnName("recommendation_id");
 
             entity.Property(a => a.DecidedBy)
                 .HasColumnName("decided_by")
@@ -633,6 +635,11 @@ public class AppDbContext : DbContext
                 .HasForeignKey(a => a.WorkOrderId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(a => a.Recommendation)
+                .WithMany()
+                .HasForeignKey(a => a.RecommendationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // User → ApprovalHistory
             entity.HasOne(a => a.DecidedByUser)
                 .WithMany()
@@ -650,6 +657,9 @@ public class AppDbContext : DbContext
             // Indexes
             entity.HasIndex(a => a.WorkOrderId)
                 .HasDatabaseName("idx_approval_history_work_order_id");
+
+            entity.HasIndex(a => a.RecommendationId)
+                .HasDatabaseName("idx_approval_history_recommendation_id");
 
             entity.HasIndex(a => a.DecidedBy)
                 .HasDatabaseName("idx_approval_history_decided_by");

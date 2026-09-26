@@ -491,7 +491,8 @@ CREATE TABLE work_orders (
 CREATE TABLE approval_history (
     approval_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    work_order_id UUID NOT NULL,
+    work_order_id UUID,
+    recommendation_id UUID,
 
     decided_by UUID NOT NULL,
 
@@ -663,6 +664,12 @@ CREATE TABLE workflow_events (
         )
 );
 
+ALTER TABLE approval_history
+    ADD CONSTRAINT fk_approval_history_recommendation
+    FOREIGN KEY (recommendation_id)
+    REFERENCES workflow_events(workflow_event_id)
+    ON DELETE RESTRICT;
+
 
 -- ============================================================
 -- INDEXES
@@ -776,6 +783,9 @@ CREATE INDEX idx_work_orders_created_at
 
 CREATE INDEX idx_approval_history_work_order_id
     ON approval_history(work_order_id);
+
+CREATE INDEX idx_approval_history_recommendation_id
+    ON approval_history(recommendation_id);
 
 
 CREATE INDEX idx_approval_history_decided_by
