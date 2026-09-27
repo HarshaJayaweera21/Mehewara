@@ -15,10 +15,7 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
   onClose,
   onSuccess,
 }) => {
-  const [instructions, setInstructions] = useState(
-    `Deploy to ${recommendation.problemTitle}. Implement standard municipal safety perimeter and execute ${recommendation.category} repairs.`
-  );
-  const [notes, setNotes] = useState('');
+  const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -29,12 +26,11 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
 
     try {
       const res = await approveRecommendation(token, recommendation.recommendationId, {
-        instructions: instructions.trim(),
-        notes: notes.trim() || undefined,
+        reason: reason.trim() || undefined,
       });
-      onSuccess(res.workOrderId);
+      onSuccess(res.workOrder.id);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Approval failed. 10-point validation checklist blocked dispatch.');
+      setErrorMessage(err instanceof Error ? err.message : 'Approval failed. Check the server response and retry.');
     } finally {
       setIsSubmitting(false);
     }
@@ -91,35 +87,8 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
           </div>
 
           <div className="dispatch-form-group">
-            <label htmlFor="instructions" className="dispatch-form-label">
-              Work Order Instructions <span className="required-star">*</span>
-            </label>
-            <textarea
-              id="instructions"
-              rows={3}
-              className="dispatch-form-textarea"
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              placeholder="Specify crew dispatch instructions..."
-              required
-            />
-            <span className="dispatch-form-hint">
-              These operational instructions are stored in the WorkOrder and displayed on the Crew Leader mobile terminal.
-            </span>
-          </div>
-
-          <div className="dispatch-form-group">
-            <label htmlFor="notes" className="dispatch-form-label">
-              Internal Coordinator Approval Notes (Optional)
-            </label>
-            <input
-              id="notes"
-              type="text"
-              className="dispatch-form-input"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g., Authorized after reviewing stormwater drainage canal capacity"
-            />
+            <label htmlFor="approvalReason" className="dispatch-form-label">Approval reason (optional)</label>
+            <textarea id="approvalReason" className="dispatch-form-textarea" value={reason} onChange={e => setReason(e.target.value)} rows={3} />
           </div>
 
           <div className="dispatch-modal-actions">
@@ -134,7 +103,7 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
             <button
               type="submit"
               className="dispatch-btn-primary"
-              disabled={isSubmitting || !instructions.trim()}
+              disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>

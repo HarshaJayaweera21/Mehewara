@@ -15,7 +15,6 @@ import { Header } from '../../components/common';
 import { ApproveRecommendationModal } from './components/ApproveRecommendationModal';
 import { EditRecommendationModal } from './components/EditRecommendationModal';
 import { RejectRecommendationModal } from './components/RejectRecommendationModal';
-import { RegenerateRecommendationModal } from './components/RegenerateRecommendationModal';
 import './DispatchDashboardPage.css';
 
 export interface DispatchDashboardPageProps {
@@ -26,6 +25,7 @@ export interface DispatchDashboardPageProps {
   onNavigateToProblems?: () => void;
   onNavigateToCrews?: () => void;
   onNavigateToReports?: () => void;
+  onOpenWorkOrder?: (id: string) => void;
 }
 
 const PRIORITIES: (PriorityLevel | 'ALL')[] = ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
@@ -39,6 +39,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   onNavigateToProblems,
   onNavigateToCrews,
   onNavigateToReports,
+  onOpenWorkOrder,
 }) => {
   const authToken = token || localStorage.getItem('mehewara_token') || '';
 
@@ -59,7 +60,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Modal states
-  const [modalMode, setModalMode] = useState<'approve' | 'edit' | 'reject' | 'regenerate' | null>(null);
+  const [modalMode, setModalMode] = useState<'approve' | 'edit' | 'reject' | null>(null);
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -79,13 +80,26 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
       const [recsRes, crewsRes] = await Promise.all([
         getRecommendations(authToken, {
           priority: selectedPriority !== 'ALL' ? selectedPriority : undefined,
-          reviewDecision: selectedDecision !== 'ALL' ? selectedDecision : undefined,
-          search: searchQuery.trim() || undefined,
+          pageSize: 100,
+          reviewDecision: ['APPROVED', 'REJECTED'].includes(selectedDecision) ? selectedDecision : undefined,
         }),
         getCrewAvailability(authToken),
       ]);
 
-      const items = recsRes.items || [];
+      const allItems = [...(recsRes.items || [])];
+      for (let page = 2; page <= recsRes.totalPages; page++) {
+        const more = await getRecommendations(authToken, {
+          page, pageSize: 100,
+          priority: selectedPriority !== 'ALL' ? selectedPriority : undefined,
+          reviewDecision: ['APPROVED', 'REJECTED'].includes(selectedDecision) ? selectedDecision : undefined,
+        });
+        allItems.push(...more.items);
+      }
+      const search = searchQuery.trim().toLowerCase();
+      const items = allItems.filter(item =>
+        (selectedDecision !== 'PENDING' || !item.reviewDecision) &&
+        (!search || `${item.problemTitle} ${item.category} ${item.recommendedCrewName || ''}`.toLowerCase().includes(search)));
+
       // Heuristic sort: Pending decisions first, then highest priority score
       const sorted = [...items].sort((a, b) => {
         if (!a.reviewDecision && b.reviewDecision) return -1;
@@ -153,32 +167,6 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   const activeListItem = useMemo(() => {
     return recommendations.find((r) => r.recommendationId === selectedRecId) || null;
   }, [recommendations, selectedRecId]);
-
-  // 10-Point Deterministic Validation Evaluation
-  const validationChecklist = useMemo(() => {
-    if (!selectedDetail) return [];
-
-    const isAvailable = selectedDetail.recommendedCrewStatus === 'AVAILABLE' ||
-      availableCrews.some((c) => c.id === selectedDetail.recommendedCrewId && c.status === 'AVAILABLE');
-
-    const hasCrew = Boolean(selectedDetail.recommendedCrewId);
-    const scoreValid = selectedDetail.priorityScore >= 1 && selectedDetail.priorityScore <= 100;
-    const categoryMatched = hasCrew; // AI Agent 3 matched crew specialization
-    const isApproved = selectedDetail.reviewDecision === 'APPROVED';
-
-    return [
-      { id: 1, label: 'Target Problem Record Exists', passed: true, note: `Problem ID: ${selectedDetail.problemId.substring(0, 8)}...` },
-      { id: 2, label: 'Problem in IDENTIFIED / Active Status', passed: true, note: 'Pre-requisite verified' },
-      { id: 3, label: 'Multi-Factor Heuristic Score (1-100)', passed: scoreValid, note: `Score: ${selectedDetail.priorityScore}/100` },
-      { id: 4, label: 'Recommended Municipal Crew Selected', passed: hasCrew, note: selectedDetail.recommendedCrewName || 'Missing' },
-      { id: 5, label: 'Crew Specialization Matches Problem Category', passed: categoryMatched, note: `${selectedDetail.category} matches ${selectedDetail.requiredCrewType}` },
-      { id: 6, label: 'Recommended Crew Currently AVAILABLE', passed: isAvailable, note: isAvailable ? 'Unit Standby' : 'Unit Busy/Dispatched' },
-      { id: 7, label: 'Active Crew Leader Assigned', passed: true, note: 'Supervisory role confirmed' },
-      { id: 8, label: 'Work Order Instructions Formulated', passed: true, note: 'Templates ready' },
-      { id: 9, label: 'Deterministic Audit Trail Logging Active', passed: true, note: 'PostgreSQL audit tables' },
-      { id: 10, label: 'Human Coordinator Dispatch Authorization', passed: isApproved, note: isApproved ? `Authorized (${selectedDetail.workOrderId ? 'WO: ' + selectedDetail.workOrderId.substring(0, 8) : 'Logged'})` : 'Awaiting Review' },
-    ];
-  }, [selectedDetail, availableCrews]);
 
   const handleActionSuccess = (msg: string) => {
     setModalMode(null);
@@ -578,8 +566,8 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                     <button
                       type="button"
                       className="dispatch-action-btn regen-btn"
-                      onClick={() => setModalMode('regenerate')}
-                      title="Re-run Agent 3 LangGraph node"
+                      disabled
+                      title="Functional regeneration is not available yet"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polyline points="23 4 23 10 17 10" />
@@ -701,47 +689,20 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                     <div className="crew-profile-right">
                       <div className={`crew-status-indicator ${selectedDetail.recommendedCrewStatus === 'AVAILABLE' ? 'available' : 'busy'}`}>
                         <span className="status-dot" />
-                        <span>{selectedDetail.recommendedCrewStatus || 'AVAILABLE'}</span>
+                        <span>{selectedDetail.recommendedCrewStatus || 'UNKNOWN'}</span>
                       </div>
-                      <span className="crew-ward-hint">Operational Ready</span>
+                      <span className="crew-ward-hint">Crew status</span>
                     </div>
                   </div>
                 </div>
 
-                {/* 10-Point Deterministic Validation Checklist */}
                 <div className="detail-section checklist-section">
-                  <div className="checklist-header">
-                    <div>
-                      <span className="detail-section-label">10-Point Deterministic Safety Checklist</span>
-                      <p className="checklist-sub">Mandatory validation executed prior to work order dispatch</p>
-                    </div>
-                    <span className="checklist-count-badge">
-                      {validationChecklist.filter((c) => c.passed).length} / 10 Satisfied
-                    </span>
-                  </div>
-
-                  <div className="checklist-grid">
-                    {validationChecklist.map((item) => (
-                      <div
-                        key={item.id}
-                        className={`checklist-item ${item.passed ? 'passed' : 'pending'}`}
-                      >
-                        <div className="item-icon">
-                          {item.passed ? (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          ) : (
-                            <span className="pending-dot" />
-                          )}
-                        </div>
-                        <div className="item-text-group">
-                          <span className="item-label">{item.label}</span>
-                          <span className="item-note">{item.note}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <h3>Recorded server validation</h3>
+                  <p>{selectedDetail.validation?.status || 'Not available'}</p>
+                  <ul>{selectedDetail.validation?.issues?.map((issue, i) => <li key={i}>{issue}</li>)}</ul>
+                  <p>These are recorded results. The server rechecks dispatch conditions when you approve.</p>
+                  <p>Agent 4 validation is unavailable. Functional regeneration is deferred.</p>
+                  {selectedDetail.workOrderId && <button className="dispatch-btn-primary" onClick={() => onOpenWorkOrder?.(selectedDetail.workOrderId!)}>View WorkOrder</button>}
                 </div>
               </div>
             )}
@@ -755,9 +716,10 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
           recommendation={activeListItem}
           token={authToken}
           onClose={() => setModalMode(null)}
-          onSuccess={(workOrderId) =>
-            handleActionSuccess(`Work Order ${workOrderId.substring(0, 8)} authorized successfully.`)
-          }
+          onSuccess={(workOrderId) => {
+            handleActionSuccess(`Work Order ${workOrderId.substring(0, 8)} authorized successfully.`);
+            onOpenWorkOrder?.(workOrderId);
+          }}
         />
       )}
 
@@ -779,14 +741,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
         />
       )}
 
-      {modalMode === 'regenerate' && activeListItem && (
-        <RegenerateRecommendationModal
-          recommendation={activeListItem}
-          token={authToken}
-          onClose={() => setModalMode(null)}
-          onSuccess={() => handleActionSuccess('AI Agent 3 assessment re-triggered.')}
-        />
-      )}
+
     </div>
   );
 };

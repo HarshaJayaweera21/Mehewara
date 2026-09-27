@@ -54,27 +54,15 @@ export interface RecommendationQueryParams {
 }
 
 export interface EditRecommendationRequest {
-  problemTitle?: string;
   priority?: string;
   priorityScore?: number;
-  requiredCrewType?: string;
   recommendedCrewId?: string;
-  recommendationReason?: string;
-  notes?: string;
+  editReason: string;
 }
-
-export interface ApproveRecommendationRequest {
-  instructions?: string;
-  notes?: string;
-}
-
+export interface ApproveRecommendationRequest { reason?: string; }
 export interface ApproveRecommendationResponse {
-  workOrderId: string;
-  problemId: string;
-  crewId: string;
-  status: string;
-  assignedAt: string;
-  approvalHistoryId: string;
+  recommendationId: string; decision: string; decidedBy: string; decidedAt: string;
+  workOrder: { id: string; problemId: string; crewId: string; priority: string; status: string; assignedAt: string | null; createdAt: string };
 }
 
 export interface RejectRecommendationRequest {
@@ -83,8 +71,9 @@ export interface RejectRecommendationRequest {
 
 export interface RejectRecommendationResponse {
   recommendationId: string;
-  status: string;
-  rejectedAt: string;
+  decision: string;
+  decidedAt: string;
+  decidedBy: string;
   reason: string;
 }
 

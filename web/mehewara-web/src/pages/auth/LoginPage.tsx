@@ -8,6 +8,7 @@ import {
   removeProfilePhoto,
 } from '../../services/api';
 import type { User } from '../../types/auth';
+import { isCrewLeader } from '../../types/access';
 import './LoginPage.css';
 
 declare global {
@@ -415,7 +416,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   className="submit-btn"
                   onClick={() => onNavigateToReports?.()}
                 >
-                  📋 Go to Reports Portal
+                  {currentUser.role === 'ADMIN' ? 'Go to coordinator dashboard' : isCrewLeader(currentUser.role) ? 'Go to My Jobs' : 'Go to Reports Portal'}
                 </button>
                 <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
                   <button

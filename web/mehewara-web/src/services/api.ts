@@ -1,19 +1,26 @@
-import type { LoginResponse, User, RegisterRequest, UpdateProfileRequest, ApiError } from '../types/auth';
+import type { LoginResponse, User, RegisterRequest, UpdateProfileRequest } from '../types/auth';
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5194/api').replace(/\/$/, '');
 
-const API_BASE = 'http://localhost:5194/api';
+export class ApiRequestError extends Error {
+  status: number;
+  code: string;
+  constructor(status: number, code: string, message: string) { super(message); this.status = status; this.code = code; }
+}
 
-async function handleResponse<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    let errorData: ApiError | null = null;
-    try {
-      errorData = await res.json();
-    } catch {
-      // response wasn't JSON
-    }
-    const message = errorData?.error?.message || `Request failed with status ${res.status}`;
-    throw new Error(message);
+export async function handleResponse<T>(response: Response, notifyExpired = true): Promise<T> {
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    if (response.status === 401 && notifyExpired) window.dispatchEvent(new Event('mehewara-session-expired'));
+    throw new ApiRequestError(response.status, body?.error?.code || 'REQUEST_FAILED',
+      body?.error?.message || `Request failed (${response.status}).`);
   }
-  return res.json();
+  return response.json() as Promise<T>;
+}
+
+export async function request<T>(path: string, token: string, init?: RequestInit): Promise<T> {
+  return handleResponse<T>(await fetch(`${API_BASE}${path}`, {
+    ...init, headers: { Authorization: `Bearer ${token}`, ...init?.headers },
+  }));
 }
 
 export async function loginWithCredentials(email: string, password: string): Promise<LoginResponse> {
@@ -22,7 +29,7 @@ export async function loginWithCredentials(email: string, password: string): Pro
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
-  return handleResponse<LoginResponse>(res);
+  return handleResponse<LoginResponse>(res, false);
 }
 
 export async function registerResident(data: RegisterRequest): Promise<LoginResponse> {
@@ -31,7 +38,7 @@ export async function registerResident(data: RegisterRequest): Promise<LoginResp
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return handleResponse<LoginResponse>(res);
+  return handleResponse<LoginResponse>(res, false);
 }
 
 export async function loginWithGoogle(idToken: string): Promise<LoginResponse> {
@@ -40,7 +47,7 @@ export async function loginWithGoogle(idToken: string): Promise<LoginResponse> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ idToken }),
   });
-  return handleResponse<LoginResponse>(res);
+  return handleResponse<LoginResponse>(res, false);
 }
 
 export async function getCurrentUser(token: string): Promise<User> {

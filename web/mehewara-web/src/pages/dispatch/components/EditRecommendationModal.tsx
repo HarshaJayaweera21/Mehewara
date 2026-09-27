@@ -22,8 +22,7 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
   const [priority, setPriority] = useState<PriorityLevel>(recommendation.priority);
   const [priorityScore, setPriorityScore] = useState<number>(recommendation.priorityScore);
   const [selectedCrewId, setSelectedCrewId] = useState<string>(recommendation.recommendedCrewId || '');
-  const [reason, setReason] = useState<string>(recommendation.recommendationReason);
-  const [notes, setNotes] = useState<string>('');
+  const [reason, setReason] = useState<string>('');
   const [availableCrews, setAvailableCrews] = useState<CrewListItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingCrews, setIsLoadingCrews] = useState(true);
@@ -61,8 +60,7 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
         priority,
         priorityScore,
         recommendedCrewId: selectedCrewId || undefined,
-        recommendationReason: reason.trim(),
-        notes: notes.trim() || undefined,
+        editReason: reason.trim(),
       });
       onSuccess(updated);
     } catch (err) {
@@ -143,7 +141,7 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
               onChange={(e) => setSelectedCrewId(e.target.value)}
               disabled={isLoadingCrews}
             >
-              <option value="">-- No Crew Selected (Deferred) --</option>
+              <option value="" disabled>Choose a crew</option>
               {availableCrews.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} ({c.crewType}) — [{c.status}]
@@ -151,13 +149,13 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
               ))}
             </select>
             <span className="dispatch-form-hint">
-              Assigning a BUSY crew will be flagged by the 10-point deterministic validation engine.
+              Crew availability is checked by the server at approval.
             </span>
           </div>
 
           <div className="dispatch-form-group">
             <label htmlFor="reason" className="dispatch-form-label">
-              Reasoning / Justification <span className="required-star">*</span>
+              Reason for this edit <span className="required-star">*</span>
             </label>
             <textarea
               id="reason"
@@ -167,20 +165,6 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
               onChange={(e) => setReason(e.target.value)}
               placeholder="State the justification for this priority adjustment or reassignment..."
               required
-            />
-          </div>
-
-          <div className="dispatch-form-group">
-            <label htmlFor="editNotes" className="dispatch-form-label">
-              Coordinator Audit Log Notes (Optional)
-            </label>
-            <input
-              id="editNotes"
-              type="text"
-              className="dispatch-form-input"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g., Coordinator manual override following site inspection"
             />
           </div>
 

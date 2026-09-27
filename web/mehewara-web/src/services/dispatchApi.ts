@@ -11,23 +11,7 @@ import type {
   RegenerateRecommendationResponse,
 } from '../types/dispatch';
 import type { PagedResult } from '../types/problems';
-import type { ApiError } from '../types/auth';
-
-const API_BASE = 'http://localhost:5194/api';
-
-async function handleResponse<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    let errorData: ApiError | null = null;
-    try {
-      errorData = await res.json();
-    } catch {
-      // response was not JSON
-    }
-    const message = errorData?.error?.message || `Request failed with status ${res.status}`;
-    throw new Error(message);
-  }
-  return res.json();
-}
+import { API_BASE, handleResponse } from './api';
 
 /**
  * Get paginated list of Agent 3 dispatch recommendations
@@ -134,7 +118,7 @@ export async function rejectRecommendation(
 }
 
 /**
- * Request regeneration: Resets status and triggers AI workflow regeneration
+ * Record a regeneration request; this does not execute an AI rerun
  */
 export async function regenerateRecommendation(
   token: string,
