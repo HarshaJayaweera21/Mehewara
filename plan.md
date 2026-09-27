@@ -115,6 +115,8 @@ Implement in this order:
 5. Integrated verification, documentation updates, and `graphify update .`.
 6. After Member 3's recommendation interface is agreed, design and implement functional regeneration as a separate follow-up.
 
+Step 3 is now implemented in source: the five WorkOrder routes provide admin monitoring, crew-owned job reads, and start/complete transitions. Start updates the Problem; completion resolves non-cancelled reports when no other active Problem work remains, releases the crew when appropriate, completes the originating workflow, and writes activity history in the same transaction. Backend compilation passes. Database-backed runtime and concurrency verification remain outstanding. This does not complete Step 4 client integration or the Step 5 acceptance checks.
+
 ## 5. Tests and acceptance criteria
 
 - PostgreSQL integration tests prove concurrent approvals create exactly one order and prevent conflicting assignments.

@@ -58,6 +58,7 @@ builder.Services.AddScoped<IProblemService, ProblemService>();
 builder.Services.AddScoped<IProblemConsolidationService, ProblemConsolidationService>();
 builder.Services.AddScoped<ICrewService, CrewService>();
 builder.Services.AddScoped<IDispatchService, DispatchService>();
+builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddHttpClient<IAiWorkflowClient, AiWorkflowClient>();
 
