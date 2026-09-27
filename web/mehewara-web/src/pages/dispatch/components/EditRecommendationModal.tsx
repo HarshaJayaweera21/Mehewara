@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { RecommendationListItem, PriorityLevel } from '../../../types/dispatch';
+import type { RecommendationDetail, RecommendationListItem, PriorityLevel } from '../../../types/dispatch';
 import type { CrewListItem } from '../../../types/crew';
 import { editRecommendation } from '../../../services/dispatchApi';
 import { getCrews } from '../../../services/crewApi';
@@ -8,7 +8,7 @@ interface EditRecommendationModalProps {
   recommendation: RecommendationListItem;
   token: string;
   onClose: () => void;
-  onSuccess: (updated: RecommendationListItem) => void;
+  onSuccess: (updated: RecommendationDetail) => void;
 }
 
 const PRIORITIES: PriorityLevel[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];

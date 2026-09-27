@@ -569,7 +569,8 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       type="button"
                       className="dispatch-action-btn edit-btn"
                       onClick={() => setModalMode('edit')}
-                      title="Override priority, score or assigned crew"
+                      title={selectedDetail.reviewDecision ? 'Cannot override a reviewed recommendation' : 'Override priority, score or assigned crew'}
+                      disabled={!!selectedDetail.reviewDecision}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M12 20h9" />
@@ -743,7 +744,11 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
           recommendation={activeListItem}
           token={authToken}
           onClose={() => setModalMode(null)}
-          onSuccess={() => handleActionSuccess('Recommendation parameters successfully overridden.')}
+          onSuccess={(updatedDetail) => {
+            // Immediately update the right panel with fresh data from the server
+            setSelectedDetail(updatedDetail);
+            handleActionSuccess('Recommendation parameters successfully overridden.');
+          }}
         />
       )}
 

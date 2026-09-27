@@ -10,6 +10,7 @@ import type {
   RegenerateRecommendationRequest,
   RegenerateRecommendationResponse,
 } from '../types/dispatch';
+// Note: RecommendationListItem kept for re-export usage
 import type { PagedResult } from '../types/problems';
 import { API_BASE, handleResponse } from './api';
 
@@ -60,11 +61,12 @@ export async function getRecommendationById(
 /**
  * Human-in-the-Loop Override: Edit priority, score, recommended crew, or notes
  */
+// Backend EditRecommendationAsync returns a full RecommendationDetailDto
 export async function editRecommendation(
   token: string,
   recommendationId: string,
   data: EditRecommendationRequest
-): Promise<RecommendationListItem> {
+): Promise<RecommendationDetail> {
   const res = await fetch(`${API_BASE}/dispatch/recommendations/${recommendationId}`, {
     method: 'PATCH',
     headers: {
@@ -74,7 +76,7 @@ export async function editRecommendation(
     body: JSON.stringify(data),
   });
 
-  return handleResponse<RecommendationListItem>(res);
+  return handleResponse<RecommendationDetail>(res);
 }
 
 /**
