@@ -88,6 +88,8 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
     const from = String(values.get('from') || '');
     const to = String(values.get('to') || '');
     if (from && to && from > to) { setError('From date must be before the To date.'); return; }
+    setSelectedId(undefined);
+    setJob(null);
     setFilters({ page: 1, pageSize: 20, status: String(values.get('status') || ''),
       priority: String(values.get('priority') || ''), crewId: String(values.get('crewId') || '').trim(),
       problemId: String(values.get('problemId') || '').trim(),
