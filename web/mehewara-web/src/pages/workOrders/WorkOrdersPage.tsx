@@ -5,15 +5,19 @@ import type { WorkOrder, WorkOrderQuery } from '../../types/workOrders';
 import type { PagedResult } from '../../types/problems';
 import { ApiRequestError } from '../../services/api';
 import { getWorkOrders, getWorkOrder, startWorkOrder, completeWorkOrder } from '../../services/workOrdersApi';
+import { Header } from '../../components/common';
 import './WorkOrdersPage.css';
 
 const date = (value: string | null) => value ? new Date(value).toLocaleString() : '—';
 const label = (value: string) => value.replaceAll('_', ' ');
 const errorText = (error: unknown) => error instanceof Error ? error.message : 'Connection failed. Please retry.';
 
-export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, onCoordinator }: {
+export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, onCoordinator, onNavigateToProblems, onNavigateToDispatch, onNavigateToCrews }: {
   user: User; token: string; initialId?: string; onLogout: () => void;
   onProfile: () => void; onCoordinator: () => void;
+  onNavigateToProblems?: () => void;
+  onNavigateToDispatch?: () => void;
+  onNavigateToCrews?: () => void;
 }) {
   const admin = user.role === 'ADMIN';
   const [filters, setFilters] = useState<WorkOrderQuery>({ page: 1, pageSize: 20 });
@@ -92,9 +96,66 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
   }
 
   return <div className="jobs-page">
-    <header className="jobs-header"><div><span className="jobs-brand">MEHEWARA · MUNICIPAL WORKS</span><h1>{admin ? 'Work Orders' : 'My Jobs'}</h1><p>{admin ? 'Monitor assignments and completed work.' : `Welcome, ${user.firstName || user.name}. Your crew’s work starts here.`}</p></div>
-      <nav>{admin && <button onClick={onCoordinator}>Coordinator dashboard</button>}<button onClick={onProfile}>My profile</button><button onClick={onLogout}>Sign out</button></nav></header>
+    <Header
+      currentUser={user}
+      onLogout={onLogout}
+      onOpenProfile={onProfile}
+      roleBadgeText={admin ? "Municipal Coordinator" : "Crew Leader"}
+    />
     <main className="jobs-main">
+      {!admin && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-0.5rem' }}>
+          <button type="button" onClick={onProfile} style={{ fontSize: '0.85rem' }}>My profile</button>
+        </div>
+      )}
+      {admin && (
+        <nav className="operations-nav-strip" aria-label="Operations Navigation">
+          <div className="nav-strip-left">
+            <button type="button" className="nav-strip-btn" onClick={onNavigateToProblems || onCoordinator}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>Problems Board</span>
+            </button>
+            <span className="nav-strip-divider">/</span>
+            <button type="button" className="nav-strip-btn" onClick={onNavigateToDispatch}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                <polyline points="2 17 12 22 22 17" />
+                <polyline points="2 12 12 17 22 12" />
+              </svg>
+              <span>Dispatch Queue (Agent 3)</span>
+            </button>
+            <span className="nav-strip-divider">/</span>
+            <button type="button" className="nav-strip-btn" onClick={onNavigateToCrews}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              <span>Municipal Crews</span>
+            </button>
+            <span className="nav-strip-divider">/</span>
+            <button type="button" className="nav-strip-btn active" aria-current="page">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              <span>Work Orders</span>
+            </button>
+          </div>
+        </nav>
+      )}
+      <div className="jobs-welcome-banner">
+        <h1 className="jobs-banner-heading">{admin ? 'Municipal Work Orders' : 'My Jobs'}</h1>
+        <p className="jobs-banner-sub">{admin ? 'Monitor real-time crew job execution, completion notes, and location telemetry across all municipal units.' : `Welcome back, ${user.firstName || user.name}. View assigned maintenance tasks and submit execution completion notes.`}</p>
+      </div>
       <form className="jobs-filters" onSubmit={applyFilters}>
         <label>Status<select name="status"><option value="">All jobs</option>{['ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].map(s => <option key={s} value={s}>{label(s)}</option>)}</select></label>
         <label>Priority<select name="priority"><option value="">All priorities</option>{['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(s => <option key={s}>{s}</option>)}</select></label>

@@ -180,7 +180,19 @@ function App() {
     return <WorkOrdersPage user={currentUser} token={token} onLogout={handleLogout} onProfile={() => setViewMode('profile')} onCoordinator={() => setViewMode('my-jobs')} />;
   }
   if (currentUser.role === 'ADMIN' && viewMode === 'work-orders') {
-    return <WorkOrdersPage user={currentUser} token={token} initialId={workOrderId} onLogout={handleLogout} onProfile={() => setViewMode('profile')} onCoordinator={() => setViewMode('problems')} />;
+    return (
+      <WorkOrdersPage
+        user={currentUser}
+        token={token}
+        initialId={workOrderId}
+        onLogout={handleLogout}
+        onProfile={() => setViewMode('profile')}
+        onCoordinator={() => setViewMode('problems')}
+        onNavigateToProblems={() => setViewMode('problems')}
+        onNavigateToDispatch={() => setViewMode('dispatch')}
+        onNavigateToCrews={() => setViewMode('crews')}
+      />
+    );
   }
   if (currentUser.role !== 'ADMIN') {
     return <ReportsPage currentUser={currentUser} token={token} onLogout={handleLogout} onOpenProfile={() => setViewMode('profile')} />;
@@ -222,7 +234,7 @@ function App() {
   if (viewMode === 'dispatch') {
     return (
       <DispatchDashboardPage
-        onOpenWorkOrder={id => { setWorkOrderId(id); setViewMode('work-orders'); }}
+        onOpenWorkOrder={id => { setWorkOrderId(id || undefined); setViewMode('work-orders'); }}
         currentUser={currentUser}
         token={token}
         onLogout={handleLogout}
@@ -245,6 +257,7 @@ function App() {
         onNavigateToProblems={() => setViewMode('problems')}
         onNavigateToDispatch={() => setViewMode('dispatch')}
         onNavigateToReports={() => setViewMode('reports')}
+        onNavigateToWorkOrders={() => { setWorkOrderId(undefined); setViewMode('work-orders'); }}
       />
     );
   }
