@@ -607,6 +607,12 @@ public class AppDbContext : DbContext
                 .HasFilter("status IN ('ASSIGNED', 'IN_PROGRESS')")
                 .HasDatabaseName("ux_work_orders_active_problem");
 
+            // Storage-level invariant: A crew can NEVER possess more than one work order in IN_PROGRESS status
+            entity.HasIndex(w => w.CrewId)
+                .HasDatabaseName("idx_work_orders_single_in_progress_crew")
+                .IsUnique()
+                .HasFilter("\"status\" = 'IN_PROGRESS'");
+
             entity.HasIndex(w => w.Status)
                 .HasDatabaseName("idx_work_orders_status");
 

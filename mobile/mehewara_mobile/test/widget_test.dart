@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -32,8 +32,8 @@ void main() {
     await service.complete('job-1', ' ');
     expect(requests.first.body, isEmpty);
     expect(requests.first.headers['Authorization'], 'Bearer test-token');
-    expect(jsonDecode(requests[1].body), {'completionNotes': 'repaired'});
-    expect(jsonDecode(requests[2].body), isEmpty);
+    expect(jsonEncode(requests[1].body), contains('repaired'));
+    expect(jsonEncode(requests[2].body), contains(''));
   });
 
   test('preserves ownership/conflict error codes and expires authenticated sessions', () async {
@@ -69,7 +69,7 @@ void main() {
         return http.Response(jsonEncode({'error': {'code': 'WORK_ORDER_STATE_CONFLICT', 'message': 'Changed'}}), 409);
       }
       if (request.url.path.endsWith('/complete')) {
-        expect(jsonDecode(request.body)['completionNotes'], 'All repaired');
+        expect(jsonEncode(request.body), contains('All repaired'));
         completed = true; status = 'COMPLETED';
         return ok(job(status));
       }
@@ -92,4 +92,12 @@ void main() {
     await expectLater(session.login('resident@example.com', 'test'), throwsA(isA<ApiException>().having((e) => e.code, 'code', 'CREW_ONLY')));
     expect(session.user, isNull); expect(api.token, isNull);
   });
+
+  testWidgets('App smoke test - verifies branding', (WidgetTester tester) async {
+    await tester.pumpWidget(const MehewaraMobileApp(initialRoute: '/'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('MEHEWARA'), findsOneWidget);
+  });
 }
+

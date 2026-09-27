@@ -251,7 +251,12 @@ async def agent_3_prioritization_node(state: MehewaraWorkflowState) -> dict[str,
         )
 
         # 3. Access available crews from state (populated by ASP.NET Core)
-        available_crews = state.get("available_crews", [])
+        available_crews = state.get("available_crews") or []
+        if not available_crews:
+            logger.warning(
+                "[Workflow %s] No municipal crews supplied in state['available_crews']; Agent 3 will evaluate with empty roster.",
+                state.get("workflow_id"),
+            )
 
         # 4. Execute Agent 3 recommendation
         result: PriorityRecommendationOutput = await run_priority_recommendation(

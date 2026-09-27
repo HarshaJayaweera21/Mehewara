@@ -1,14 +1,38 @@
 import 'package:flutter/material.dart';
-
+import 'core/routes/app_routes.dart';
+import 'core/storage/token_storage.dart';
+import 'core/theme/app_theme.dart';
 import 'core/network/api_client.dart';
 import 'services/auth/auth_service.dart';
 import 'screens/crew_screens.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final session = CrewSession(ApiClient());
-  runApp(CrewApp(session: session));
-  session.restore();
+  final isLoggedIn = await TokenStorage.isLoggedIn();
+
+  runApp(MehewaraMobileApp(
+    initialRoute: isLoggedIn ? AppRoutes.crewShell : AppRoutes.initial,
+  ));
+}
+
+class MehewaraMobileApp extends StatelessWidget {
+  final String initialRoute;
+
+  const MehewaraMobileApp({
+    super.key,
+    required this.initialRoute,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Mehewara Municipal Mobile',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      initialRoute: initialRoute,
+      onGenerateRoute: AppRoutes.onGenerateRoute,
+    );
+  }
 }
 
 class CrewApp extends StatelessWidget {
@@ -41,3 +65,4 @@ class CrewApp extends StatelessWidget {
     ),
   );
 }
+

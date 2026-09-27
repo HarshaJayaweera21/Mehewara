@@ -32,6 +32,7 @@ from tools.crew_tools import (
     check_crew_availability,
     get_crew_capabilities,
     get_recent_jobs,
+    reset_workflow_crew_context,
     set_workflow_crew_context,
 )
 from workflow.mehewara_workflow import agent_3_prioritization_node
@@ -138,33 +139,35 @@ def mock_crews_context():
 
 def test_crew_tools(mock_crews_context):
     """Verify allow-listed tools query context correctly."""
-    set_workflow_crew_context(mock_crews_context)
+    token = set_workflow_crew_context(mock_crews_context)
+    try:
+        # 1. get_crew_capabilities
+        caps = get_crew_capabilities.invoke({})
+        assert len(caps) == 3
+        assert any(c["name"] == "Drainage Rapid Response Unit Alpha" for c in caps)
 
-    # 1. get_crew_capabilities
-    caps = get_crew_capabilities.invoke({})
-    assert len(caps) == 3
-    assert any(c["name"] == "Drainage Rapid Response Unit Alpha" for c in caps)
+        # 2. check_crew_availability (all available)
+        avail = check_crew_availability.invoke({})
+        assert len(avail) == 2
+        assert all(c["status"] == "AVAILABLE" for c in avail)
 
-    # 2. check_crew_availability (all available)
-    avail = check_crew_availability.invoke({})
-    assert len(avail) == 2
-    assert all(c["status"] == "AVAILABLE" for c in avail)
+        # 3. check_crew_availability (filtered by type)
+        drainage_avail = check_crew_availability.invoke({"crew_type": "DRAINAGE"})
+        assert len(drainage_avail) == 1
+        assert drainage_avail[0]["crewType"] == "DRAINAGE"
 
-    # 3. check_crew_availability (filtered by type)
-    drainage_avail = check_crew_availability.invoke({"crew_type": "DRAINAGE"})
-    assert len(drainage_avail) == 1
-    assert drainage_avail[0]["crewType"] == "DRAINAGE"
+        electrical_avail = check_crew_availability.invoke({"crew_type": "ELECTRICAL"})
+        assert len(electrical_avail) == 0  # Delta is BUSY
 
-    electrical_avail = check_crew_availability.invoke({"crew_type": "ELECTRICAL"})
-    assert len(electrical_avail) == 0  # Delta is BUSY
+        # 4. get_recent_jobs
+        busy_jobs = get_recent_jobs.invoke({"crew_id": "c0000000-0000-0000-0000-000000000004"})
+        assert len(busy_jobs) == 1
+        assert busy_jobs[0]["workOrderId"] == "ff000000-0000-0000-0000-000000000001"
 
-    # 4. get_recent_jobs
-    busy_jobs = get_recent_jobs.invoke({"crew_id": "c0000000-0000-0000-0000-000000000004"})
-    assert len(busy_jobs) == 1
-    assert busy_jobs[0]["workOrderId"] == "ff000000-0000-0000-0000-000000000001"
-
-    free_jobs = get_recent_jobs.invoke({"crew_id": "c0000000-0000-0000-0000-000000000001"})
-    assert len(free_jobs) == 0
+        free_jobs = get_recent_jobs.invoke({"crew_id": "c0000000-0000-0000-0000-000000000001"})
+        assert len(free_jobs) == 0
+    finally:
+        reset_workflow_crew_context(token)
 
 
 # ────────────────────────────────────────────────────────────────
@@ -321,3 +324,94 @@ async def test_run_priority_recommendation_mocked_llm(mock_crews_context):
         assert res.priority_score == 80
         assert res.required_crew_type == CrewType.DRAINAGE
         assert res.recommended_crew_id == "c0000000-0000-0000-0000-000000000001"
+
+
+# ────────────────────────────────────────────────────────────────
+# 6. Concurrency & Architectural Guardrail Tests
+# ────────────────────────────────────────────────────────────────
+
+def test_crew_tools_defensive_casing_and_normalization():
+    """Verify crew tools handle variations in casing (snake_case, camelCase) and status."""
+    raw_crews = [
+        {
+            "crew_id": "c1111111-1111-1111-1111-111111111111",
+            "crew_name": "Waste Management Team A",
+            "crew_type": "waste",
+            "status": "available",
+            "active_work_order_id": None,
+        },
+        {
+            "id": "c2222222-2222-2222-2222-222222222222",
+            "name": "Road Repair Team B",
+            "crewType": "Road",
+            "status": "busy",
+            "activeWorkOrderId": "w9999999-9999-9999-9999-999999999999",
+        },
+    ]
+
+    token = set_workflow_crew_context(raw_crews)
+    try:
+        caps = get_crew_capabilities.invoke({})
+        assert len(caps) == 2
+        assert caps[0]["crewId"] == "c1111111-1111-1111-1111-111111111111"
+        assert caps[0]["name"] == "Waste Management Team A"
+        assert caps[0]["crewType"] == "WASTE"
+        assert caps[0]["status"] == "AVAILABLE"
+        assert caps[0]["activeWorkOrderId"] is None
+
+        assert caps[1]["crewId"] == "c2222222-2222-2222-2222-222222222222"
+        assert caps[1]["name"] == "Road Repair Team B"
+        assert caps[1]["crewType"] == "ROAD"
+        assert caps[1]["status"] == "BUSY"
+        assert caps[1]["activeWorkOrderId"] == "w9999999-9999-9999-9999-999999999999"
+
+        # Check availability
+        avail = check_crew_availability.invoke({"crew_type": "WASTE"})
+        assert len(avail) == 1
+        assert avail[0]["crewId"] == "c1111111-1111-1111-1111-111111111111"
+
+        avail_road = check_crew_availability.invoke({"crew_type": "ROAD"})
+        assert len(avail_road) == 0  # Busy
+
+        # Recent jobs
+        jobs = get_recent_jobs.invoke({"crew_id": "c2222222-2222-2222-2222-222222222222"})
+        assert len(jobs) == 1
+        assert jobs[0]["workOrderId"] == "w9999999-9999-9999-9999-999999999999"
+    finally:
+        reset_workflow_crew_context(token)
+
+
+def test_zero_database_dependency_guardrail():
+    """
+    Architectural Guardrail Test:
+    Ensures that FastAPI AI Service strictly maintains zero direct PostgreSQL database connections:
+    1. No SQL drivers/ORMs imported (psycopg, psycopg2, asyncpg, sqlalchemy).
+    2. crew_tools.py and priority_crew_agent.py contain no direct SQL strings or queries.
+    3. Tools operate purely in-memory against state["available_crews"].
+    """
+    import inspect
+    import sys
+    import tools.crew_tools as ct
+    import agents.priority_crew_agent as pa
+
+    forbidden_modules = ["psycopg", "psycopg2", "asyncpg", "sqlalchemy", "tortoise", "peewee"]
+    for mod in forbidden_modules:
+        assert mod not in sys.modules, f"Architectural violation: Forbidden DB library '{mod}' is loaded."
+
+    crew_tools_source = inspect.getsource(ct)
+    agent_source = inspect.getsource(pa)
+
+    forbidden_keywords = [
+        "SELECT ",
+        "INSERT INTO",
+        "UPDATE ",
+        "DELETE FROM",
+        "cursor.execute",
+        "session.execute",
+        "connect(",
+        "psycopg",
+        "sqlalchemy",
+    ]
+    for kw in forbidden_keywords:
+        assert kw not in crew_tools_source, f"Architectural violation: SQL keyword '{kw}' found in crew_tools.py."
+        assert kw not in agent_source, f"Architectural violation: SQL keyword '{kw}' found in priority_crew_agent.py."
