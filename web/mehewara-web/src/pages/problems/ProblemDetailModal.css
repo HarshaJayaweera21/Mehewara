@@ -7,7 +7,7 @@
 .pdm-overlay {
   position: fixed;
   inset: 0;
-  z-index: 500;
+  z-index: 1200;
   background: rgba(18, 33, 30, 0.45);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);

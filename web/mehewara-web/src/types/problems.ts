@@ -151,3 +151,8 @@ export interface CreateProblemFromUncertainReportRequest {
   coordinatorNotes?: string;
 }
 
+export interface CancelUncertainReportRequest {
+  reportId: string;
+  reason?: string;
+}
+

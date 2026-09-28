@@ -12,13 +12,18 @@ const API_BASE = 'http://localhost:5194/api';
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem('mehewara_token');
+      localStorage.removeItem('mehewara_user');
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    }
     let errorData: ApiError | null = null;
     try {
       errorData = await res.json();
     } catch {
       // response wasn't JSON
     }
-    const message = errorData?.error?.message || `Request failed with status ${res.status}`;
+    const message = errorData?.error?.message || (res.status === 401 ? 'Session expired. Please log in again.' : `Request failed with status ${res.status}`);
     throw new Error(message);
   }
   return res.json();

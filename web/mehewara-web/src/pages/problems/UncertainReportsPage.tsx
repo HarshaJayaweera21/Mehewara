@@ -10,6 +10,7 @@ import {
   getUncertainReports,
   linkUncertainReport,
   createProblemFromUncertainReport,
+  cancelUncertainReport,
 } from '../../services/problemApi';
 import { Header } from '../../components/common';
 import { ProblemDetailModal } from './ProblemDetailModal';
@@ -24,7 +25,7 @@ export interface UncertainReportsPageProps {
   onOpenProfile?: () => void;
 }
 
-const INITIAL_PROBLEMS_SHOWN = 3;
+const REPORTS_PER_PAGE = 3;
 const MAX_PROBLEMS_SHOWN = 10;
 const MAX_DISTANCE_METERS = 1000; // 1km radius
 
@@ -36,15 +37,16 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
   onOpenProfile,
 }) => {
   const [reports, setReports] = useState<UncertainReportResponse[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  // Per-card "show all problems" toggle: reportId -> boolean
-  const [expandedCandidates, setExpandedCandidates] = useState<Record<string, boolean>>({});
-
   // ProblemDetailModal state
   const [viewingProblemId, setViewingProblemId] = useState<string | null>(null);
+
+  // All Candidate Problems Modal state
+  const [viewingAllCandidatesReport, setViewingAllCandidatesReport] = useState<UncertainReportResponse | null>(null);
 
   // Link Modal states
   const [linkingReport, setLinkingReport] = useState<UncertainReportResponse | null>(null);
@@ -58,6 +60,8 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
   const [newCategory, setNewCategory] = useState<string>('ROAD');
   const [newAddress, setNewAddress] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cancellingReportId, setCancellingReportId] = useState<string | null>(null);
+  const [confirmingCancelReport, setConfirmingCancelReport] = useState<UncertainReportResponse | null>(null);
 
   const authToken = token || localStorage.getItem('mehewara_token') || '';
 
@@ -88,6 +92,13 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
     }
   }, [successToast]);
 
+  useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => setErrorMessage(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMessage]);
+
   // ─── Helpers ──────────────────────────────────────────────────────────────────
 
   /** Filter candidates to within 1km, limit to 10 total */
@@ -97,16 +108,19 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
       .slice(0, MAX_PROBLEMS_SHOWN);
   };
 
-  /** Get visible candidates based on expanded state */
-  const getVisibleCandidates = (reportId: string, candidates: NearbyCandidateProblemSummary[]) => {
-    const filtered = getFilteredCandidates(candidates);
-    const isExpanded = expandedCandidates[reportId] || false;
-    return isExpanded ? filtered : filtered.slice(0, INITIAL_PROBLEMS_SHOWN);
-  };
+  // ─── Pagination Calculations ─────────────────────────────────────────────────
+  const totalReports = reports.length;
+  const totalPages = Math.max(1, Math.ceil(totalReports / REPORTS_PER_PAGE));
 
-  const toggleExpandCandidates = (reportId: string) => {
-    setExpandedCandidates((prev) => ({ ...prev, [reportId]: !prev[reportId] }));
-  };
+  // Auto-clamp current page if reports change (e.g. after linking or problem creation)
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const startIndex = (currentPage - 1) * REPORTS_PER_PAGE;
+  const paginatedReports = reports.slice(startIndex, startIndex + REPORTS_PER_PAGE);
 
   // ─── Modal Actions ────────────────────────────────────────────────────────────
 
@@ -176,6 +190,23 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
     }
   };
 
+  const handleConfirmCancel = async () => {
+    if (!confirmingCancelReport) return;
+    const targetReportId = confirmingCancelReport.reportId;
+
+    setCancellingReportId(targetReportId);
+    try {
+      await cancelUncertainReport(authToken, targetReportId);
+      setSuccessToast('Report has been cancelled successfully.');
+      setReports((prev) => prev.filter((r) => r.reportId !== targetReportId));
+      setConfirmingCancelReport(null);
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to cancel report.');
+    } finally {
+      setCancellingReportId(null);
+    }
+  };
+
   // ─── Category Badge Class ─────────────────────────────────────────────────────
 
   const getCategoryClass = (category: string) => {
@@ -189,44 +220,35 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
   };
 
   return (
-    <div className="urp-container">
-      <Header
-        currentUser={currentUser}
-        onBrandClick={onNavigateToProblems}
-        onLogout={onLogout}
-        onOpenProfile={onOpenProfile}
-      />
+    <div className="problems-dashboard-container urp-container">
+      <div className="problems-content-wrap">
+        <Header
+          currentUser={currentUser}
+          onBrandClick={onNavigateToProblems}
+          onLogout={onLogout}
+          onOpenProfile={onOpenProfile}
+        />
 
-      <main className="urp-main">
-        {/* Page Header */}
-        <div className="urp-header-strip">
-          <div className="urp-header-left">
-            <button className="urp-back-btn" onClick={onNavigateToProblems}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-              Back to Problems Dashboard
-            </button>
-            <div className="urp-title-group">
-              <h1 className="urp-page-title">Uncertain Reports Triage</h1>
-              <span className="urp-badge-count">{reports.length} Awaiting Review</span>
+        <main className="urp-main">
+          {/* Page Header */}
+          <div className="urp-header-strip">
+            <div className="urp-header-left">
+              <div className="urp-title-row">
+                <button
+                  type="button"
+                  className="urp-back-btn"
+                  onClick={onNavigateToProblems}
+                  aria-label="Back to Problems Dashboard"
+                  title="Back to Problems Dashboard"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+                <h1 className="urp-page-title">Uncertain Reports Triage</h1>
+              </div>
             </div>
-            <p className="urp-subtitle">
-              Resident reports flagged as <strong>UNCERTAIN</strong> by AI consolidation due to ambiguous locations, competing candidate clusters, or borderline evidence.
-            </p>
           </div>
-          <button
-            className="urp-refresh-btn"
-            onClick={loadUncertainReports}
-            disabled={isLoading}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="23 4 23 10 17 10" />
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-            </svg>
-            Refresh
-          </button>
-        </div>
 
         {/* Toast Notifications */}
         {successToast && (
@@ -270,145 +292,213 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
             </button>
           </div>
         ) : (
-          <div className="urp-card-grid">
-            {reports.map((report) => {
-              const filteredCandidates = getFilteredCandidates(report.nearbyCandidates);
-              const visibleCandidates = getVisibleCandidates(report.reportId, report.nearbyCandidates);
-              const hasMore = filteredCandidates.length > INITIAL_PROBLEMS_SHOWN;
-              const isExpanded = expandedCandidates[report.reportId] || false;
+          <>
+            <div className="urp-card-grid">
+              {paginatedReports.map((report) => {
+                const filteredCandidates = getFilteredCandidates(report.nearbyCandidates);
+                const visibleCandidates = filteredCandidates.slice(0, 3);
+                const hasMoreCandidates = filteredCandidates.length > 3;
 
-              return (
-                <article key={report.reportId} className="urp-card">
-                  {/* Card Header: Category + Timestamp */}
-                  <div className="urp-card-header">
-                    <span className={`urp-cat-pill ${getCategoryClass(report.category)}`}>
-                      {report.category}
-                    </span>
-                    <span className="urp-timestamp">
-                      {new Date(report.createdAt).toLocaleString('en-US', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
-                    </span>
-                  </div>
-
-                  {/* Report Content */}
-                  <div className="urp-card-body">
-                    <h3 className="urp-report-desc">"{report.description}"</h3>
-
-                    <div className="urp-card-meta">
-                      <div className="urp-meta-row">
-                        <svg className="urp-meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                          <circle cx="12" cy="10" r="3" />
-                        </svg>
-                        <span className="urp-meta-text">
-                          {report.address || `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}`}
-                        </span>
-                      </div>
-                      <div className="urp-meta-row">
-                        <svg className="urp-meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                          <circle cx="12" cy="7" r="4" />
-                        </svg>
-                        <span className="urp-meta-text">{report.residentName}</span>
-                      </div>
+                return (
+                  <article key={report.reportId} className="urp-card">
+                    {/* Card Header: Category + Timestamp */}
+                    <div className="urp-card-header">
+                      <span className={`urp-cat-pill ${getCategoryClass(report.category)}`}>
+                        {report.category}
+                      </span>
+                      <span className="urp-timestamp">
+                        {new Date(report.createdAt).toLocaleString('en-US', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })}
+                      </span>
                     </div>
 
-                    {/* Photo Thumbnails */}
-                    {report.photoUrls.length > 0 && (
-                      <div className="urp-photos-row">
-                        {report.photoUrls.map((url, idx) => (
-                          <img key={idx} src={url} alt="Evidence" className="urp-thumbnail" />
-                        ))}
+                    {/* Report Content */}
+                    <div className="urp-card-body">
+                      {/* Fixed-Height Description Section */}
+                      <div className="urp-desc-section">
+                        <h3 className="urp-report-desc" title={report.description}>
+                          "{report.description}"
+                        </h3>
                       </div>
-                    )}
 
-                    {/* Nearby Candidate Problems */}
-                    {filteredCandidates.length > 0 ? (
-                      <div className="urp-candidates-section">
-                        <h4 className="urp-candidates-title">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      {/* Fixed-Height Metadata Section */}
+                      <div className="urp-card-meta">
+                        <div className="urp-meta-row">
+                          <svg className="urp-meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                             <circle cx="12" cy="10" r="3" />
                           </svg>
-                          Nearby Active Problems ({filteredCandidates.length})
-                        </h4>
-                        <div className="urp-candidates-list">
-                          {visibleCandidates.map((cand) => (
-                            <div key={cand.problemId} className="urp-candidate-item">
-                              <button
-                                type="button"
-                                className="urp-candidate-info-btn"
-                                onClick={() => setViewingProblemId(cand.problemId)}
-                                title="Click to view full problem details"
-                              >
-                                <span className="urp-candidate-name">{cand.title}</span>
-                                <span className="urp-candidate-dist">
-                                  {cand.distanceMeters.toFixed(0)}m away • {cand.reportCount} {cand.reportCount === 1 ? 'report' : 'reports'}
-                                </span>
-                              </button>
-                              <button
-                                className="urp-btn-quick-link"
-                                onClick={() => handleOpenLinkModal(report, cand.problemId)}
-                              >
-                                Link Here
-                              </button>
-                            </div>
-                          ))}
+                          <span className="urp-meta-text" title={report.address || `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}`}>
+                            {report.address || `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}`}
+                          </span>
                         </div>
-                        {hasMore && (
-                          <button
-                            type="button"
-                            className="urp-view-all-problems-btn"
-                            onClick={() => toggleExpandCandidates(report.reportId)}
-                          >
-                            {isExpanded
-                              ? 'Show fewer problems'
-                              : `View all ${filteredCandidates.length} problems`}
-                            <svg
-                              width="12" height="12"
-                              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-                              className={isExpanded ? 'urp-chevron-up' : ''}
-                            >
-                              <polyline points="6 9 12 15 18 9" />
+                        <div className="urp-meta-row">
+                          <svg className="urp-meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                          <span className="urp-meta-text" title={report.residentName}>{report.residentName}</span>
+                        </div>
+                      </div>
+
+                      {/* Fixed-Height Photo Evidence Section */}
+                      <div className="urp-photos-section">
+                        {report.photoUrls && report.photoUrls.length > 0 ? (
+                          <div className="urp-photos-row">
+                            {report.photoUrls.map((url, idx) => (
+                              <img key={idx} src={url} alt="Evidence" className="urp-thumbnail" />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="urp-photos-empty">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <polyline points="21 15 16 10 5 21" />
                             </svg>
-                          </button>
+                            <span>No photo evidence attached</span>
+                          </div>
                         )}
                       </div>
-                    ) : (
-                      <div className="urp-no-candidates">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="12" cy="12" r="10" />
-                          <line x1="12" y1="16" x2="12" y2="12" />
-                          <line x1="12" y1="8" x2="12.01" y2="8" />
-                        </svg>
-                        No existing active problems found within 1km radius
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Card Actions */}
-                  <div className="urp-card-actions">
+                      {/* Fixed-Height Nearby Candidate Problems Section */}
+                      <div className="urp-candidates-wrapper">
+                        {filteredCandidates.length > 0 ? (
+                          <div className="urp-candidates-section">
+                            <h4 className="urp-candidates-title">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                <circle cx="12" cy="10" r="3" />
+                              </svg>
+                              Nearby Active Problems ({filteredCandidates.length})
+                            </h4>
+                            <div className="urp-candidates-list">
+                              {visibleCandidates.map((cand) => (
+                                <div key={cand.problemId} className="urp-candidate-item">
+                                  <button
+                                    type="button"
+                                    className="urp-candidate-info-btn"
+                                    onClick={() => setViewingProblemId(cand.problemId)}
+                                    title="Click to view full problem details"
+                                  >
+                                    <span className="urp-candidate-name">{cand.title}</span>
+                                    <span className="urp-candidate-dist">
+                                      {cand.distanceMeters.toFixed(0)}m away • {cand.reportCount} {cand.reportCount === 1 ? 'report' : 'reports'}
+                                    </span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="urp-btn-quick-link"
+                                    onClick={() => handleOpenLinkModal(report, cand.problemId)}
+                                  >
+                                    Link Here
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                            {hasMoreCandidates && (
+                              <button
+                                type="button"
+                                className="urp-view-all-nearby-btn"
+                                onClick={() => setViewingAllCandidatesReport(report)}
+                                title={`View all ${filteredCandidates.length} nearby candidate problems`}
+                              >
+                                <span>View all {filteredCandidates.length} nearby problems</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <polyline points="9 18 15 12 9 6" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="urp-no-candidates">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="12" r="10" />
+                              <line x1="12" y1="16" x2="12" y2="12" />
+                              <line x1="12" y1="8" x2="12.01" y2="8" />
+                            </svg>
+                            <span>No active problems found within 1km</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Fixed-Height Card Actions */}
+                    <div className="urp-card-actions">
+                      <button
+                        type="button"
+                        className="urp-btn-primary"
+                        onClick={() => handleOpenCreateModal(report)}
+                      >
+                        + Create New Problem
+                      </button>
+                      <button
+                        type="button"
+                        className="urp-btn-cancel-report"
+                        onClick={() => setConfirmingCancelReport(report)}
+                        disabled={cancellingReportId === report.reportId}
+                        title="Cancel this unnecessary report"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="15" y1="9" x2="9" y2="15" />
+                          <line x1="9" y1="9" x2="15" y2="15" />
+                        </svg>
+                        <span>Cancel</span>
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalReports > 0 && (
+              <nav className="urp-pagination" aria-label="Uncertain reports pagination">
+                <div className="urp-pagination-info">
+                  Showing <strong>{startIndex + 1}</strong>–<strong>{Math.min(startIndex + REPORTS_PER_PAGE, totalReports)}</strong> of <strong>{totalReports}</strong> reports
+                </div>
+                <div className="urp-pagination-controls">
+                  <button
+                    type="button"
+                    className="urp-pagination-btn urp-pagination-prev"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    aria-label="Previous Page"
+                  >
+                    Previous
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                     <button
-                      className="urp-btn-secondary"
-                      onClick={() => handleOpenLinkModal(report)}
+                      key={pageNum}
+                      type="button"
+                      className={`urp-pagination-btn ${pageNum === currentPage ? 'active' : ''}`}
+                      onClick={() => setCurrentPage(pageNum)}
+                      aria-current={pageNum === currentPage ? 'page' : undefined}
                     >
-                      Link to Problem...
+                      {pageNum}
                     </button>
-                    <button
-                      className="urp-btn-primary"
-                      onClick={() => handleOpenCreateModal(report)}
-                    >
-                      + Create New Problem
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    className="urp-pagination-btn urp-pagination-next"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    aria-label="Next Page"
+                  >
+                    Next
+                  </button>
+                </div>
+              </nav>
+            )}
+          </>
         )}
       </main>
+    </div>
 
       {/* ─── Problem Detail Modal (same as ProblemsPage) ───────────────────────── */}
       {viewingProblemId && (
@@ -417,6 +507,101 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
           problemId={viewingProblemId}
           onClose={() => setViewingProblemId(null)}
         />
+      )}
+
+      {/* ─── MODAL: View All Nearby Candidate Problems (Top 10) ─────────────────── */}
+      {viewingAllCandidatesReport && (
+        <div className="urp-modal-overlay" onClick={() => setViewingAllCandidatesReport(null)}>
+          <div className="urp-modal-box urp-all-candidates-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="urp-modal-header">
+              <div>
+                <h3 className="urp-modal-title">Nearby Active Problems</h3>
+                <p className="urp-modal-sub">
+                  Showing top {getFilteredCandidates(viewingAllCandidatesReport.nearbyCandidates).length} candidate problems within 1km of this report
+                </p>
+              </div>
+              <button
+                type="button"
+                className="urp-modal-close"
+                onClick={() => setViewingAllCandidatesReport(null)}
+                aria-label="Close modal"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="urp-modal-candidates-list">
+              {getFilteredCandidates(viewingAllCandidatesReport.nearbyCandidates).map((cand, idx) => (
+                <div key={cand.problemId} className="urp-modal-candidate-card">
+                  <button
+                    type="button"
+                    className="urp-modal-candidate-info"
+                    onClick={() => setViewingProblemId(cand.problemId)}
+                    title="Click to view full problem details"
+                  >
+                    <div className="urp-modal-cand-top">
+                      <span className="urp-modal-cand-index">#{idx + 1}</span>
+                      <span className={`urp-cat-pill ${getCategoryClass(cand.category)}`}>
+                        {cand.category}
+                      </span>
+                      <span className="urp-modal-cand-distance">
+                        {cand.distanceMeters.toFixed(0)}m away
+                      </span>
+                    </div>
+                    <h4 className="urp-modal-cand-title">{cand.title}</h4>
+                    <div className="urp-modal-cand-meta">
+                      {cand.address && (
+                        <span className="urp-modal-cand-address">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                          </svg>
+                          {cand.address}
+                        </span>
+                      )}
+                      <span className="urp-modal-cand-reports">
+                        {cand.reportCount} {cand.reportCount === 1 ? 'report' : 'reports'}
+                      </span>
+                    </div>
+                  </button>
+                  <div className="urp-modal-cand-actions">
+                    <button
+                      type="button"
+                      className="urp-btn-view-details"
+                      onClick={() => setViewingProblemId(cand.problemId)}
+                    >
+                      View Details
+                    </button>
+                    <button
+                      type="button"
+                      className="urp-btn-quick-link"
+                      onClick={() => {
+                        const report = viewingAllCandidatesReport;
+                        setViewingAllCandidatesReport(null);
+                        handleOpenLinkModal(report, cand.problemId);
+                      }}
+                    >
+                      Link Here
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="urp-modal-actions">
+              <button
+                type="button"
+                className="urp-btn-ghost"
+                onClick={() => setViewingAllCandidatesReport(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ─── MODAL: Link Report to Existing Problem ──────────────────────────── */}
@@ -581,6 +766,73 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
                 disabled={isSubmitting || !newTitle.trim()}
               >
                 {isSubmitting ? 'Creating...' : 'Create Problem'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancellation Confirmation Modal */}
+      {confirmingCancelReport && (
+        <div
+          className="urp-modal-overlay"
+          onClick={() => !cancellingReportId && setConfirmingCancelReport(null)}
+        >
+          <div
+            className="urp-modal-box urp-cancel-confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="urp-cancel-modal-title"
+          >
+            <div className="urp-confirm-header">
+              <div className="urp-confirm-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </div>
+              <div className="urp-confirm-header-text">
+                <h3 id="urp-cancel-modal-title" className="urp-confirm-title">Cancel Report</h3>
+                <span className="urp-confirm-badge">Action Irreversible</span>
+              </div>
+            </div>
+
+            <p className="urp-confirm-message">
+              Are you sure you want to cancel the report, This will update the report status to CANCELLED and remove it from the triage queue.
+            </p>
+
+            <div className="urp-confirm-actions">
+              <button
+                type="button"
+                className="urp-btn-cancel-back"
+                onClick={() => setConfirmingCancelReport(null)}
+                disabled={Boolean(cancellingReportId)}
+              >
+                Keep Report
+              </button>
+              <button
+                type="button"
+                className="urp-btn-confirm-cancel"
+                onClick={handleConfirmCancel}
+                disabled={Boolean(cancellingReportId)}
+              >
+                {cancellingReportId ? (
+                  <>
+                    <span className="urp-btn-spinner-white" />
+                    <span>Cancelling...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="15" y1="9" x2="9" y2="15" />
+                      <line x1="9" y1="9" x2="15" y2="15" />
+                    </svg>
+                    <span>Cancel Report</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
