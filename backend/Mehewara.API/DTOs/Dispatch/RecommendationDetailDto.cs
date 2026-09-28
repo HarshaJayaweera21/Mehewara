@@ -2,6 +2,7 @@ namespace Mehewara.API.DTOs.Dispatch;
 
 public class RecommendationDetailDto : RecommendationListItemDto
 {
+    public System.Text.Json.Nodes.JsonObject? HumanOverrideApproval { get; set; }
     public List<ValidationAttemptDto> ValidationHistory { get; set; } = new();
     public List<RecommendationEditDto> EditHistory { get; set; } = new();
     public List<ReviewHistoryItem> History { get; set; } = new();

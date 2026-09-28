@@ -5,6 +5,10 @@ public class RecommendationListItemDto
     public int Revision { get; set; }
     public bool IsCurrent { get; set; }
     public bool CanApprove { get; set; }
+    public string? Origin { get; set; }
+    public Guid? EditedBy { get; set; }
+    public DateTimeOffset? EditedAt { get; set; }
+    public bool RequiresResponsibilityAcknowledgement { get; set; }
     public Guid? PreviousRecommendationId { get; set; }
     public Mehewara.API.Models.AiReviewJob? LatestJob { get; set; }
     public Guid RecommendationId { get; set; }

@@ -28,6 +28,8 @@ public partial class AiReviewService
             return existing;
         }
         var ev = await LockRecommendationAsync(recommendationId, request.ExpectedRevision);
+        if (kind == "VALIDATE" && await GetHumanOverrideAsync(ev) != null)
+            throw new BadRequestException("Human overrides use coordinator approval and backend business checks; Agent 4 revalidation is not applicable. Regeneration creates a new AI recommendation.");
         var job = new AiReviewJob { Id = Guid.NewGuid(), WorkflowRunId = runId, RecommendationId = recommendationId,
             ExpectedRevision = ev.Revision, RequestId = request.RequestId, RequestedBy = actor, Kind = kind, Reason = request.Reason.Trim() };
         var previousValidation = Obj(ev.ValidationResult);
@@ -91,6 +93,8 @@ public partial class AiReviewService
         var ev = await db.WorkflowEvents.Include(e => e.WorkflowRun).SingleAsync(e => e.WorkflowEventId == job.RecommendationId);
         if (ev.Revision != job.ExpectedRevision || ev.WorkflowRun.CurrentRecommendationId != ev.WorkflowEventId)
             throw new ConflictException("Recommendation changed before review started.", "STALE_RECOMMENDATION");
+        if (job.Kind == "VALIDATE" && await GetHumanOverrideAsync(ev) != null)
+            throw new BadRequestException("Agent 4 revalidation is not applicable to this audited human override.");
         var source = await db.Reports.Include(r => r.Photos).SingleAsync(r => r.ReportId == ev.WorkflowRun.ReportId);
         var pid = ev.WorkflowRun.ProblemId ?? throw new BadRequestException("Correct the Problem association before reviewing.");
         var problem = await db.Problems.AsNoTracking().SingleAsync(p => p.ProblemId == pid);

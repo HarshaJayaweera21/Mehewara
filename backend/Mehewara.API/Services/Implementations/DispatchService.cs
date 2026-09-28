@@ -1,5 +1,6 @@
 using System.Data;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Mehewara.API.Data;
 using Mehewara.API.DTOs.Common;
 using Mehewara.API.DTOs.Dispatch;
@@ -71,6 +72,7 @@ public class DispatchService : IDispatchService
 
         foreach (var ev in allEvents)
         {
+            var reviewMetadata = ReviewMetadataJson.Read<RecommendationReviewMetadata>(ev.InputData);
             Agent3RecommendationPayload? payload = null;
             try
             {
@@ -134,6 +136,8 @@ public class DispatchService : IDispatchService
                 IsCurrent = ev.WorkflowRun.CurrentRecommendationId == ev.WorkflowEventId,
                 PreviousRecommendationId = ev.PreviousRecommendationId,
                 CanApprove = !await _context.ApprovalHistories.AnyAsync(a => a.RecommendationId == ev.WorkflowEventId && (a.Decision == "APPROVED" || a.Decision == "REJECTED")) && await _review.CanApproveAsync(ev),
+                Origin = reviewMetadata?.Origin, EditedBy = reviewMetadata?.EditedBy, EditedAt = reviewMetadata?.EditedAt,
+                RequiresResponsibilityAcknowledgement = await _review.GetHumanOverrideAsync(ev) != null,
                 LatestJob = await _context.AiReviewJobs.AsNoTracking().Where(j => j.WorkflowRunId == ev.WorkflowRunId).OrderByDescending(j => j.CreatedAt).FirstOrDefaultAsync(),
                 ProblemId = payload.ProblemId != Guid.Empty ? payload.ProblemId : (ev.WorkflowRun.ProblemId ?? Guid.Empty),
                 ProblemTitle = problem?.Title ?? string.Empty,
@@ -246,6 +250,7 @@ public class DispatchService : IDispatchService
         var reportDescriptions = problem?.Reports
             .Select(r => r.Description)
             .ToList() ?? new List<string>();
+        var reviewMetadata = ReviewMetadataJson.Read<RecommendationReviewMetadata>(ev.InputData);
 
         return new RecommendationDetailDto
         {
@@ -254,6 +259,8 @@ public class DispatchService : IDispatchService
                 IsCurrent = ev.WorkflowRun.CurrentRecommendationId == ev.WorkflowEventId,
                 PreviousRecommendationId = ev.PreviousRecommendationId,
                 CanApprove = !await _context.ApprovalHistories.AnyAsync(a => a.RecommendationId == ev.WorkflowEventId && (a.Decision == "APPROVED" || a.Decision == "REJECTED")) && await _review.CanApproveAsync(ev),
+                Origin = reviewMetadata?.Origin, EditedBy = reviewMetadata?.EditedBy, EditedAt = reviewMetadata?.EditedAt,
+                RequiresResponsibilityAcknowledgement = await _review.GetHumanOverrideAsync(ev) != null,
                 LatestJob = await _context.AiReviewJobs.AsNoTracking().Where(j => j.WorkflowRunId == ev.WorkflowRunId).OrderByDescending(j => j.CreatedAt).FirstOrDefaultAsync(),
             ProblemId = problemId,
             ProblemTitle = problem?.Title ?? string.Empty,
@@ -266,6 +273,7 @@ public class DispatchService : IDispatchService
             ReportDescriptions = reportDescriptions,
             ValidationHistory = await _context.WorkflowEvents.AsNoTracking().Where(e => e.WorkflowRunId == ev.WorkflowRunId && e.Stage == "VALIDATION")
                 .OrderBy(e => e.StartedAt).Select(e => new ValidationAttemptDto(e.WorkflowEventId, e.StartedAt, e.CompletedAt, e.Status, e.ValidationResult)).ToListAsync(),
+            HumanOverrideApproval = AiReviewService.Obj(ev.InputData)["humanOverrideApproval"] as JsonObject,
             EditHistory = await _context.ActivityHistories.AsNoTracking().Where(a => a.RecommendationId == recommendationId && a.Action == "RECOMMENDATION_EDITED")
                 .OrderBy(a => a.CreatedAt).Select(a => new RecommendationEditDto(a.ActivityId, a.CreatedAt, a.Note, a.BeforeData, a.AfterData)).ToListAsync(),
             History = await _context.WorkflowEvents.AsNoTracking().Where(e => e.WorkflowRunId == ev.WorkflowRunId && e.Stage == "PRIORITIZATION")
@@ -294,33 +302,49 @@ public class DispatchService : IDispatchService
 
     public async Task<RecommendationDetailDto> EditRecommendationAsync(Guid recommendationId, EditRecommendationRequest request, Guid adminUserId)
     {
-        if (string.IsNullOrWhiteSpace(request.EditReason)) throw new BadRequestException("An edit reason is required.");
+        if (string.IsNullOrWhiteSpace(request.EditReason) || request.EditReason.Length > 4000) throw new BadRequestException("An edit reason of 1–4000 characters is required.");
         await using var tx = await _context.Database.BeginTransactionAsync();
         var ev = await _review.LockRecommendationAsync(recommendationId, request.ExpectedRevision);
-        var payload = JsonSerializer.Deserialize<Agent3RecommendationPayload>(ev.OutputData!, _jsonOptions)
-            ?? throw new BadRequestException("Recommendation payload is missing.");
-        if (request.Priority != null) payload.Priority = request.Priority.Trim().ToUpperInvariant();
-        if (request.PriorityScore.HasValue) payload.PriorityScore = request.PriorityScore.Value;
-        if (request.RecommendedCrewId.HasValue) payload.RecommendedCrewId = request.RecommendedCrewId;
-        if (request.RequiredCrewType != null) payload.RequiredCrewType = request.RequiredCrewType.Trim().ToUpperInvariant();
-        if (request.PriorityReasons != null) payload.PriorityReasons = request.PriorityReasons;
-        if (request.RecommendationReason != null) payload.RecommendationReason = request.RecommendationReason.Trim();
+        var original = AiReviewService.Obj(ev.OutputData);
+        var payload = original.DeepClone().AsObject();
+        if (request.Priority != null) payload["priority"] = request.Priority.Trim().ToUpperInvariant();
+        if (request.PriorityScore.HasValue) payload["priorityScore"] = request.PriorityScore.Value;
+        if (request.RecommendedCrewId.HasValue) payload["recommendedCrewId"] = request.RecommendedCrewId.Value.ToString();
+        if (request.RequiredCrewType != null) payload["requiredCrewType"] = request.RequiredCrewType.Trim().ToUpperInvariant();
+        if (request.PriorityReasons != null) payload["priorityReasons"] = JsonSerializer.SerializeToNode(request.PriorityReasons, _jsonOptions);
+        if (request.RecommendationReason != null) payload["recommendationReason"] = request.RecommendationReason.Trim();
+        if (!AiReviewService.HasMeaningfulEdit(original, payload))
+        {
+            // Preserve the exact revision, provenance and validation on a no-op save.
+            await tx.CommitAsync();
+            return (await GetRecommendationByIdAsync(recommendationId))!;
+        }
         var before = ev.OutputData;
         var beforeRevision = ev.Revision;
         var beforeMetadata = ReviewMetadataJson.Read<RecommendationReviewMetadata>(ev.InputData);
         ev.OriginalOutputData ??= before;
-        ev.OutputData = JsonSerializer.Serialize(payload, _jsonOptions);
+        ev.OutputData = payload.ToJsonString(_jsonOptions);
         ev.Revision++; ev.ValidatedRevision = null; ev.EvidenceHash = null;
-        ev.ValidationResult = AiReviewService.Failure("Recommendation edited. Run validation before approval.", "NOT_RUN").ToJsonString();
-        ev.WorkflowRun.Status = "WAITING"; ev.WorkflowRun.CurrentStage = "VALIDATION";
+        ev.EvidenceRequest = null;
+        var overrideReview = AiReviewService.Failure("Human override: Agent 4 was not run on this revision. Coordinator acknowledgement and backend business checks are required.", "NOT_RUN");
+        overrideReview["policyVersion"] = "human-override-v1";
+        overrideReview["suggestedAction"] = "HUMAN_APPROVAL_REVIEW";
+        overrideReview["findings"] = new JsonArray();
+        ev.ValidationResult = overrideReview.ToJsonString();
+        ev.WorkflowRun.Status = "WAITING"; ev.WorkflowRun.CurrentStage = "WAITING_FOR_APPROVAL";
+        ev.WorkflowRun.CompletedAt = null; ev.WorkflowRun.UpdatedAt = DateTime.UtcNow;
         var editedAt = DateTimeOffset.UtcNow;
-        // Provenance only in Step 2. The existing approval/revalidation policy is
-        // still enforced until the separate human-override approval step is implemented.
+        // This provenance must also match the exact edit audit before it exempts AI review.
         ev.InputData = ReviewMetadataJson.Write(ev.InputData, new RecommendationReviewMetadata {
             SchemaVersion = ReviewMetadataJson.CurrentVersion, Origin = ReviewOrigins.HumanOverride,
             Revision = ev.Revision, JobId = beforeMetadata?.JobId, ChainId = beforeMetadata?.ChainId,
             EditedBy = adminUserId, EditedAt = editedAt });
-        AiReviewService.SetReviewProgress(ev.WorkflowRun, ev, "NEEDS_ATTENTION", "Recommendation edited; approval policy must be satisfied for this revision.");
+        var state = AiReviewService.Obj(ev.WorkflowRun.StateData);
+        state["priorityAnalysis"] = payload.DeepClone();
+        state["recommendations"] = new JsonArray(payload.DeepClone());
+        state["safetyValidation"] = overrideReview.DeepClone();
+        ev.WorkflowRun.StateData = state.ToJsonString(_jsonOptions);
+        AiReviewService.SetReviewProgress(ev.WorkflowRun, ev, "NEEDS_ATTENTION", "Human override requires coordinator acknowledgement and backend approval checks.");
         _context.ActivityHistories.Add(new ActivityHistory { ActivityId = Guid.NewGuid(), ActorUserId = adminUserId,
             Action = "RECOMMENDATION_EDITED", RecommendationId = recommendationId,
             BeforeData = ReviewMetadataJson.Write(before, new RecommendationAuditMetadata {
@@ -338,6 +362,12 @@ public class DispatchService : IDispatchService
         try
         {
             var ev = await _review.LockRecommendationAsync(recommendationId, request.ExpectedRevision);
+            var humanOverride = await _review.GetHumanOverrideAsync(ev);
+            if (humanOverride != null && (!request.AcknowledgeHumanOverrideResponsibility ||
+                string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Length > 4000))
+                throw new BadRequestException("Acknowledge responsibility and provide an approval reason (1–4000 characters) for this human override.");
+            if (!AiReviewService.ApprovalFieldsValid(AiReviewService.Obj(ev.OutputData)))
+                throw new BadRequestException("Recommendation fields do not satisfy dispatch business rules.");
             var payload = JsonSerializer.Deserialize<Agent3RecommendationPayload>(ev.OutputData!, _jsonOptions)
                 ?? throw new BadRequestException("Recommendation payload is missing.");
             var pid = payload.ProblemId;
@@ -348,12 +378,14 @@ public class DispatchService : IDispatchService
             var cid = payload.RecommendedCrewId.Value;
             var crew = await _context.Crews.FromSqlInterpolated($"SELECT * FROM crews WHERE crew_id = {cid} FOR UPDATE").SingleOrDefaultAsync()
                 ?? throw new BadRequestException("Crew not found.");
-            var evidenceRequest = JsonSerializer.Deserialize<ValidationContextRequest>(ev.EvidenceRequest ?? "{}", _jsonOptions);
-            var evidenceIds = (evidenceRequest?.ReportIds ?? new()).Append(ev.WorkflowRun.ReportId).Distinct().ToArray();
+            var evidenceIds = await _review.GetApprovalReportIdsAsync(ev)
+                ?? throw new ConflictException("Authorized source report context is missing or invalid. Review the Problem/report links.", "REVIEW_INPUT_REQUIRED");
             await _context.Reports.FromSqlInterpolated($"SELECT * FROM reports WHERE report_id = ANY({evidenceIds}) ORDER BY report_id FOR UPDATE").ToListAsync();
             var reports = await _context.Reports.FromSqlInterpolated($"SELECT * FROM reports WHERE problem_id = {pid} ORDER BY report_id FOR UPDATE").ToListAsync();
             if (!reports.Any(r => r.ReportId == ev.WorkflowRun.ReportId && r.Status != "CANCELLED") || !await _review.CanApproveAsync(ev))
-                throw new ConflictException("Passing validation for unchanged evidence and an available crew is required. Refresh and revalidate.", "VALIDATION_REQUIRED");
+                throw new ConflictException(humanOverride == null
+                    ? "Passing validation and current dispatch business checks are required. Refresh and revalidate."
+                    : "Human override fails current dispatch business checks. Check report links, crew specialty/availability and active work.", "APPROVAL_CHECKS_FAILED");
             var validScore = payload.Priority switch { "LOW" => payload.PriorityScore is >= 0 and <= 29,
                 "MEDIUM" => payload.PriorityScore is >= 30 and <= 59, "HIGH" => payload.PriorityScore is >= 60 and <= 84,
                 "CRITICAL" => payload.PriorityScore is >= 85 and <= 100, _ => false };
@@ -364,8 +396,25 @@ public class DispatchService : IDispatchService
                 Instructions = string.IsNullOrWhiteSpace(request.Instructions) ? $"Resolve {problem.Title} at {problem.Address}." : request.Instructions.Trim(),
                 AssignedAt = now, CreatedAt = now, UpdatedAt = now };
             _context.WorkOrders.Add(order);
-            _context.ApprovalHistories.Add(new ApprovalHistory { ApprovalId = Guid.NewGuid(), RecommendationId = recommendationId,
-                WorkOrderId = order.WorkOrderId, DecidedBy = adminUserId, Decision = "APPROVED", Reason = request.Reason, CreatedAt = now });
+            var approvalId = Guid.NewGuid();
+            _context.ApprovalHistories.Add(new ApprovalHistory { ApprovalId = approvalId, RecommendationId = recommendationId,
+                WorkOrderId = order.WorkOrderId, DecidedBy = adminUserId, Decision = "APPROVED", Reason = request.Reason?.Trim(), CreatedAt = now });
+            if (humanOverride != null)
+            {
+                // Approval acknowledgement uses existing recommendation JSON and the
+                // terminal approval row. Do not add unsupported activity-history actions.
+                var input = AiReviewService.Obj(ev.InputData);
+                input["humanOverrideApproval"] = new JsonObject {
+                        ["recommendationId"] = recommendationId.ToString(), ["revision"] = ev.Revision,
+                        ["origin"] = ReviewOrigins.HumanOverride, ["editedBy"] = humanOverride.EditedBy?.ToString(),
+                        ["editedAt"] = JsonSerializer.SerializeToNode(humanOverride.EditedAt, _jsonOptions),
+                        ["acknowledgedBy"] = adminUserId.ToString(), ["acknowledgedAt"] = now.ToString("O"),
+                        ["responsibilityAcknowledged"] = true, ["policyVersion"] = "human-override-v1",
+                        ["approvalId"] = approvalId.ToString(), ["reason"] = request.Reason!.Trim(),
+                        ["workOrderId"] = order.WorkOrderId.ToString(), ["reportIds"] = JsonSerializer.SerializeToNode(evidenceIds),
+                        ["backendBusinessChecksPassed"] = true };
+                ev.InputData = input.ToJsonString(_jsonOptions);
+            }
             crew.Status = "BUSY"; crew.UpdatedAt = now;
             problem.Status = "ASSIGNED"; problem.Priority = payload.Priority; problem.PriorityScore = payload.PriorityScore; problem.UpdatedAt = now;
             foreach (var report in reports.Where(r => r.Status != "CANCELLED")) { report.Status = "ASSIGNED"; report.UpdatedAt = now; }

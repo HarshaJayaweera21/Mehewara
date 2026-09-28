@@ -16,6 +16,8 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
   onSuccess,
 }) => {
   const [reason, setReason] = useState('');
+  const [responsibilityAcknowledged, setResponsibilityAcknowledged] = useState(false);
+  const humanOverride = recommendation.requiresResponsibilityAcknowledgement === true;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -28,6 +30,7 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
       const res = await approveRecommendation(token, recommendation.recommendationId, {
         reason: reason.trim() || undefined,
         expectedRevision: recommendation.revision,
+        acknowledgeHumanOverrideResponsibility: humanOverride && responsibilityAcknowledged,
       });
       onSuccess(res.workOrder.id);
     } catch (err) {
@@ -115,16 +118,22 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
               <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
             </svg>
             <div>
-              <strong>Squad Priority Queue:</strong> Approving adds this work order to{' '}
-              <strong>{recommendation.recommendedCrewName || 'the squad'}</strong>&apos;s mobile queue in priority order ({recommendation.priority}).
-              Squads can safely stack up multiple assigned tasks and execute them sequentially.
+              Approval creates a work order after the backend checks current report links,
+              crew specialty and availability, and conflicting active work.
             </div>
           </div>
 
           <div className="dispatch-form-group">
-            <label htmlFor="approvalReason" className="dispatch-form-label">Approval reason (optional)</label>
-            <textarea id="approvalReason" className="dispatch-form-textarea" value={reason} onChange={e => setReason(e.target.value)} rows={3} />
+            <label htmlFor="approvalReason" className="dispatch-form-label">Approval reason {humanOverride ? '(required for human override)' : '(optional)'}</label>
+            <textarea id="approvalReason" className="dispatch-form-textarea" value={reason} onChange={e => setReason(e.target.value)} rows={3} required={humanOverride} maxLength={4000} />
           </div>
+          {humanOverride && (
+            <label className="dispatch-form-label">
+              <input type="checkbox" checked={responsibilityAcknowledged} onChange={e => setResponsibilityAcknowledged(e.target.checked)} required />{' '}
+              I reviewed this human override and accept responsibility for approving the edited recommendation.
+              Agent 4 has not validated this revision.
+            </label>
+          )}
 
           <div className="dispatch-modal-actions">
             <button
@@ -138,7 +147,7 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
             <button
               type="submit"
               className="dispatch-btn-primary"
-              disabled={isSubmitting}
+              disabled={isSubmitting || (humanOverride && (!responsibilityAcknowledged || !reason.trim()))}
             >
               {isSubmitting ? (
                 <>

@@ -108,17 +108,22 @@ public partial class AiReviewService(AppDbContext db, IHttpClientFactory clients
 
     public async Task<bool> CanApproveAsync(WorkflowEvent ev)
     {
-        if (ev.WorkflowRun.CurrentRecommendationId != ev.WorkflowEventId || ev.ValidatedRevision != ev.Revision ||
-            Text(Obj(ev.ValidationResult)["status"]) != "VALID" ||
+        if (ev.WorkflowRun.CurrentRecommendationId != ev.WorkflowEventId ||
             await db.AiReviewJobs.AnyAsync(j => j.WorkflowRunId == ev.WorkflowRunId && (j.Status == "QUEUED" || j.Status == "RUNNING"))) return false;
+        if (await db.ApprovalHistories.AnyAsync(a => a.RecommendationId == ev.WorkflowEventId && (a.Decision == "APPROVED" || a.Decision == "REJECTED"))) return false;
+        var humanOverride = await GetHumanOverrideAsync(ev);
+        if (ReviewMetadataJson.Read<RecommendationReviewMetadata>(ev.InputData)?.Origin == ReviewOrigins.HumanOverride && humanOverride == null) return false;
+        if (humanOverride == null && (ev.ValidatedRevision != ev.Revision || Text(Obj(ev.ValidationResult)["status"]) != "VALID")) return false;
         var payload = Obj(ev.OutputData); var pid = Id(payload["problemId"]); var cid = Id(payload["recommendedCrewId"]);
-        if (!pid.HasValue || !cid.HasValue) return false;
+        if (!ApprovalFieldsValid(payload) || !pid.HasValue || !cid.HasValue || pid != ev.WorkflowRun.ProblemId) return false;
         var problem = await db.Problems.AsNoTracking().SingleOrDefaultAsync(p => p.ProblemId == pid);
         var crew = await db.Crews.AsNoTracking().SingleOrDefaultAsync(c => c.CrewId == cid);
         if (problem == null || problem.Status is "ASSIGNED" or "IN_PROGRESS" or "RESOLVED" or "CLOSED" or "CANCELLED" ||
             crew == null || crew.Status != "AVAILABLE" || crew.CrewType != Text(payload["requiredCrewType"]) ||
             crew.CrewType != problem.Category) return false;
         if (await db.WorkOrders.AnyAsync(w => (w.ProblemId == pid || w.CrewId == cid) && (w.Status == "ASSIGNED" || w.Status == "IN_PROGRESS"))) return false;
-        return await EvidenceMatchesAsync(ev);
+        var reportIds = await GetApprovalReportIdsAsync(ev);
+        if (reportIds == null || await db.Reports.CountAsync(r => reportIds.Contains(r.ReportId) && r.ProblemId == pid && r.Status != "CANCELLED") != reportIds.Length) return false;
+        return humanOverride != null || await EvidenceMatchesAsync(ev);
     }
 }

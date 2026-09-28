@@ -21,6 +21,10 @@ export interface RecommendationListItem {
   revision: number;
   isCurrent: boolean;
   canApprove: boolean;
+  origin?: string | null;
+  editedBy?: string | null;
+  editedAt?: string | null;
+  requiresResponsibilityAcknowledgement?: boolean;
   previousRecommendationId: string | null;
   latestJob: ReviewJob | null;
   problemId: string;
@@ -43,6 +47,8 @@ export interface RecommendationListItem {
 }
 
 export interface RecommendationDetail extends RecommendationListItem {
+  humanOverrideApproval?: { revision: number; acknowledgedBy: string; acknowledgedAt: string;
+    responsibilityAcknowledged: boolean; reason: string; approvalId: string; workOrderId: string } | null;
   validationHistory: { id: string; startedAt: string; completedAt: string | null; status: string; result: string | null }[];
   editHistory: { id: string; createdAt: string; reason: string | null; before: string; after: string }[];
   history: { recommendationId: string; previousRecommendationId: string | null; revision: number;
@@ -79,7 +85,7 @@ export interface EditRecommendationRequest {
   recommendedCrewId?: string;
   editReason: string;
 }
-export interface ApproveRecommendationRequest { reason?: string; expectedRevision: number; }
+export interface ApproveRecommendationRequest { reason?: string; expectedRevision: number; acknowledgeHumanOverrideResponsibility?: boolean; }
 export interface ApproveRecommendationResponse {
   recommendationId: string; decision: string; decidedBy: string; decidedAt: string;
   workOrder: { id: string; problemId: string; crewId: string; priority: string; status: string; assignedAt: string | null; createdAt: string };
