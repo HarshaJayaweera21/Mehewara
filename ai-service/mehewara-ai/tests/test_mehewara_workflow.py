@@ -31,6 +31,7 @@ def test_langgraph_topology():
 
     assert "agent_1_report_analysis" in nodes
     assert "agent_2_problem_consolidation" in nodes
+    assert "agent_3_prioritization" in nodes
 
 
 def test_mermaid_diagram_generation():
@@ -39,6 +40,7 @@ def test_mermaid_diagram_generation():
     assert "graph TD" in diagram
     assert "agent_1_report_analysis" in diagram
     assert "agent_2_problem_consolidation" in diagram
+    assert "agent_3_prioritization" in diagram
 
 
 @pytest.mark.asyncio
@@ -109,6 +111,12 @@ async def test_unified_workflow_mocked_execution():
         assert result["problem_analysis"] is not None
         assert result["problem_analysis"]["decision"] == "LINK_EXISTING"
         assert str(result["problem_analysis"]["problemId"]) == str(p_id)
+
+        # Stage 3 output present
+        assert result["priority_analysis"] is not None
+        assert result["priority_analysis"]["priority"] is not None
+        assert "recommendations" in result
+        assert len(result["recommendations"]) > 0
 
         # Backward compatibility alias for Member 1 ASP.NET Core client
         assert result["analysis"] is not None
