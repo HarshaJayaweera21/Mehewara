@@ -139,5 +139,21 @@ class CrewService {
       statusCode: 500,
     );
   }
+
+  /// Send real-time telemetry heartbeat to backend in-memory cache (non-blocking)
+  Future<void> sendHeartbeat(double latitude, double longitude) async {
+    try {
+      await _apiClient.post(
+        '/crew/heartbeat',
+        body: {
+          'latitude': latitude,
+          'longitude': longitude,
+        },
+      );
+    } catch (_) {
+      // Non-blocking telemetry ping; ignore transient network drops
+    }
+  }
 }
+
 

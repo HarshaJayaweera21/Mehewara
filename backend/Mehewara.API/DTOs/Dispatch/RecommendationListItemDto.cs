@@ -13,6 +13,10 @@ public class RecommendationListItemDto
     public Guid? RecommendedCrewId { get; set; }
     public string? RecommendedCrewName { get; set; }
     public string RecommendationReason { get; set; } = string.Empty;
+    public int? EstimatedDurationMinutes { get; set; }
+    public double? DistanceKm { get; set; }
+    public int? EstimatedTravelMinutes { get; set; }
+    public string DispatchStrategy { get; set; } = "STANDARD_DISPATCH";
     public RecommendationValidationDto Validation { get; set; } = new();
     public string? ReviewDecision { get; set; }
     public DateTime CreatedAt { get; set; }

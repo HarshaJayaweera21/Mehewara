@@ -24,7 +24,8 @@ class CrewModel {
   bool get isAvailable => status.toUpperCase() == 'AVAILABLE';
   bool get isBusy => status.toUpperCase() == 'BUSY';
   bool get isUnavailable => status.toUpperCase() == 'UNAVAILABLE';
-  bool get canToggleStatus => !isBusy && (activeWorkOrderId == null || activeWorkOrderId!.isEmpty);
+  bool get isOnDuty => !isUnavailable;
+  bool get canToggleStatus => true;
 
   factory CrewModel.fromJson(Map<String, dynamic> json) {
     return CrewModel(

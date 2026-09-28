@@ -1023,6 +1023,34 @@ class _CrewJobsScreenState extends State<CrewJobsScreen> {
                           ),
                         ),
                       ],
+                      if (order.isQuickWin) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.statusAvailableBg,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            '⚡ QUICK WIN',
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.statusAvailableText),
+                          ),
+                        ),
+                      ],
+                      if (order.estimatedDurationMinutes != null) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.canvasBg,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '~${order.estimatedDurationMinutes}m fix',
+                            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.textMuted),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   Container(

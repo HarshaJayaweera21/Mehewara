@@ -14,6 +14,7 @@ public class CrewWorkOrderItemDto
     public int ReportCount { get; set; }
     public string Priority { get; set; } = string.Empty;
     public int PriorityScore { get; set; }
+    public int? EstimatedDurationMinutes { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? Instructions { get; set; }
     public DateTime? AssignedAt { get; set; }
