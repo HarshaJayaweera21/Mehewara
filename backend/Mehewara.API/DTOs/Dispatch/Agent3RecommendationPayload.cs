@@ -9,4 +9,8 @@ public class Agent3RecommendationPayload
     public string RequiredCrewType { get; set; } = string.Empty;
     public Guid? RecommendedCrewId { get; set; }
     public string RecommendationReason { get; set; } = string.Empty;
+    public int? EstimatedDurationMinutes { get; set; }
+    public double? DistanceKm { get; set; }
+    public int? EstimatedTravelMinutes { get; set; }
+    public string? DispatchStrategy { get; set; }
 }

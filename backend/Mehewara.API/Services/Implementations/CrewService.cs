@@ -306,6 +306,7 @@ public class CrewService : ICrewService
             ReportCount = w.Problem?.Reports?.Count ?? 0,
             Priority = w.Priority,
             PriorityScore = w.Problem?.PriorityScore ?? 0,
+            EstimatedDurationMinutes = w.Problem?.EstimatedDurationMinutes,
             Status = w.Status,
             Instructions = w.Instructions,
             AssignedAt = w.AssignedAt,

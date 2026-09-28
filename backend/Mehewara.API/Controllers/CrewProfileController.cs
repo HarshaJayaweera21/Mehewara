@@ -14,11 +14,16 @@ namespace Mehewara.API.Controllers;
 public class CrewProfileController : ControllerBase
 {
     private readonly ICrewService _crewService;
+    private readonly ICrewLocationService _crewLocationService;
     private readonly ILogger<CrewProfileController> _logger;
 
-    public CrewProfileController(ICrewService crewService, ILogger<CrewProfileController> logger)
+    public CrewProfileController(
+        ICrewService crewService,
+        ICrewLocationService crewLocationService,
+        ILogger<CrewProfileController> logger)
     {
         _crewService = crewService;
+        _crewLocationService = crewLocationService;
         _logger = logger;
     }
 
@@ -119,5 +124,26 @@ public class CrewProfileController : ControllerBase
 
         var workOrders = await _crewService.GetCrewWorkOrdersAsync(crew.Id);
         return Ok(workOrders);
+    }
+
+    [HttpPost("heartbeat")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RecordHeartbeat([FromBody] CrewHeartbeatDto dto)
+    {
+        if (dto.Latitude < -90 || dto.Latitude > 90 || dto.Longitude < -180 || dto.Longitude > 180)
+        {
+            throw new BadRequestException("Invalid latitude or longitude coordinates.", "INVALID_COORDINATES");
+        }
+
+        var userId = GetCurrentUserId();
+        var crew = await _crewService.GetCrewByLeaderUserIdAsync(userId);
+        if (crew != null)
+        {
+            _crewLocationService.RecordHeartbeat(crew.Id, dto.Latitude, dto.Longitude);
+            _logger.LogDebug("Received telemetry heartbeat for Crew {CrewId}: ({Lat}, {Lon})", crew.Id, dto.Latitude, dto.Longitude);
+        }
+        return NoContent();
     }
 }
