@@ -46,12 +46,14 @@ public partial class AiReviewService(AppDbContext db, IHttpClientFactory clients
         {
             var job = await db.AiReviewJobs.AsNoTracking().SingleOrDefaultAsync(j => j.Id == request.JobId && j.WorkflowRunId == request.WorkflowId)
                 ?? throw new BadRequestException("Review context is not authorized.");
+            if (job.Status != "RUNNING" || job.LeaseUntil == null || job.LeaseUntil <= DateTime.UtcNow)
+                throw new BadRequestException("Review job has no active evidence lease.");
             input = job.InputData;
         }
         if (input == null) throw new BadRequestException("Saved input evidence is unavailable. Start validation from the coordinator screen.");
         var snapshot = Obj(input);
         var context = snapshot["context"]?.AsObject() ?? new();
-        if (context["complete"]?.GetValue<bool>() == false) throw new BadRequestException("Initial context loading failed; rebuild review context before validation.");
+        if (context["complete"]?.GetValue<bool>() != true) throw new BadRequestException("Context completeness is missing or loading failed; rebuild context before validation.");
         HashSet<Guid> Allowed(string field, string key) => (context[field]?.AsArray() ?? new())
             .Select(n => Id(n?[key])).Where(i => i.HasValue).Select(i => i!.Value).ToHashSet();
         var reports = Allowed("relatedReports", "reportId");
@@ -75,6 +77,7 @@ public partial class AiReviewService(AppDbContext db, IHttpClientFactory clients
             .Select(c => new { crewId = c.CrewId, name = c.CrewName, c.CrewType, c.Status }).FirstOrDefaultAsync();
         var active = await db.WorkOrders.AsNoTracking().Where(w => (w.ProblemId == request.ProblemId || w.CrewId == request.CrewId)
             && (w.Status == "ASSIGNED" || w.Status == "IN_PROGRESS"))
+            .OrderBy(w => w.WorkOrderId)
             .Select(w => new { w.WorkOrderId, w.ProblemId, w.CrewId, w.Status }).ToListAsync();
         // Hash semantic evidence only. Availability and lifecycle are rechecked live at approval.
         var semantic = Node(new {
@@ -82,10 +85,16 @@ public partial class AiReviewService(AppDbContext db, IHttpClientFactory clients
             problem = problem == null ? null : new { problem.problemId, problem.Title, problem.Description, problem.Category, problem.Latitude, problem.Longitude, problem.Address },
             crew = crew == null ? null : new { crew.crewId, crew.CrewType }
         });
+        // Full review fingerprint includes lifecycle and active work. Exclude only the
+        // retrieval timestamp so an unchanged fresh read can match the reviewed snapshot.
+        var snapshot = Node(new { reports, problem, crew, activeWorkOrders = active });
         return Node(new { reports, problem, crew, activeWorkOrders = active, snapshotAt = DateTime.UtcNow,
             complete = reports.Count == ids.Count && (!request.ProblemId.HasValue || problem != null) && (!request.CrewId.HasValue || crew != null),
-            loading = new { reports = "LOADED", problem = "LOADED", crew = "LOADED", activeWorkOrders = "LOADED" },
-            evidenceHash = Hash(semantic) }).AsObject();
+            loading = new { reports = reports.Count == ids.Count ? "LOADED" : "MISSING",
+                problem = !request.ProblemId.HasValue ? "NOT_REQUESTED" : problem == null ? "MISSING" : "LOADED",
+                crew = !request.CrewId.HasValue ? "NOT_REQUESTED" : crew == null ? "MISSING" : "LOADED",
+                activeWorkOrders = "LOADED" },
+            evidenceHash = Hash(semantic), snapshotHash = Hash(snapshot) }).AsObject();
     }
 
     public async Task<bool> EvidenceMatchesAsync(WorkflowEvent ev)
@@ -106,7 +115,7 @@ public partial class AiReviewService(AppDbContext db, IHttpClientFactory clients
         if (!pid.HasValue || !cid.HasValue) return false;
         var problem = await db.Problems.AsNoTracking().SingleOrDefaultAsync(p => p.ProblemId == pid);
         var crew = await db.Crews.AsNoTracking().SingleOrDefaultAsync(c => c.CrewId == cid);
-        if (problem == null || problem.Status is "ASSIGNED" or "IN_PROGRESS" or "RESOLVED" or "CLOSED" ||
+        if (problem == null || problem.Status is "ASSIGNED" or "IN_PROGRESS" or "RESOLVED" or "CLOSED" or "CANCELLED" ||
             crew == null || crew.Status != "AVAILABLE" || crew.CrewType != Text(payload["requiredCrewType"]) ||
             crew.CrewType != problem.Category) return false;
         if (await db.WorkOrders.AnyAsync(w => (w.ProblemId == pid || w.CrewId == cid) && (w.Status == "ASSIGNED" || w.Status == "IN_PROGRESS"))) return false;

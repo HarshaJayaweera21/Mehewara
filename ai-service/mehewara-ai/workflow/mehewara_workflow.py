@@ -51,6 +51,12 @@ class MehewaraWorkflowState(TypedDict, total=False):
     """
     job_id: str | None
     resolved_problem_id: str | None
+    recommendation_id: str | None
+    recommendation_revision: int | None
+    review_kind: str | None
+    authorized_report_ids: list[str]
+    authorized_crew_ids: list[str]
+    authorized_problem_ids: list[str]
     coordinator_feedback: str | None
     workflow_id: str
     raw_report: dict[str, Any]

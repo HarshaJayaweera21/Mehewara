@@ -6,6 +6,7 @@ with type validation and sensible defaults.
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -26,8 +27,8 @@ class Settings(BaseSettings):
     dotnet_api_base_url: str = "http://localhost:5194"
 
     internal_ai_api_key: str = ""
-    agent4_evidence_timeout_seconds: float = 10
-    agent4_review_timeout_seconds: float = 30
+    agent4_evidence_timeout_seconds: float = Field(default=10, gt=0, allow_inf_nan=False)
+    agent4_review_timeout_seconds: float = Field(default=30, gt=0, allow_inf_nan=False)
 
     # --- Service Configuration ---
     port: int = 8000

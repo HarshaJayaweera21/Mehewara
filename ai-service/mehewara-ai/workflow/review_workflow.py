@@ -38,7 +38,8 @@ def build_validation_feedback(payload: dict) -> dict:
 async def regenerate(state: MehewaraWorkflowState) -> dict:
     problem = state["problem_analysis"]
     candidates = state.get("candidate_problems", [])
-    selected = next((p for p in candidates if p.get("problemId") == problem.get("problemId")), None)
+    pid = state.get("resolved_problem_id") or problem.get("problemId")
+    selected = next((p for p in candidates if p.get("problemId") == pid), None)
     if not selected:
         return {"error": "Established Problem context is missing", "priority_analysis": None}
     result = await run_priority_recommendation(selected, state.get("structured_report"),
@@ -63,6 +64,12 @@ async def run_review(payload: dict) -> dict:
     request = WorkflowTriggerRequest.model_validate(payload)
     state = MehewaraWorkflowState(
         workflow_id=str(request.workflow_id), job_id=payload["jobId"],
+        resolved_problem_id=payload.get("resolvedProblemId"),
+        recommendation_id=payload.get("recommendationId"), recommendation_revision=payload.get("recommendationRevision"),
+        review_kind=payload.get("kind"),
+        authorized_report_ids=payload.get("authorizedReportIds", []),
+        authorized_crew_ids=[str(c.get("crewId")) for c in request.context.available_crews],
+        authorized_problem_ids=[str(p.get("problemId")) for p in request.context.candidate_problems],
         raw_report=request.report.model_dump(by_alias=True, mode="json"),
         candidate_problems=request.context.candidate_problems,
         related_reports=request.context.related_reports, available_crews=request.context.available_crews,

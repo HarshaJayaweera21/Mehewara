@@ -19,7 +19,11 @@ public partial class AiReviewService
     internal static JsonObject Failure(string message, string status = "ERROR") => new()
     {
         ["status"] = status, ["issues"] = new JsonArray(JsonValue.Create(message)),
-        ["policyVersion"] = "agent4-v1"
+        ["policyVersion"] = "agent4-v2",
+        ["suggestedAction"] = status == "ERROR" ? "RETRY_VALIDATION" : status == "REVISION_REQUIRED" ? "REGENERATE" : "REVIEW_INPUT",
+        ["findings"] = new JsonArray(new JsonObject { ["code"] = "BACKEND_REVIEW", ["message"] = message,
+            ["correction"] = status == "ERROR" ? "Resolve the review failure and retry Agent 4." : "Review the findings and obtain a new validation result.",
+            ["evidenceRefs"] = new JsonArray() })
     };
 
     internal static void SetReviewProgress(WorkflowRun run, WorkflowEvent? rec, string progress,
@@ -32,6 +36,22 @@ public partial class AiReviewService
             Progress = progress, AttentionReason = attentionReason, UpdatedAt = DateTimeOffset.UtcNow });
     }
 
+    internal static bool HasPassingReviewEnvelope(JsonObject validation, Guid sourceReportId)
+    {
+        var checks = validation["checks"] as JsonArray;
+        var required = new[] { "SCHEMA", "CONSOLIDATION_SCHEMA", "CONSOLIDATION", "PROBLEM_REFERENCE",
+            "PROBLEM_MAPPING", "PRIORITY_SCORE", "REASONS", "REPORT_REFERENCES", "CREW_REFERENCE",
+            "COMPLETE_CONTEXT", "SOURCE_REPORT", "REPORT_LINKS", "SPECIALTY", "PROBLEM_AVAILABLE",
+            "CREW_AVAILABLE", "EVIDENCE_REVIEW" };
+        return checks != null && required.All(code => checks.Any(c => Text(c?["code"]) == code)) &&
+            checks.All(c => c?["passed"] is JsonValue value && value.TryGetValue<bool>(out var passed) && passed) &&
+            validation["issues"] is JsonArray { Count: 0 } && validation["findings"] is JsonArray { Count: 0 } &&
+            (validation["evidenceRefs"] as JsonArray ?? new()).Any(r => Text(r) == $"report:{sourceReportId}") &&
+            !string.IsNullOrWhiteSpace(Text(validation["evidenceHash"])) &&
+            !string.IsNullOrWhiteSpace(Text(validation["snapshotHash"])) &&
+            DateTimeOffset.TryParse(Text(validation["snapshotAt"]), out _);
+    }
+
     private WorkflowEvent Record(WorkflowRun run, string stage, string agent, JsonNode? output)
     {
         var ev = new WorkflowEvent { WorkflowEventId = Guid.NewGuid(), WorkflowRunId = run.WorkflowRunId,
@@ -41,9 +61,44 @@ public partial class AiReviewService
         return ev;
     }
 
-    internal async Task RecordValidationAsync(WorkflowRun run, WorkflowEvent? rec, JsonObject validation,
+    internal async Task<JsonObject> RecordValidationAsync(WorkflowRun run, WorkflowEvent? rec, JsonObject validation,
         ValidationContextRequest? evidenceRequest, Guid? jobId = null)
     {
+        var receivedValidation = validation.DeepClone();
+        var suppliedStatus = Text(validation["status"]);
+        if (suppliedStatus is not ("VALID" or "REVISION_REQUIRED" or "INVALID" or "ERROR" or "NOT_RUN"))
+            validation = Failure("Agent 4 returned an unknown or missing status.");
+        if (Text(validation["status"]) == "VALID")
+        {
+            if (rec == null || evidenceRequest == null || !evidenceRequest.CrewId.HasValue ||
+                !HasPassingReviewEnvelope(validation, run.ReportId))
+                validation = Failure("Passing review lacks complete checks, source evidence or revision binding.");
+            else
+            {
+                var fresh = await GetEvidenceAsync(evidenceRequest);
+                if (fresh["complete"]?.GetValue<bool>() != true ||
+                    string.IsNullOrWhiteSpace(Text(validation["evidenceHash"])) ||
+                    string.IsNullOrWhiteSpace(Text(validation["snapshotHash"])) ||
+                    Text(fresh["evidenceHash"]) != Text(validation["evidenceHash"]) ||
+                    Text(fresh["snapshotHash"]) != Text(validation["snapshotHash"]))
+                {
+                    validation = Failure("Evidence changed or is incomplete. Retry validation.", "REVISION_REQUIRED");
+                    validation["suggestedAction"] = "RETRY_VALIDATION";
+                }
+            }
+        }
+        // A regeneration job reviewed newly produced output before its event ID
+        // existed. Retain the request binding and bind the saved review to its new event.
+        if (rec != null && Text(validation["recommendationId"]) != rec.WorkflowEventId.ToString())
+        {
+            validation["reviewRequestRecommendationId"] = validation["recommendationId"]?.DeepClone();
+            validation["reviewRequestRevision"] = validation["recommendationRevision"]?.DeepClone();
+            validation["recommendationId"] = rec.WorkflowEventId.ToString();
+            validation["recommendationRevision"] = rec.Revision;
+        }
+        if (!JsonNode.DeepEquals(receivedValidation, validation))
+            validation["agentReview"] = receivedValidation;
+        var auditReview = validation["agentReview"] as JsonObject ?? validation;
         var ev = Record(run, "VALIDATION", "Validation & Safety Agent", validation);
         var status = Text(validation["status"]);
         ev.Status = status == "ERROR" ? "FAILED" : status == "NOT_RUN" ? "WAITING" : "COMPLETED";
@@ -51,27 +106,27 @@ public partial class AiReviewService
         if (DateTimeOffset.TryParse(Text(validation["completedAt"]), out var end)) ev.CompletedAt = end.UtcDateTime;
         ev.InputData = new JsonObject { ["recommendationId"] = rec?.WorkflowEventId.ToString(),
             ["revision"] = rec?.Revision, ["jobId"] = jobId?.ToString(),
-            ["reviewInput"] = validation["inputData"]?.DeepClone() }.ToJsonString(Json);
+            ["reviewInput"] = auditReview["inputData"]?.DeepClone() }.ToJsonString(Json);
+        var validationInput = Obj(ev.InputData);
+        validationInput["snapshotHash"] = auditReview["snapshotHash"]?.DeepClone();
+        validationInput["snapshotAt"] = auditReview["snapshotAt"]?.DeepClone();
+        validationInput["evidenceRequest"] = evidenceRequest == null ? null : Node(evidenceRequest);
+        ev.InputData = validationInput.ToJsonString(Json);
         var job = jobId.HasValue ? await db.AiReviewJobs.SingleAsync(j => j.Id == jobId.Value) : null;
         ev.InputData = ReviewMetadataJson.Write(ev.InputData, new ValidationReviewMetadata {
             SchemaVersion = ReviewMetadataJson.CurrentVersion, RecommendationId = rec?.WorkflowEventId,
             Revision = rec?.Revision, JobId = jobId,
             ChainId = ReviewMetadataJson.Read<ReviewJobMetadata>(job?.InputData)?.ChainId,
             WorkerAttempt = job?.Attempts });
-        ev.ToolResults = validation["toolResults"]?.ToJsonString(Json);
+        ev.ToolResults = auditReview["toolResults"]?.ToJsonString(Json);
         ev.ValidationResult = validation.ToJsonString(Json);
         if (rec != null)
         {
             rec.ValidationResult = validation.ToJsonString(Json);
             rec.ValidatedRevision = status == "VALID" ? rec.Revision : null;
             rec.EvidenceRequest = evidenceRequest == null ? null : JsonSerializer.Serialize(evidenceRequest, Json);
-            rec.EvidenceHash = null;
-            if (status == "VALID" && evidenceRequest != null)
-            {
-                var evidence = await LoadEvidenceAsync(evidenceRequest, run.ReportId);
-                rec.EvidenceHash = Text(evidence["evidenceHash"]);
-                if (evidence["complete"]?.GetValue<bool>() != true) rec.ValidatedRevision = null;
-            }
+            // Retain the reviewed fingerprint; never replace it with a later snapshot.
+            rec.EvidenceHash = status == "VALID" ? Text(validation["evidenceHash"]) : null;
         }
         run.CurrentStage = status == "VALID" ? "WAITING_FOR_APPROVAL" : "VALIDATION";
         run.Status = status == "ERROR" ? "FAILED" : "WAITING";
@@ -82,6 +137,7 @@ public partial class AiReviewService
         SetReviewProgress(run, rec, boundValidation ? "VALIDATED" : "NEEDS_ATTENTION",
             boundValidation ? null : string.IsNullOrWhiteSpace(issues)
                 ? "Validation is incomplete or evidence could not be bound to this revision." : issues, job);
+        return validation;
     }
 
     /// <summary>
@@ -192,7 +248,11 @@ public partial class AiReviewService
                     Origin = ReviewOrigins.System, CorrectionCount = 0 });
             db.AiReviewJobs.Add(initialJob);
         }
-        run.StateData = response;
+        if (rec == null)
+            validation = Failure("No persisted recommendation is available. Review the earlier agent outputs and Problem association.", "NOT_RUN");
+        var initialState = Obj(response);
+        initialState["safetyValidation"] = validation.DeepClone();
+        run.StateData = initialState.ToJsonString(Json);
         // Set workflow status to reflect queued validation rather than completed.
         run.Status = rec != null ? "RUNNING" : "WAITING";
         run.CurrentStage = rec != null ? "VALIDATION" : (consolidation != null ? "PROBLEM_CONSOLIDATION" : "REPORT_ANALYSIS");
@@ -203,7 +263,11 @@ public partial class AiReviewService
         await RecordValidationAsync(run, rec, validation, request);
         // Set review tracking to QUEUED so the dashboard shows this workflow as processing.
         if (rec != null)
+        {
+            run.Status = "RUNNING";
+            run.CurrentStage = "VALIDATION";
             SetReviewProgress(run, rec, "QUEUED", job: initialJob);
+        }
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
     }

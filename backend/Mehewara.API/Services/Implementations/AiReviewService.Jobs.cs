@@ -91,33 +91,56 @@ public partial class AiReviewService
         var reportAnalysis = events.LastOrDefault(e => e.Stage == "REPORT_ANALYSIS")?.OutputData;
         var problemAnalysis = events.LastOrDefault(e => e.Stage == "PROBLEM_CONSOLIDATION")?.OutputData;
         if (reportAnalysis == null || problemAnalysis == null) throw new BadRequestException("Original agent outputs are missing; restart report analysis.");
-        var original = Obj(ev.WorkflowRun.InputData)["report"];
+        var originalInput = Obj(ev.WorkflowRun.InputData);
+        var original = originalInput["report"];
         if (original == null) throw new BadRequestException("Original report snapshot is missing; restart report analysis.");
+        var originalContext = originalInput["context"] as JsonObject;
+        if (originalContext?["complete"]?.GetValue<bool>() != true)
+            throw new BadRequestException("Original context is incomplete or missing; restart report analysis.");
         if (Text(original["description"]) != source.Description || Text(original["category"]) != source.Category ||
             original["latitude"]?.GetValue<decimal>() != source.Latitude || original["longitude"]?.GetValue<decimal>() != source.Longitude ||
             Text(original["address"]) != (source.Address ?? ""))
             throw new BadRequestException("Source report evidence changed; rerun report analysis before recommendation review.");
-        var related = await db.Reports.AsNoTracking().Where(r => r.ProblemId == pid && r.Status != "CANCELLED")
+        var authorizedReports = (originalContext["relatedReports"] as JsonArray ?? new())
+            .Select(n => Id(n?["reportId"])).Where(i => i.HasValue).Select(i => i!.Value)
+            .Append(source.ReportId).Distinct().OrderBy(i => i).ToArray();
+        var related = await db.Reports.AsNoTracking().Where(r => authorizedReports.Contains(r.ReportId))
             .OrderBy(r => r.ReportId).Take(101).Select(r => new { reportId = r.ReportId, r.ProblemId, r.Description,
                 r.Category, r.Latitude, r.Longitude, r.Address, r.Status, r.CreatedAt }).ToListAsync();
         if (related.Count > 100) throw new BadRequestException("Problem has more than 100 reports; review requires a larger evidence policy.");
-        var crews = await db.Crews.AsNoTracking().Select(c => new { crewId = c.CrewId, name = c.CrewName, c.CrewType, c.Status,
+        var uneditedAi = ev.Revision == 1 &&
+            ev.OriginalOutputData != null &&
+            ReviewMetadataJson.Read<RecommendationReviewMetadata>(ev.InputData)?.Origin != ReviewOrigins.HumanOverride;
+        var initialAi = uneditedAi && ev.PreviousRecommendationId == null;
+        var authorizedCrews = (originalContext["availableCrews"] as JsonArray ?? new())
+            .Select(n => Id(n?["crewId"])).Where(i => i.HasValue).Select(i => i!.Value).ToArray();
+        var crews = await db.Crews.AsNoTracking()
+            .Where(c => job.Kind == "REGENERATE" || !initialAi || authorizedCrews.Contains(c.CrewId))
+            .Select(c => new { crewId = c.CrewId, name = c.CrewName, c.CrewType, c.Status,
             activeWorkOrderId = c.WorkOrders.Where(w => w.Status == "ASSIGNED" || w.Status == "IN_PROGRESS")
                 .OrderBy(w => w.WorkOrderId).Select(w => (Guid?)w.WorkOrderId).FirstOrDefault() }).ToListAsync();
         var consolidation = Obj(problemAnalysis);
-        // Initial CREATE_NEW now refers to its established real Problem; original output remains immutable.
-        consolidation["decision"] = "LINK_EXISTING"; consolidation["problemId"] = pid.ToString(); consolidation["newProblem"] = null;
-        consolidation["relatedReportIds"] = Node(related.Select(r => r.reportId));
-        consolidation["updatedProblemDescription"] = problem.Description;
+        // Preserve the original proposal; supply the persisted ID separately.
+        var decision = Text(consolidation["decision"]);
+        if (decision == "LINK_EXISTING" && (!((originalContext["candidateProblems"] as JsonArray ?? new())
+                .Any(p => Id(p?["problemId"]) == pid)) || Id(consolidation["problemId"]) != pid))
+            throw new BadRequestException("Original consolidated Problem is outside the saved context or mapping.");
+        var reviewRecommendation = job.Kind == "VALIDATE" && uneditedAi
+            ? ev.OriginalOutputData ?? throw new BadRequestException("Original Agent 3 output is missing.") : ev.OutputData!;
+        var origin = ReviewMetadataJson.Read<ReviewJobMetadata>(job.InputData)?.Origin;
         // Keep all saved metadata while replacing stale execution evidence. Legacy jobs
         // without metadata retain that absence; a read must not invent an origin/chain.
         return ReviewMetadataJson.MergeExecutionContext(job.InputData, new JsonObject {
             ["workflowId"] = job.WorkflowRunId.ToString(), ["jobId"] = job.Id.ToString(), ["kind"] = job.Kind,
+            ["recommendationId"] = ev.WorkflowEventId.ToString(), ["recommendationRevision"] = ev.Revision,
+            ["resolvedProblemId"] = pid.ToString(), ["authorizedReportIds"] = Node(authorizedReports),
             ["report"] = original.DeepClone(), ["reportAnalysis"] = JsonNode.Parse(reportAnalysis),
-            ["problemAnalysis"] = consolidation, ["priorityAnalysis"] = JsonNode.Parse(ev.OutputData!),
+            ["problemAnalysis"] = consolidation, ["priorityAnalysis"] = JsonNode.Parse(reviewRecommendation),
             ["previousValidation"] = Obj(job.InputData)["previousValidation"]?.DeepClone(),
-            ["coordinatorFeedback"] = job.Reason + "\nPrevious findings: " + Text(Obj(job.InputData)["previousValidation"]?["issues"]),
+            ["coordinatorFeedback"] = origin == ReviewOrigins.System ? null :
+                job.Reason + "\nPrevious findings: " + Text(Obj(job.InputData)["previousValidation"]?["issues"]),
             ["context"] = new JsonObject {
+                ["complete"] = related.Count == authorizedReports.Length,
                 ["candidateProblems"] = Node(new[] { new { problemId = pid, problem.Title, problem.Description, problem.Category,
                     problem.Latitude, problem.Longitude, problem.Address, problem.Status, reportCount = related.Count } }),
                 ["relatedReports"] = Node(related), ["availableCrews"] = Node(crews) }
@@ -166,7 +189,7 @@ public partial class AiReviewService
         var runId = identity.WorkflowRunId;
         var run = await db.WorkflowRuns.FromSqlInterpolated($"SELECT * FROM workflow_runs WHERE workflow_run_id = {runId} FOR UPDATE").SingleAsync();
         var job = await db.AiReviewJobs.FromSqlInterpolated($"SELECT * FROM ai_review_jobs WHERE id = {id} FOR UPDATE").SingleAsync();
-        if (job.LeaseToken != token || job.Status != "RUNNING") return;
+        if (job.LeaseToken != token || job.Status != "RUNNING" || job.LeaseUntil == null || job.LeaseUntil <= DateTime.UtcNow) return;
         var ev = await db.WorkflowEvents.SingleAsync(e => e.WorkflowEventId == job.RecommendationId);
         if (ev.Revision != job.ExpectedRevision || run.CurrentRecommendationId != ev.WorkflowEventId)
         {
@@ -176,8 +199,23 @@ public partial class AiReviewService
         else
         {
             var validation = result?["safetyValidation"] as JsonObject ?? Failure(error ?? "Missing Agent 4 response.");
+            var receivedValidation = validation.DeepClone();
+            if (Text(validation["status"]) is not ("VALID" or "REVISION_REQUIRED" or "INVALID" or "ERROR" or "NOT_RUN"))
+                validation = Failure("Agent 4 returned an unknown or missing status.");
             var input = Obj(job.InputData);
             var recRaw = result?["priorityAnalysis"] as JsonObject;
+            // Bind passing output to the exact backend input, revision and Problem.
+            var bindingMatches = recRaw != null && Text(validation["recommendationId"]) == ev.WorkflowEventId.ToString()
+                && Id(input["recommendationId"]) == ev.WorkflowEventId
+                && input["recommendationRevision"]?.GetValue<int>() == ev.Revision
+                && validation["recommendationRevision"]?.GetValue<int>() == ev.Revision
+                && JsonNode.DeepEquals(validation["inputData"]?["priority_analysis"], recRaw)
+                && (job.Kind == "REGENERATE" ? Id(recRaw["problemId"]) == run.ProblemId :
+                    JsonNode.DeepEquals(recRaw, input["priorityAnalysis"]) && run.ProblemId.HasValue &&
+                    JsonNode.DeepEquals(NormalizeRecommendation(recRaw, run.ProblemId.Value), Obj(ev.OutputData)));
+            if (Text(validation["status"]) == "VALID" && (!bindingMatches || !HasPassingReviewEnvelope(validation, run.ReportId)
+                || !Id(recRaw?["recommendedCrewId"]).HasValue))
+                validation = Failure("Review does not match the exact recommendation input/revision. Retry validation.");
             var request = new ValidationContextRequest { WorkflowId = runId, JobId = id, ProblemId = run.ProblemId,
                 CrewId = Id(recRaw?["recommendedCrewId"] ?? Obj(ev.OutputData)["recommendedCrewId"]),
                 ReportIds = (input["problemAnalysis"]?["relatedReportIds"] as JsonArray ?? new()).Select(Id).Where(x => x.HasValue).Select(x => x!.Value).ToList() };
@@ -187,12 +225,10 @@ public partial class AiReviewService
                 await db.Crews.FromSqlInterpolated($"SELECT * FROM crews WHERE crew_id = {request.CrewId.Value} FOR UPDATE").ToListAsync();
             var evidenceIds = request.ReportIds.Append(run.ReportId).Distinct().ToArray();
             await db.Reports.FromSqlInterpolated($"SELECT * FROM reports WHERE report_id = ANY({evidenceIds}) ORDER BY report_id FOR UPDATE").ToListAsync();
-            if (Text(validation["status"]) == "VALID")
-            {
-                var fresh = await GetEvidenceAsync(request);
-                if (Text(fresh["evidenceHash"]) != Text(validation["evidenceHash"]))
-                    validation = Failure("Evidence changed during review; revalidate.", "REVISION_REQUIRED");
-            }
+            // RecordValidationAsync performs the single fresh evidence comparison
+            // under these locks; avoid fetching the same evidence twice.
+            if (!JsonNode.DeepEquals(receivedValidation, validation))
+                validation["agentReview"] = receivedValidation;
             var technicalFailure = error != null || recRaw == null || Text(validation["status"]) is "ERROR" or "NOT_RUN";
             var target = ev;
             if (job.Kind == "REGENERATE" && !technicalFailure && run.ProblemId.HasValue)
@@ -207,11 +243,12 @@ public partial class AiReviewService
                 run.CurrentRecommendationId = target.WorkflowEventId;
                 ev.ValidatedRevision = null;
             }
-            await RecordValidationAsync(run, target, validation, request, id);
+            validation = await RecordValidationAsync(run, target, validation, request, id);
+            technicalFailure = error != null || recRaw == null || Text(validation["status"]) is "ERROR" or "NOT_RUN";
             // Step 3: When Agent 4 validation passes, update the Problem's priority/status.
             // This was previously done inline in PersistInitialAsync but now only happens
             // after the worker produces a real VALID result.
-            if (Text(validation["status"]) == "VALID" && run.ProblemId.HasValue)
+            if (Text(validation["status"]) == "VALID" && target.ValidatedRevision == target.Revision && run.ProblemId.HasValue)
             {
                 var recOutput = Obj(target.OutputData);
                 var problem = await db.Problems.SingleOrDefaultAsync(p => p.ProblemId == run.ProblemId.Value);
