@@ -306,14 +306,28 @@ public class DispatchService : IDispatchService
         if (request.PriorityReasons != null) payload.PriorityReasons = request.PriorityReasons;
         if (request.RecommendationReason != null) payload.RecommendationReason = request.RecommendationReason.Trim();
         var before = ev.OutputData;
+        var beforeRevision = ev.Revision;
+        var beforeMetadata = ReviewMetadataJson.Read<RecommendationReviewMetadata>(ev.InputData);
         ev.OriginalOutputData ??= before;
         ev.OutputData = JsonSerializer.Serialize(payload, _jsonOptions);
         ev.Revision++; ev.ValidatedRevision = null; ev.EvidenceHash = null;
         ev.ValidationResult = AiReviewService.Failure("Recommendation edited. Run validation before approval.", "NOT_RUN").ToJsonString();
         ev.WorkflowRun.Status = "WAITING"; ev.WorkflowRun.CurrentStage = "VALIDATION";
+        var editedAt = DateTimeOffset.UtcNow;
+        // Provenance only in Step 2. The existing approval/revalidation policy is
+        // still enforced until the separate human-override approval step is implemented.
+        ev.InputData = ReviewMetadataJson.Write(ev.InputData, new RecommendationReviewMetadata {
+            SchemaVersion = ReviewMetadataJson.CurrentVersion, Origin = ReviewOrigins.HumanOverride,
+            Revision = ev.Revision, JobId = beforeMetadata?.JobId, ChainId = beforeMetadata?.ChainId,
+            EditedBy = adminUserId, EditedAt = editedAt });
+        AiReviewService.SetReviewProgress(ev.WorkflowRun, ev, "NEEDS_ATTENTION", "Recommendation edited; approval policy must be satisfied for this revision.");
         _context.ActivityHistories.Add(new ActivityHistory { ActivityId = Guid.NewGuid(), ActorUserId = adminUserId,
-            Action = "RECOMMENDATION_EDITED", RecommendationId = recommendationId, BeforeData = before!,
-            AfterData = ev.OutputData, Note = request.EditReason.Trim(), CreatedAt = DateTime.UtcNow });
+            Action = "RECOMMENDATION_EDITED", RecommendationId = recommendationId,
+            BeforeData = ReviewMetadataJson.Write(before, new RecommendationAuditMetadata {
+                SchemaVersion = ReviewMetadataJson.CurrentVersion, Revision = beforeRevision, Origin = beforeMetadata?.Origin }),
+            AfterData = ReviewMetadataJson.Write(ev.OutputData, new RecommendationAuditMetadata {
+                SchemaVersion = ReviewMetadataJson.CurrentVersion, Revision = ev.Revision, Origin = ReviewOrigins.HumanOverride }),
+            Note = request.EditReason.Trim(), CreatedAt = editedAt.UtcDateTime });
         await _context.SaveChangesAsync(); await tx.CommitAsync();
         return (await GetRecommendationByIdAsync(recommendationId))!;
     }

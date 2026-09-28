@@ -2,11 +2,11 @@
 Mehewara AI Service — Central Multi-Agent LangGraph Pipeline
 
 Authoritative LangGraph orchestration pipeline for the Mehewara Municipal System.
-Chains the 4 specialized agent stages sequentially:
+Runs Agents 1–3, then returns to ASP.NET for durable Agent 4 scheduling:
 - Node 1: Agent 1 (Report Analysis & Structuring) — Owner: Member 1
 - Node 2: Agent 2 (Problem Consolidation)          — Owner: Member 2
 - Node 3: Agent 3 (Prioritization & Crew)          — Owner: Member 3 (Plug-in ready)
-- Node 4: Agent 4 (Validation & Safety)            — Owner: Member 4 (Plug-in ready)
+- Agent 4 (Validation & Safety) runs in the separate backend-owned review job.
 """
 
 from __future__ import annotations
@@ -50,6 +50,7 @@ class MehewaraWorkflowState(TypedDict, total=False):
     Each agent reads from this state and attaches its output dictionary.
     """
     job_id: str | None
+    resolved_problem_id: str | None
     coordinator_feedback: str | None
     workflow_id: str
     raw_report: dict[str, Any]
@@ -301,8 +302,9 @@ async def agent_4_validation_node(state: MehewaraWorkflowState) -> dict[str, Any
 
 def build_mehewara_graph() -> StateGraph:
     """
-    Assembles and compiles the full multi-agent workflow graph.
-    Flow: START -> Agent 1 -> Agent 2 -> Agent 3 -> Agent 4 -> END
+    Compile the initial generation graph.
+    Flow: START -> Agent 1 -> Agent 2 -> Agent 3 -> END.
+    ASP.NET persists the response and enqueues Agent 4 atomically.
     """
     builder = StateGraph(MehewaraWorkflowState)
 
@@ -315,9 +317,7 @@ def build_mehewara_graph() -> StateGraph:
     builder.set_entry_point("agent_1_report_analysis")
     builder.add_edge("agent_1_report_analysis", "agent_2_problem_consolidation")
     builder.add_edge("agent_2_problem_consolidation", "agent_3_prioritization")
-    builder.add_node("agent_4_validation", agent_4_validation_node)
-    builder.add_edge("agent_3_prioritization", "agent_4_validation")
-    builder.add_edge("agent_4_validation", END)
+    builder.add_edge("agent_3_prioritization", END)
 
     return builder.compile()
 
@@ -358,8 +358,11 @@ async def run_mehewara_workflow(
 
     return {
         "workflow_id": str(workflow_id),
-        "status": "failed" if final_state.get("error") or (final_state.get("safety_validation") or {}).get("status") == "ERROR" else "waiting",
-        "safety_validation": final_state.get("safety_validation"),
+        "status": "failed" if final_state.get("error") else "waiting",
+        "safety_validation": {
+            "status": "NOT_RUN",
+            "issues": ["Agent 4 awaits backend persistence and durable review scheduling."],
+        },
         "report_analysis": structured_report,
         "problem_analysis": problem_analysis,
         "priority_analysis": priority_analysis,

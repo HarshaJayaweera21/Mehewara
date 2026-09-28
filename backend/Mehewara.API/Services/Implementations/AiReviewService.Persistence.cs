@@ -22,6 +22,16 @@ public partial class AiReviewService
         ["policyVersion"] = "agent4-v1"
     };
 
+    internal static void SetReviewProgress(WorkflowRun run, WorkflowEvent? rec, string progress,
+        string? attentionReason = null, AiReviewJob? job = null)
+    {
+        run.StateData = ReviewMetadataJson.Write(run.StateData, new WorkflowReviewMetadata {
+            SchemaVersion = ReviewMetadataJson.CurrentVersion,
+            RecommendationId = rec?.WorkflowEventId, Revision = rec?.Revision,
+            JobId = job?.Id, ChainId = ReviewMetadataJson.Read<ReviewJobMetadata>(job?.InputData)?.ChainId,
+            Progress = progress, AttentionReason = attentionReason, UpdatedAt = DateTimeOffset.UtcNow });
+    }
+
     private WorkflowEvent Record(WorkflowRun run, string stage, string agent, JsonNode? output)
     {
         var ev = new WorkflowEvent { WorkflowEventId = Guid.NewGuid(), WorkflowRunId = run.WorkflowRunId,
@@ -42,6 +52,12 @@ public partial class AiReviewService
         ev.InputData = new JsonObject { ["recommendationId"] = rec?.WorkflowEventId.ToString(),
             ["revision"] = rec?.Revision, ["jobId"] = jobId?.ToString(),
             ["reviewInput"] = validation["inputData"]?.DeepClone() }.ToJsonString(Json);
+        var job = jobId.HasValue ? await db.AiReviewJobs.SingleAsync(j => j.Id == jobId.Value) : null;
+        ev.InputData = ReviewMetadataJson.Write(ev.InputData, new ValidationReviewMetadata {
+            SchemaVersion = ReviewMetadataJson.CurrentVersion, RecommendationId = rec?.WorkflowEventId,
+            Revision = rec?.Revision, JobId = jobId,
+            ChainId = ReviewMetadataJson.Read<ReviewJobMetadata>(job?.InputData)?.ChainId,
+            WorkerAttempt = job?.Attempts });
         ev.ToolResults = validation["toolResults"]?.ToJsonString(Json);
         ev.ValidationResult = validation.ToJsonString(Json);
         if (rec != null)
@@ -61,6 +77,11 @@ public partial class AiReviewService
         run.Status = status == "ERROR" ? "FAILED" : "WAITING";
         run.CompletedAt = null;
         run.UpdatedAt = DateTime.UtcNow;
+        var boundValidation = status == "VALID" && rec != null && rec.ValidatedRevision == rec.Revision;
+        var issues = string.Join("; ", (validation["issues"] as JsonArray ?? new()).Select(Text));
+        SetReviewProgress(run, rec, boundValidation ? "VALIDATED" : "NEEDS_ATTENTION",
+            boundValidation ? null : string.IsNullOrWhiteSpace(issues)
+                ? "Validation is incomplete or evidence could not be bound to this revision." : issues, job);
     }
 
     public async Task PersistInitialAsync(Guid runId, string response)
@@ -132,6 +153,9 @@ public partial class AiReviewService
         {
             rec = Record(run, "PRIORITIZATION", "Priority & Crew Recommendation Agent", NormalizeRecommendation(recRaw, problem.ProblemId));
             rec.OriginalOutputData = recRaw.ToJsonString(Json);
+            rec.InputData = ReviewMetadataJson.Write(rec.InputData, new RecommendationReviewMetadata {
+                SchemaVersion = ReviewMetadataJson.CurrentVersion, Origin = ReviewOrigins.AiGenerated,
+                Revision = rec.Revision });
             run.CurrentRecommendationId = rec.WorkflowEventId;
             request.ProblemId = problem.ProblemId;
             // Preserve Agent 3's repair estimate independently of Agent 4's validation outcome.

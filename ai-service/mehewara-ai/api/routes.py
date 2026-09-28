@@ -3,7 +3,7 @@ Mehewara AI Service — API Routes
 
 Defines the FastAPI router with:
 - GET  /internal/ai/health     → service healthcheck
-- POST /internal/ai/workflows  → workflow trigger endpoint (executes Agent 1)
+- POST /internal/ai/workflows  → generation endpoint (Agents 1–3)
 """
 
 from __future__ import annotations
@@ -62,10 +62,11 @@ async def get_workflow_diagram() -> dict[str, str]:
 async def trigger_workflow(request: WorkflowTriggerRequest) -> WorkflowTriggerResponse:
     """
     Receive a workflow trigger from the ASP.NET Core backend and execute
-    the unified LangGraph multi-agent pipeline (Agent 1 -> Agent 2 -> END).
+    the generation pipeline (Agent 1 -> Agent 2 -> Agent 3 -> END).
 
     Stage 1 (Agent 1): Extracts evidence-grounded facts, maps municipal assets, checks omissions.
     Stage 2 (Agent 2): Clusters incoming report into existing Problems or generates a new Problem.
+    Stage 3 (Agent 3): Recommends priority and crew. ASP.NET persists and queues Agent 4.
     """
     logger.info(
         "Executing unified Mehewara multi-agent workflow %s (Report %s, Reported Category: %s)",
@@ -103,7 +104,7 @@ async def trigger_workflow(request: WorkflowTriggerRequest) -> WorkflowTriggerRe
             workflow_id=request.workflow_id,
             status=result.get("status", "failed"),
             safety_validation=result.get("safety_validation"),
-            message=f"Unified multi-agent workflow completed for report {request.report.id}",
+            message=f"Generation returned for report {request.report.id}; Agent 4 has not run in this request.",
             report_analysis=report_analysis,
             problem_analysis=problem_analysis,
             priority_analysis=priority_analysis,

@@ -30,13 +30,24 @@ public partial class AiReviewService
         var ev = await LockRecommendationAsync(recommendationId, request.ExpectedRevision);
         var job = new AiReviewJob { Id = Guid.NewGuid(), WorkflowRunId = runId, RecommendationId = recommendationId,
             ExpectedRevision = ev.Revision, RequestId = request.RequestId, RequestedBy = actor, Kind = kind, Reason = request.Reason.Trim() };
-        job.InputData = new JsonObject { ["previousValidation"] = Obj(ev.ValidationResult) }.ToJsonString(Json);
+        var previousValidation = Obj(ev.ValidationResult);
+        job.InputData = ReviewMetadataJson.Write(
+            new JsonObject { ["previousValidation"] = previousValidation }.ToJsonString(Json),
+            new ReviewJobMetadata {
+                SchemaVersion = ReviewMetadataJson.CurrentVersion, ChainId = job.Id,
+                Origin = ReviewOrigins.Coordinator, CorrectionCount = 0,
+                Feedback = new ReviewFeedbackMetadata {
+                    Status = Text(previousValidation["status"]) is { Length: > 0 } status ? status : "NOT_RUN",
+                    Issues = (previousValidation["issues"] as JsonArray ?? new()).Select(Text).ToList(),
+                    CoordinatorReason = job.Reason }
+            });
         db.AiReviewJobs.Add(job);
         ev.ValidatedRevision = null;
         ev.ValidationResult = Failure("AI review is queued.", "NOT_RUN").ToJsonString(Json);
         ev.WorkflowRun.Status = "RUNNING";
         ev.WorkflowRun.CurrentStage = kind == "REGENERATE" ? "PRIORITIZATION" : "VALIDATION";
         ev.WorkflowRun.CompletedAt = null;
+        SetReviewProgress(ev.WorkflowRun, ev, "QUEUED", job: job);
         await db.SaveChangesAsync();
         await tx.CommitAsync();
         return job;
@@ -98,7 +109,9 @@ public partial class AiReviewService
         consolidation["decision"] = "LINK_EXISTING"; consolidation["problemId"] = pid.ToString(); consolidation["newProblem"] = null;
         consolidation["relatedReportIds"] = Node(related.Select(r => r.reportId));
         consolidation["updatedProblemDescription"] = problem.Description;
-        return new JsonObject {
+        // Keep all saved metadata while replacing stale execution evidence. Legacy jobs
+        // without metadata retain that absence; a read must not invent an origin/chain.
+        return ReviewMetadataJson.MergeExecutionContext(job.InputData, new JsonObject {
             ["workflowId"] = job.WorkflowRunId.ToString(), ["jobId"] = job.Id.ToString(), ["kind"] = job.Kind,
             ["report"] = original.DeepClone(), ["reportAnalysis"] = JsonNode.Parse(reportAnalysis),
             ["problemAnalysis"] = consolidation, ["priorityAnalysis"] = JsonNode.Parse(ev.OutputData!),
@@ -108,7 +121,7 @@ public partial class AiReviewService
                 ["candidateProblems"] = Node(new[] { new { problemId = pid, problem.Title, problem.Description, problem.Category,
                     problem.Latitude, problem.Longitude, problem.Address, problem.Status, reportCount = related.Count } }),
                 ["relatedReports"] = Node(related), ["availableCrews"] = Node(crews) }
-        };
+        });
     }
 
     public async Task ExecuteAsync(AiReviewJob claimed, CancellationToken stopping)
@@ -158,6 +171,7 @@ public partial class AiReviewService
         if (ev.Revision != job.ExpectedRevision || run.CurrentRecommendationId != ev.WorkflowEventId)
         {
             job.Status = "FAILED"; job.Error = "Result discarded because its recommendation changed.";
+            // A stale job must not overwrite tracking for the current recommendation.
         }
         else
         {
@@ -186,7 +200,10 @@ public partial class AiReviewService
                 target = Record(run, "PRIORITIZATION", "Priority & Crew Recommendation Agent", NormalizeRecommendation(recRaw!, run.ProblemId.Value));
                 target.OriginalOutputData = recRaw!.ToJsonString(Json);
                 target.PreviousRecommendationId = ev.WorkflowEventId;
-                target.InputData = job.InputData;
+                target.InputData = ReviewMetadataJson.Write(job.InputData, new RecommendationReviewMetadata {
+                    SchemaVersion = ReviewMetadataJson.CurrentVersion, Origin = ReviewOrigins.AiGenerated,
+                    Revision = target.Revision, JobId = job.Id,
+                    ChainId = ReviewMetadataJson.Read<ReviewJobMetadata>(job.InputData)?.ChainId });
                 run.CurrentRecommendationId = target.WorkflowEventId;
                 ev.ValidatedRevision = null;
             }
