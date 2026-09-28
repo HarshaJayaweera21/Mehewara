@@ -298,6 +298,12 @@ faiss_index/
 # web/mehewara-web
 # ============================================================
 
+# Keep local Mehewara asset catalog metadata out of GitHub.
+web/mehewara-web/public/assets/mehewara/manifest.json
+web/mehewara-web/public/assets/mehewara/verification.json
+web/mehewara-web/public/assets/mehewara/contrast.json
+web/mehewara-web/public/assets/mehewara/generation-prompts.json
+
 # Dependencies
 node_modules/
 **/node_modules/

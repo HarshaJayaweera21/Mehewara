@@ -3,6 +3,8 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import { ProblemsPage } from './pages/problems';
 import { UncertainReportsPage } from './pages/problems/UncertainReportsPage';
+import { DispatchDashboardPage } from './pages/dispatch';
+import { CrewListPage } from './pages/crews';
 import { LandingPage } from './pages/landing';
 import type { User } from './types/auth';
 
@@ -43,7 +45,9 @@ function App() {
     }
   });
 
-  const [viewMode, setViewMode] = useState<'landing' | 'reports' | 'problems' | 'uncertain-reports' | 'profile' | 'login'>(() => {
+  const [viewMode, setViewMode] = useState<
+    'landing' | 'reports' | 'problems' | 'uncertain-reports' | 'dispatch' | 'crews' | 'profile' | 'login'
+  >(() => {
     try {
       const savedToken = localStorage.getItem('mehewara_token');
       if (isTokenExpired(savedToken)) {
@@ -214,6 +218,8 @@ function App() {
         onNavigateToLanding={() => setViewMode('landing')}
         onOpenProfile={() => setViewMode('profile')}
         onNavigateToUncertainReports={() => setViewMode('uncertain-reports')}
+        onNavigateToDispatch={() => setViewMode('dispatch')}
+        onNavigateToCrews={() => setViewMode('crews')}
       />
     );
   }
@@ -228,6 +234,36 @@ function App() {
         onNavigateToReports={() => setViewMode('reports')}
         onLogout={handleLogout}
         onOpenProfile={() => setViewMode('profile')}
+      />
+    );
+  }
+
+  // 4c. Authenticated Dispatch Queue View (Agent 3 Prioritization & Dispatch HITL)
+  if (viewMode === 'dispatch') {
+    return (
+      <DispatchDashboardPage
+        currentUser={currentUser}
+        token={token}
+        onLogout={handleLogout}
+        onOpenProfile={() => setViewMode('profile')}
+        onNavigateToProblems={() => setViewMode('problems')}
+        onNavigateToCrews={() => setViewMode('crews')}
+        onNavigateToReports={() => setViewMode('reports')}
+      />
+    );
+  }
+
+  // 4d. Authenticated Municipal Crews Management View
+  if (viewMode === 'crews') {
+    return (
+      <CrewListPage
+        currentUser={currentUser}
+        token={token}
+        onLogout={handleLogout}
+        onOpenProfile={() => setViewMode('profile')}
+        onNavigateToProblems={() => setViewMode('problems')}
+        onNavigateToDispatch={() => setViewMode('dispatch')}
+        onNavigateToReports={() => setViewMode('reports')}
       />
     );
   }

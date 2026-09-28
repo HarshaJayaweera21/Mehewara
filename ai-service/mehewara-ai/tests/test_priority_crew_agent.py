@@ -1,0 +1,567 @@
+"""
+Mehewara AI Service — Unit & Integration Tests for Agent 3 (Priority & Crew Recommendation Agent)
+
+Tests all criteria outlined in Rubric §9.1 and member_3_development_plan.md:
+- Pydantic schema boundaries (priority score 0-100, enums, required fields)
+- Allow-listed crew tools (get_crew_capabilities, check_crew_availability, get_recent_jobs)
+- Deterministic prioritization heuristics (CRITICAL, HIGH, MEDIUM, LOW)
+- Category to CrewType matching
+- Busy crew constraint detection
+- Safe failure & graceful bypass when Agent 2 is UNCERTAIN
+- End-to-end execution with mocked LLM
+"""
+
+from __future__ import annotations
+
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
+import pytest
+from pydantic import ValidationError
+
+from agents.priority_crew_agent import (
+    _generate_deterministic_fallback,
+    run_priority_recommendation,
+)
+from schemas.priority_recommendation import (
+    CrewType,
+    PriorityLevel,
+    PriorityRecommendationInput,
+    PriorityRecommendationOutput,
+)
+from tools.crew_tools import (
+    check_crew_availability,
+    get_crew_capabilities,
+    get_recent_jobs,
+    reset_workflow_crew_context,
+    set_workflow_crew_context,
+)
+from workflow.mehewara_workflow import agent_3_prioritization_node
+
+
+# ────────────────────────────────────────────────────────────────
+# 1. Pydantic Schema Validation Tests
+# ────────────────────────────────────────────────────────────────
+
+def test_priority_recommendation_output_valid():
+    """Verify that a well-formed payload validates successfully."""
+    payload = {
+        "problemId": str(uuid4()),
+        "priority": "HIGH",
+        "priorityScore": 75,
+        "priorityReasons": ["Substantial stormwater flooding across road", "Multiple resident reports"],
+        "requiredCrewType": "DRAINAGE",
+        "recommendedCrewId": str(uuid4()),
+        "recommendedCrewName": "Drainage Unit Alpha",
+        "recommendationReason": "Drainage Unit Alpha is specialized and currently available.",
+    }
+    model = PriorityRecommendationOutput(**payload)
+    assert model.priority == PriorityLevel.HIGH
+    assert model.priority_score == 75
+    assert model.required_crew_type == CrewType.DRAINAGE
+    assert model.recommended_crew_name == "Drainage Unit Alpha"
+
+
+def test_priority_score_boundaries():
+    """Verify that scores < 0 or > 100 are rejected by Pydantic."""
+    base = {
+        "problemId": str(uuid4()),
+        "priority": "MEDIUM",
+        "priorityReasons": ["Reason"],
+        "requiredCrewType": "ROAD",
+        "recommendedCrewId": str(uuid4()),
+        "recommendationReason": "Valid reason for dispatch.",
+    }
+
+    # Negative score should fail
+    with pytest.raises(ValidationError):
+        PriorityRecommendationOutput(**base, priorityScore=-1)
+
+    # Score > 100 should fail
+    with pytest.raises(ValidationError):
+        PriorityRecommendationOutput(**base, priorityScore=105)
+
+    # Valid score 0 and 100 should pass
+    m0 = PriorityRecommendationOutput(**base, priorityScore=0)
+    assert m0.priority_score == 0
+
+    m100 = PriorityRecommendationOutput(**base, priorityScore=100)
+    assert m100.priority_score == 100
+
+
+def test_invalid_enums():
+    """Verify that invalid priority levels or crew types are rejected."""
+    base = {
+        "problemId": str(uuid4()),
+        "priorityScore": 50,
+        "priorityReasons": ["Reason"],
+        "recommendedCrewId": str(uuid4()),
+        "recommendationReason": "Valid reason for dispatch.",
+    }
+
+    with pytest.raises(ValidationError):
+        PriorityRecommendationOutput(**base, priority="URGENT", requiredCrewType="ROAD")
+
+    with pytest.raises(ValidationError):
+        PriorityRecommendationOutput(**base, priority="HIGH", requiredCrewType="PLUMBING")
+
+
+# ────────────────────────────────────────────────────────────────
+# 2. Allow-Listed Crew Tools Tests
+# ────────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def mock_crews_context():
+    """Standard seeded crew context for testing."""
+    return [
+        {
+            "crewId": "c0000000-0000-0000-0000-000000000001",
+            "name": "Drainage Rapid Response Unit Alpha",
+            "crewType": "DRAINAGE",
+            "status": "AVAILABLE",
+            "activeWorkOrderId": None,
+        },
+        {
+            "crewId": "c0000000-0000-0000-0000-000000000002",
+            "name": "Road Maintenance Crew Bravo",
+            "crewType": "ROAD",
+            "status": "AVAILABLE",
+            "activeWorkOrderId": None,
+        },
+        {
+            "crewId": "c0000000-0000-0000-0000-000000000004",
+            "name": "Electrical Services Delta",
+            "crewType": "ELECTRICAL",
+            "status": "BUSY",
+            "activeWorkOrderId": "ff000000-0000-0000-0000-000000000001",
+        },
+    ]
+
+
+def test_crew_tools(mock_crews_context):
+    """Verify allow-listed tools query context correctly."""
+    token = set_workflow_crew_context(mock_crews_context)
+    try:
+        # 1. get_crew_capabilities
+        caps = get_crew_capabilities.invoke({})
+        assert len(caps) == 3
+        assert any(c["name"] == "Drainage Rapid Response Unit Alpha" for c in caps)
+
+        # 2. check_crew_availability (all available)
+        avail = check_crew_availability.invoke({})
+        assert len(avail) == 2
+        assert all(c["status"] == "AVAILABLE" for c in avail)
+
+        # 3. check_crew_availability (filtered by type)
+        drainage_avail = check_crew_availability.invoke({"crew_type": "DRAINAGE"})
+        assert len(drainage_avail) == 1
+        assert drainage_avail[0]["crewType"] == "DRAINAGE"
+
+        electrical_avail = check_crew_availability.invoke({"crew_type": "ELECTRICAL"})
+        assert len(electrical_avail) == 0  # Delta is BUSY
+
+        # 4. get_recent_jobs
+        busy_jobs = get_recent_jobs.invoke({"crew_id": "c0000000-0000-0000-0000-000000000004"})
+        assert len(busy_jobs) == 1
+        assert busy_jobs[0]["workOrderId"] == "ff000000-0000-0000-0000-000000000001"
+
+        free_jobs = get_recent_jobs.invoke({"crew_id": "c0000000-0000-0000-0000-000000000001"})
+        assert len(free_jobs) == 0
+    finally:
+        reset_workflow_crew_context(token)
+
+
+# ────────────────────────────────────────────────────────────────
+# 3. Prioritization Logic & Heuristics Tests
+# ────────────────────────────────────────────────────────────────
+
+def test_critical_priority_evaluation(mock_crews_context):
+    """Severe hazard (live wire, hospital blocked) evaluates to CRITICAL with score >= 85."""
+    problem = {
+        "problemId": str(uuid4()),
+        "title": "Live electrical wire sparking near hospital entrance",
+        "description": "Fallen power cable sparking in floodwater blocking emergency ambulance access.",
+        "category": "ELECTRICAL",
+        "reportCount": 2,
+    }
+    result = _generate_deterministic_fallback(problem, None, mock_crews_context)
+    assert result.priority == PriorityLevel.CRITICAL
+    assert result.priority_score >= 85
+    assert result.required_crew_type == CrewType.ELECTRICAL
+
+
+def test_high_priority_evaluation(mock_crews_context):
+    """Major road flooding or multiple complaints evaluates to HIGH with score 60-84."""
+    problem = {
+        "problemId": str(uuid4()),
+        "title": "Blocked roadside drain causing severe road flooding",
+        "description": "Overflowing stormwater drain with multiple complaints on Galle Road.",
+        "category": "DRAINAGE",
+        "reportCount": 4,
+    }
+    result = _generate_deterministic_fallback(problem, None, mock_crews_context)
+    assert result.priority == PriorityLevel.HIGH
+    assert 60 <= result.priority_score <= 84
+    assert result.required_crew_type == CrewType.DRAINAGE
+    assert result.recommended_crew_id == "c0000000-0000-0000-0000-000000000001"
+    assert "Alpha" in (result.recommended_crew_name or "")
+
+
+def test_medium_priority_evaluation(mock_crews_context):
+    """Localized pothole or illegal dump evaluates to MEDIUM with score 30-59."""
+    problem = {
+        "problemId": str(uuid4()),
+        "title": "Pothole on residential by-lane",
+        "description": "Deep asphalt pothole causing bumpy travel for three-wheelers.",
+        "category": "ROAD",
+        "reportCount": 1,
+    }
+    result = _generate_deterministic_fallback(problem, None, mock_crews_context)
+    assert result.priority == PriorityLevel.MEDIUM
+    assert 30 <= result.priority_score <= 59
+    assert result.required_crew_type == CrewType.ROAD
+    assert result.recommended_crew_id == "c0000000-0000-0000-0000-000000000002"
+
+
+def test_low_priority_evaluation(mock_crews_context):
+    """Minor cosmetic issue evaluates to LOW with score < 30."""
+    problem = {
+        "problemId": str(uuid4()),
+        "title": "Faded zebra crossing markings",
+        "description": "Paint markings slightly faded along school crosswalk.",
+        "category": "ROAD",
+        "reportCount": 1,
+    }
+    result = _generate_deterministic_fallback(problem, None, mock_crews_context)
+    assert result.priority == PriorityLevel.LOW
+    assert result.priority_score < 30
+
+
+def test_busy_crew_constraint_handling(mock_crews_context):
+    """When matching crew is BUSY, recommendation reason explicitly flags the busy status."""
+    problem = {
+        "problemId": str(uuid4()),
+        "title": "Streetlight failure along dark junction",
+        "description": "Inoperable streetlights at dark intersection.",
+        "category": "ELECTRICAL",
+        "reportCount": 1,
+    }
+    result = _generate_deterministic_fallback(problem, None, mock_crews_context)
+    assert result.required_crew_type == CrewType.ELECTRICAL
+    assert "BUSY" in result.recommendation_reason
+
+
+# ────────────────────────────────────────────────────────────────
+# 4. Safe Failure & Node Bypass Tests (ADR-06)
+# ────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_agent_3_node_uncertain_bypass():
+    """Verify Agent 3 safely bypasses prioritization when Agent 2 outputs UNCERTAIN."""
+    state = {
+        "workflow_id": str(uuid4()),
+        "raw_report": {"id": str(uuid4()), "category": "DRAINAGE"},
+        "problem_analysis": {
+            "decision": "UNCERTAIN",
+            "summary": "Report evidence is conflicting and ambiguous.",
+            "problemId": None,
+        },
+        "available_crews": [],
+    }
+
+    result = await agent_3_prioritization_node(state)
+    assert result.get("priority_analysis") is None
+    assert result.get("recommendations") == []
+
+
+@pytest.mark.asyncio
+async def test_agent_3_node_missing_agent2():
+    """Verify Agent 3 safely handles missing Agent 2 output."""
+    state = {
+        "workflow_id": str(uuid4()),
+        "raw_report": {"id": str(uuid4())},
+        "problem_analysis": None,
+    }
+
+    result = await agent_3_prioritization_node(state)
+    assert result.get("priority_analysis") is None
+    assert result.get("recommendations") == []
+
+
+# ────────────────────────────────────────────────────────────────
+# 5. Mocked LLM Execution Test
+# ────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_run_priority_recommendation_mocked_llm(mock_crews_context):
+    """Verify run_priority_recommendation execution using a mocked LLM response."""
+    prob_id = str(uuid4())
+    mock_output = PriorityRecommendationOutput(
+        problemId=prob_id,
+        priority=PriorityLevel.HIGH,
+        priorityScore=80,
+        priorityReasons=["Major arterial road drainage blocked", "Potential flood risk"],
+        requiredCrewType=CrewType.DRAINAGE,
+        recommendedCrewId="c0000000-0000-0000-0000-000000000001",
+        recommendedCrewName="Drainage Rapid Response Unit Alpha",
+        recommendationReason="Unit Alpha is specialized for drainage and is currently available.",
+    )
+
+    with patch("agents.priority_crew_agent.is_llm_configured", return_value=True), \
+         patch("agents.priority_crew_agent.get_llm") as mock_get_llm:
+        mock_structured_llm = AsyncMock()
+        mock_structured_llm.ainvoke.return_value = mock_output
+        mock_llm_instance = MagicMock()
+        mock_llm_instance.with_structured_output.return_value = mock_structured_llm
+        mock_get_llm.return_value = mock_llm_instance
+
+        res = await run_priority_recommendation(
+            problem_data={"problemId": prob_id, "title": "Blocked drain", "category": "DRAINAGE"},
+            structured_report={"observedIssue": "Drainage blocked"},
+            available_crews=mock_crews_context,
+        )
+
+        assert res.priority == PriorityLevel.HIGH
+        assert res.priority_score == 80
+        assert res.required_crew_type == CrewType.DRAINAGE
+        assert res.recommended_crew_id == "c0000000-0000-0000-0000-000000000001"
+
+
+# ────────────────────────────────────────────────────────────────
+# 6. Concurrency & Architectural Guardrail Tests
+# ────────────────────────────────────────────────────────────────
+
+def test_crew_tools_defensive_casing_and_normalization():
+    """Verify crew tools handle variations in casing (snake_case, camelCase) and status."""
+    raw_crews = [
+        {
+            "crew_id": "c1111111-1111-1111-1111-111111111111",
+            "crew_name": "Waste Management Team A",
+            "crew_type": "waste",
+            "status": "available",
+            "active_work_order_id": None,
+        },
+        {
+            "id": "c2222222-2222-2222-2222-222222222222",
+            "name": "Road Repair Team B",
+            "crewType": "Road",
+            "status": "busy",
+            "activeWorkOrderId": "w9999999-9999-9999-9999-999999999999",
+        },
+    ]
+
+    token = set_workflow_crew_context(raw_crews)
+    try:
+        caps = get_crew_capabilities.invoke({})
+        assert len(caps) == 2
+        assert caps[0]["crewId"] == "c1111111-1111-1111-1111-111111111111"
+        assert caps[0]["name"] == "Waste Management Team A"
+        assert caps[0]["crewType"] == "WASTE"
+        assert caps[0]["status"] == "AVAILABLE"
+        assert caps[0]["activeWorkOrderId"] is None
+
+        assert caps[1]["crewId"] == "c2222222-2222-2222-2222-222222222222"
+        assert caps[1]["name"] == "Road Repair Team B"
+        assert caps[1]["crewType"] == "ROAD"
+        assert caps[1]["status"] == "BUSY"
+        assert caps[1]["activeWorkOrderId"] == "w9999999-9999-9999-9999-999999999999"
+
+        # Check availability
+        avail = check_crew_availability.invoke({"crew_type": "WASTE"})
+        assert len(avail) == 1
+        assert avail[0]["crewId"] == "c1111111-1111-1111-1111-111111111111"
+
+        avail_road = check_crew_availability.invoke({"crew_type": "ROAD"})
+        assert len(avail_road) == 0  # Busy
+
+        # Recent jobs
+        jobs = get_recent_jobs.invoke({"crew_id": "c2222222-2222-2222-2222-222222222222"})
+        assert len(jobs) == 1
+        assert jobs[0]["workOrderId"] == "w9999999-9999-9999-9999-999999999999"
+    finally:
+        reset_workflow_crew_context(token)
+
+
+def test_zero_database_dependency_guardrail():
+    """
+    Architectural Guardrail Test:
+    Ensures that FastAPI AI Service strictly maintains zero direct PostgreSQL database connections:
+    1. No SQL drivers/ORMs imported (psycopg, psycopg2, asyncpg, sqlalchemy).
+    2. crew_tools.py and priority_crew_agent.py contain no direct SQL strings or queries.
+    3. Tools operate purely in-memory against state["available_crews"].
+    """
+    import inspect
+    import sys
+    import tools.crew_tools as ct
+    import agents.priority_crew_agent as pa
+
+    forbidden_modules = ["psycopg", "psycopg2", "asyncpg", "sqlalchemy", "tortoise", "peewee"]
+    for mod in forbidden_modules:
+        assert mod not in sys.modules, f"Architectural violation: Forbidden DB library '{mod}' is loaded."
+
+    crew_tools_source = inspect.getsource(ct)
+    agent_source = inspect.getsource(pa)
+
+    forbidden_keywords = [
+        "SELECT ",
+        "INSERT INTO",
+        "UPDATE ",
+        "DELETE FROM",
+        "cursor.execute",
+        "session.execute",
+        "connect(",
+        "psycopg",
+        "sqlalchemy",
+    ]
+    for kw in forbidden_keywords:
+        assert kw not in crew_tools_source, f"Architectural violation: SQL keyword '{kw}' found in crew_tools.py."
+        assert kw not in agent_source, f"Architectural violation: SQL keyword '{kw}' found in priority_crew_agent.py."
+
+
+def test_calculate_crew_proximity_and_duration_tools():
+    """Verify that calculate_crew_proximity and estimate_remediation_duration compute valid metrics."""
+    from tools.crew_tools import calculate_crew_proximity, estimate_remediation_duration
+
+    # Colombo Municipal Depot to Town Hall (~1.5 km)
+    prox = calculate_crew_proximity.invoke({
+        "crew_lat": 6.9271,
+        "crew_lon": 79.8612,
+        "problem_lat": 6.9147,
+        "problem_lon": 79.8653,
+    })
+    assert "roadDistanceKm" in prox
+    assert prox["roadDistanceKm"] > 0
+    assert "estimatedTravelMinutes" in prox
+    assert prox["estimatedTravelMinutes"] >= 2
+
+    # Waste problem quick win estimation
+    dur = estimate_remediation_duration.invoke({
+        "category": "WASTE",
+        "priority": "LOW",
+        "report_count": 1,
+    })
+    assert dur["estimatedDurationMinutes"] <= 45
+    assert dur["isQuickWin"] is True
+
+    # Critical road issue multi-hour estimation
+    dur_crit = estimate_remediation_duration.invoke({
+        "category": "ROAD",
+        "priority": "CRITICAL",
+        "report_count": 4,
+    })
+    assert dur_crit["estimatedDurationMinutes"] > 100
+    assert dur_crit["isQuickWin"] is False
+
+
+@pytest.mark.asyncio
+async def test_deterministic_fallback_populates_spatial_and_duration():
+    """Verify that Agent 3 fallback populates estimatedDurationMinutes and dispatchStrategy."""
+    from agents.priority_crew_agent import run_priority_recommendation
+    from unittest.mock import patch
+
+    with patch("agents.priority_crew_agent.is_llm_configured", return_value=False):
+        prob = {
+            "problemId": "550e8400-e29b-41d4-a716-446655440000",
+            "title": "Blocked storm drain",
+            "description": "Severe street flooding",
+            "category": "DRAINAGE",
+            "latitude": 6.9275,
+            "longitude": 79.8615,
+            "reportCount": 2,
+        }
+        crews = [
+            {
+                "crewId": "c1111111-1111-1111-1111-111111111111",
+                "name": "Drainage Squad Alpha",
+                "crewType": "DRAINAGE",
+                "status": "AVAILABLE",
+                "latitude": 6.9271,
+                "longitude": 79.8612,
+            }
+        ]
+        out = await run_priority_recommendation(prob, None, crews)
+        assert out.estimated_duration_minutes > 0
+        assert out.distance_km is not None
+        assert out.distance_km < 1.0
+        assert out.dispatch_strategy in ["IMMEDIATE_QUICK_WIN", "STANDARD_DISPATCH", "URGENT_CRITICAL_PRIORITY"]
+
+
+@pytest.mark.asyncio
+async def test_agent4_regeneration_feedback_excludes_rejected_crew():
+    """Verify Agent 3 blacklists rejected crew and picks alternative available crew."""
+    from agents.priority_crew_agent import run_priority_recommendation
+    from unittest.mock import patch
+
+    with patch("agents.priority_crew_agent.is_llm_configured", return_value=False):
+        prob = {
+            "problemId": "550e8400-e29b-41d4-a716-446655440001",
+            "title": "Severe road pothole",
+            "description": "Hazardous road crater",
+            "category": "ROAD",
+            "latitude": 6.9275,
+            "longitude": 79.8615,
+            "reportCount": 2,
+        }
+        crews = [
+            {
+                "crewId": "crew-road-1",
+                "name": "Road Crew 1",
+                "crewType": "ROAD",
+                "status": "AVAILABLE",
+                "latitude": 6.9271,
+                "longitude": 79.8612,
+            },
+            {
+                "crewId": "crew-road-2",
+                "name": "Road Crew 2",
+                "crewType": "ROAD",
+                "status": "AVAILABLE",
+                "latitude": 6.9280,
+                "longitude": 79.8620,
+            },
+        ]
+        validation_feedback = {
+            "status": "REVISION_REQUIRED",
+            "retry_count": 1,
+            "rejected_crew_ids": ["crew-road-1"],
+            "issues": ["Crew 1 was disqualified by safety constraint."],
+        }
+        out = await run_priority_recommendation(prob, None, crews, validation_feedback=validation_feedback)
+        assert out.recommended_crew_id == "crew-road-2"
+        assert out.recommended_crew_name == "Road Crew 2"
+        assert "Agent 4" in out.recommendation_reason
+
+
+@pytest.mark.asyncio
+async def test_agent4_regeneration_feedback_exhausts_crews():
+    """When all available crews are rejected by Agent 4, output recommendedCrewId is NONE."""
+    from agents.priority_crew_agent import run_priority_recommendation
+    from unittest.mock import patch
+
+    with patch("agents.priority_crew_agent.is_llm_configured", return_value=False):
+        prob = {
+            "problemId": "550e8400-e29b-41d4-a716-446655440002",
+            "title": "Fallen tree blocking lane",
+            "description": "Debris on road",
+            "category": "ENVIRONMENT",
+            "reportCount": 1,
+        }
+        crews = [
+            {
+                "crewId": "crew-env-1",
+                "name": "Env Squad",
+                "crewType": "ENVIRONMENT",
+                "status": "AVAILABLE",
+            }
+        ]
+        validation_feedback = {
+            "status": "REVISION_REQUIRED",
+            "retry_count": 1,
+            "rejected_crew_ids": ["crew-env-1"],
+            "issues": ["Crew equipment insufficient."],
+        }
+        out = await run_priority_recommendation(prob, None, crews, validation_feedback=validation_feedback)
+        assert out.recommended_crew_id == "NONE"
+        assert out.recommended_crew_name is None
+        assert "exhausted following Agent 4" in out.recommendation_reason
+
+

@@ -89,6 +89,8 @@ async def trigger_workflow(request: WorkflowTriggerRequest) -> WorkflowTriggerRe
 
         report_analysis = result.get("report_analysis")
         problem_analysis = result.get("problem_analysis")
+        priority_analysis = result.get("priority_analysis")
+        recommendations = result.get("recommendations")
 
         logger.info(
             "Unified workflow %s completed successfully: Report %s",
@@ -102,6 +104,8 @@ async def trigger_workflow(request: WorkflowTriggerRequest) -> WorkflowTriggerRe
             message=f"Unified multi-agent workflow completed for report {request.report.id}",
             report_analysis=report_analysis,
             problem_analysis=problem_analysis,
+            priority_analysis=priority_analysis,
+            recommendations=recommendations,
             analysis=report_analysis,
         )
 

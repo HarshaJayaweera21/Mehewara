@@ -9,7 +9,7 @@ namespace Mehewara.API.Integrations.Cloudinary;
 
 public class CloudinaryPhotoStorageService : IPhotoStorageService
 {
-    private readonly CloudinaryDotNet.Cloudinary _cloudinary;
+    private readonly CloudinaryDotNet.Cloudinary? _cloudinary;
     private readonly ILogger<CloudinaryPhotoStorageService> _logger;
 
     public CloudinaryPhotoStorageService(
@@ -24,16 +24,19 @@ public class CloudinaryPhotoStorageService : IPhotoStorageService
             string.IsNullOrWhiteSpace(settings.ApiSecret))
         {
             _logger.LogWarning("Cloudinary credentials are not configured. Uploads will fail until configured in User Secrets or appsettings.");
+            _cloudinary = null;
         }
+        else
+        {
+            var account = new Account(
+                settings.CloudName,
+                settings.ApiKey,
+                settings.ApiSecret
+            );
 
-        var account = new Account(
-            settings.CloudName,
-            settings.ApiKey,
-            settings.ApiSecret
-        );
-
-        _cloudinary = new CloudinaryDotNet.Cloudinary(account);
-        _cloudinary.Api.Secure = true;
+            _cloudinary = new CloudinaryDotNet.Cloudinary(account);
+            _cloudinary.Api.Secure = true;
+        }
     }
 
     public async Task<(string Url, string PublicId)> UploadPhotoAsync(IFormFile file, string folder)
@@ -64,6 +67,12 @@ public class CloudinaryPhotoStorageService : IPhotoStorageService
             Transformation = new Transformation().Width(1200).Height(1200).Crop("limit").Quality("auto")
         };
 
+        if (_cloudinary == null)
+        {
+            _logger.LogWarning("Photo upload requested, but Cloudinary is not configured.");
+            throw new BadRequestException("Cloudinary photo storage is not configured. Please configure Cloudinary credentials.");
+        }
+
         var uploadResult = await _cloudinary.UploadAsync(uploadParams);
 
         if (uploadResult.Error != null)
@@ -80,7 +89,7 @@ public class CloudinaryPhotoStorageService : IPhotoStorageService
 
     public async Task<bool> DeletePhotoAsync(string publicId)
     {
-        if (string.IsNullOrWhiteSpace(publicId))
+        if (string.IsNullOrWhiteSpace(publicId) || _cloudinary == null)
         {
             return false;
         }
