@@ -60,7 +60,10 @@ builder.Services.AddScoped<ICrewService, CrewService>();
 builder.Services.AddScoped<IDispatchService, DispatchService>();
 builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
 builder.Services.AddScoped<IReportService, ReportService>();
-builder.Services.AddHttpClient<IAiWorkflowClient, AiWorkflowClient>();
+builder.Services.AddScoped<AiReviewService>();
+builder.Services.AddHostedService<AiReviewWorker>();
+builder.Services.AddHttpClient("AiReview", client => client.Timeout = TimeSpan.FromSeconds(150));
+builder.Services.AddHttpClient<IAiWorkflowClient, AiWorkflowClient>(client => client.Timeout = TimeSpan.FromMinutes(5));
 
 // 4. Controllers & Standardized Validation Error Formatting
 builder.Services.AddControllers()
@@ -203,7 +206,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var dbContext = services.GetRequiredService<AppDbContext>();
-        dbContext.Database.EnsureCreated();
+        // Deploy EF migrations explicitly before startup; never create an unversioned schema here.
         await DbSeeder.SeedAsync(dbContext, logger);
     }
     catch (Exception ex)

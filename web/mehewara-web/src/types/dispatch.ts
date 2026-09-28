@@ -4,17 +4,25 @@
 
 export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
-export type ValidationStatus = 'VALID' | 'WARNING' | 'REVISION_REQUIRED' | 'INVALID';
+export type ValidationStatus = 'VALID' | 'WARNING' | 'REVISION_REQUIRED' | 'INVALID' | 'ERROR' | 'NOT_RUN';
 
 export type ReviewDecision = 'APPROVED' | 'REJECTED' | 'REVISION_REQUIRED';
 
 export interface RecommendationValidation {
   status: ValidationStatus | string;
   issues: string[];
+  checks?: { code: string; passed: boolean; message: string }[];
+  findings?: { code: string; message: string; evidenceRefs: string[]; correction: string }[];
+  evidenceRefs?: string[];
 }
 
 export interface RecommendationListItem {
   recommendationId: string;
+  revision: number;
+  isCurrent: boolean;
+  canApprove: boolean;
+  previousRecommendationId: string | null;
+  latestJob: ReviewJob | null;
   problemId: string;
   problemTitle: string;
   category: string;
@@ -31,6 +39,10 @@ export interface RecommendationListItem {
 }
 
 export interface RecommendationDetail extends RecommendationListItem {
+  validationHistory: { id: string; startedAt: string; completedAt: string | null; status: string; result: string | null }[];
+  editHistory: { id: string; createdAt: string; reason: string | null; before: string; after: string }[];
+  history: { recommendationId: string; previousRecommendationId: string | null; revision: number;
+    createdAt: string; outputData: string | null; validationResult: string | null }[];
   problemDescription: string | null;
   latitude: number;
   longitude: number;
@@ -54,18 +66,23 @@ export interface RecommendationQueryParams {
 }
 
 export interface EditRecommendationRequest {
+  expectedRevision: number;
+  requiredCrewType?: string;
+  priorityReasons?: string[];
+  recommendationReason?: string;
   priority?: string;
   priorityScore?: number;
   recommendedCrewId?: string;
   editReason: string;
 }
-export interface ApproveRecommendationRequest { reason?: string; }
+export interface ApproveRecommendationRequest { reason?: string; expectedRevision: number; }
 export interface ApproveRecommendationResponse {
   recommendationId: string; decision: string; decidedBy: string; decidedAt: string;
   workOrder: { id: string; problemId: string; crewId: string; priority: string; status: string; assignedAt: string | null; createdAt: string };
 }
 
 export interface RejectRecommendationRequest {
+  expectedRevision: number;
   reason: string;
 }
 
@@ -78,11 +95,22 @@ export interface RejectRecommendationResponse {
 }
 
 export interface RegenerateRecommendationRequest {
-  feedback?: string;
+  reason: string;
+  expectedRevision: number;
+  requestId: string;
 }
-
 export interface RegenerateRecommendationResponse {
-  recommendationId: string;
+  jobId: string;
   status: string;
-  regeneratedAt: string;
+  statusUrl: string;
+}
+export interface ReviewJob {
+  id: string;
+  kind: 'REGENERATE' | 'VALIDATE';
+  status: 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  reason: string;
+  error: string | null;
+  resultRecommendationId: string | null;
+  createdAt: string;
+  attempts: number;
 }

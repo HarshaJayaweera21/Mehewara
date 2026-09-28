@@ -27,6 +27,7 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
     try {
       const res = await approveRecommendation(token, recommendation.recommendationId, {
         reason: reason.trim() || undefined,
+        expectedRevision: recommendation.revision,
       });
       onSuccess(res.workOrder.id);
     } catch (err) {

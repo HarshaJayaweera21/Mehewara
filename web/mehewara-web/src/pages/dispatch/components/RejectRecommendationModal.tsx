@@ -32,6 +32,7 @@ export const RejectRecommendationModal: React.FC<RejectRecommendationModalProps>
     try {
       await rejectRecommendation(token, recommendation.recommendationId, {
         reason: reason.trim(),
+        expectedRevision: recommendation.revision,
       });
       onSuccess();
     } catch (err) {

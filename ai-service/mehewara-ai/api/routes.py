@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from app.internal_auth import require_internal_key
 
 from api.models import (
     HealthResponse,
@@ -26,7 +27,7 @@ from workflow.mehewara_workflow import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/internal/ai", tags=["AI Workflows"])
+router = APIRouter(prefix="/internal/ai", tags=["AI Workflows"], dependencies=[Depends(require_internal_key)])
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -100,7 +101,8 @@ async def trigger_workflow(request: WorkflowTriggerRequest) -> WorkflowTriggerRe
 
         return WorkflowTriggerResponse(
             workflow_id=request.workflow_id,
-            status="completed",
+            status=result.get("status", "failed"),
+            safety_validation=result.get("safety_validation"),
             message=f"Unified multi-agent workflow completed for report {request.report.id}",
             report_analysis=report_analysis,
             problem_analysis=problem_analysis,
@@ -115,3 +117,10 @@ async def trigger_workflow(request: WorkflowTriggerRequest) -> WorkflowTriggerRe
             status_code=500,
             detail=f"Unified multi-agent workflow processing failed: {ex}",
         )
+
+
+@router.post("/recommendation-review")
+async def review_recommendation(payload: dict) -> dict:
+    """Backend-owned jobs reuse Agents 3 and 4; validation jobs execute only Agent 4."""
+    from workflow.review_workflow import run_review
+    return await run_review(payload)

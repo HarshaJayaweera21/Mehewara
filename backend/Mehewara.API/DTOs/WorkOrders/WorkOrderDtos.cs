@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace Mehewara.API.DTOs.WorkOrders;
 
 public class WorkOrderQuery
@@ -12,12 +10,6 @@ public class WorkOrderQuery
     public Guid? ProblemId { get; set; }
     public DateTime? From { get; set; }
     public DateTime? To { get; set; }
-}
-
-public class CompleteWorkOrderRequest
-{
-    [MaxLength(4000)]
-    public string? CompletionNotes { get; set; }
 }
 
 public class WorkOrderDto

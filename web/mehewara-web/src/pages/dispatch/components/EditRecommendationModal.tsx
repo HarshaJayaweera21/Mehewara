@@ -22,6 +22,9 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
   const [priority, setPriority] = useState<PriorityLevel>(recommendation.priority);
   const [priorityScore, setPriorityScore] = useState<number>(recommendation.priorityScore);
   const [selectedCrewId, setSelectedCrewId] = useState<string>(recommendation.recommendedCrewId || '');
+  const [requiredCrewType, setRequiredCrewType] = useState(recommendation.requiredCrewType);
+  const [priorityReasons, setPriorityReasons] = useState(recommendation.priorityReasons.join('\n'));
+  const [recommendationReason, setRecommendationReason] = useState(recommendation.recommendationReason);
   const [reason, setReason] = useState<string>('');
   const [availableCrews, setAvailableCrews] = useState<CrewListItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,6 +60,10 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
 
     try {
       const updated = await editRecommendation(token, recommendation.recommendationId, {
+        expectedRevision: recommendation.revision,
+        requiredCrewType,
+        priorityReasons: priorityReasons.split('\n').map(r => r.trim()).filter(Boolean),
+        recommendationReason,
         priority,
         priorityScore,
         recommendedCrewId: selectedCrewId || undefined,
@@ -75,7 +82,7 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
       <div className="dispatch-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="dispatch-modal-header">
           <div className="dispatch-modal-title-wrap">
-            <span className="dispatch-modal-tag">Human-in-the-Loop Override</span>
+            <span className="dispatch-modal-tag">Coordinator revision</span>
             <h3 className="dispatch-modal-title">Edit Recommendation & Reassign</h3>
           </div>
           <button type="button" className="dispatch-modal-close" onClick={onClose} aria-label="Close">
@@ -95,6 +102,20 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
             </div>
           )}
 
+          <div className="dispatch-form-group">
+            <label className="dispatch-form-label">Required specialty
+              <select value={requiredCrewType} onChange={e => setRequiredCrewType(e.target.value)}>
+                {['ROAD', 'DRAINAGE', 'WASTE', 'ELECTRICAL', 'ENVIRONMENT'].map(c => <option key={c}>{c}</option>)}
+              </select>
+            </label>
+            <label className="dispatch-form-label">Priority reasons (one per line)
+              <textarea required value={priorityReasons} onChange={e => setPriorityReasons(e.target.value)} />
+            </label>
+            <label className="dispatch-form-label">Crew recommendation reason
+              <textarea required value={recommendationReason} onChange={e => setRecommendationReason(e.target.value)} />
+            </label>
+            <p>Saving changes requires validation before approval.</p>
+          </div>
           <div className="dispatch-form-group">
             <label className="dispatch-form-label">Priority Tier</label>
             <div className="priority-pill-selector">

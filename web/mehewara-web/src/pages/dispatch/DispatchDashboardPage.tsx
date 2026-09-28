@@ -15,6 +15,8 @@ import { Header } from '../../components/common';
 import { ApproveRecommendationModal } from './components/ApproveRecommendationModal';
 import { EditRecommendationModal } from './components/EditRecommendationModal';
 import { RejectRecommendationModal } from './components/RejectRecommendationModal';
+import { RegenerateRecommendationModal } from './components/RegenerateRecommendationModal';
+import { ValidationReviewPanel } from './components/ValidationReviewPanel';
 import './DispatchDashboardPage.css';
 
 export interface DispatchDashboardPageProps {
@@ -60,7 +62,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Modal states
-  const [modalMode, setModalMode] = useState<'approve' | 'edit' | 'reject' | null>(null);
+  const [modalMode, setModalMode] = useState<'approve' | 'edit' | 'reject' | 'regenerate' | null>(null);
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -570,20 +572,21 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       className="dispatch-action-btn edit-btn"
                       onClick={() => setModalMode('edit')}
                       title={selectedDetail.reviewDecision ? 'Cannot override a reviewed recommendation' : 'Override priority, score or assigned crew'}
-                      disabled={!!selectedDetail.reviewDecision}
+                      disabled={!!selectedDetail.reviewDecision || !selectedDetail.isCurrent || ['QUEUED', 'RUNNING'].includes(selectedDetail.latestJob?.status || '')}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M12 20h9" />
                         <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                       </svg>
-                      <span>Override</span>
+                      <span>Edit</span>
                     </button>
 
                     <button
                       type="button"
                       className="dispatch-action-btn regen-btn"
-                      disabled
-                      title="Functional regeneration is not available yet"
+                      onClick={() => setModalMode('regenerate')}
+                      disabled={!!selectedDetail.reviewDecision || !selectedDetail.isCurrent || ['QUEUED', 'RUNNING'].includes(selectedDetail.latestJob?.status || '')}
+                      title="Generate a new recommendation and validate it"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polyline points="23 4 23 10 17 10" />
@@ -598,7 +601,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       className="dispatch-action-btn reject-btn"
                       onClick={() => setModalMode('reject')}
                       title="Reject recommendation"
-                      disabled={selectedDetail.reviewDecision === 'REJECTED'}
+                      disabled={!!selectedDetail.reviewDecision || !selectedDetail.isCurrent || ['QUEUED', 'RUNNING'].includes(selectedDetail.latestJob?.status || '')}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <line x1="18" y1="6" x2="6" y2="18" />
@@ -612,7 +615,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       className="dispatch-action-btn approve-btn"
                       onClick={() => setModalMode('approve')}
                       title="Approve and create Municipal Work Order"
-                      disabled={selectedDetail.reviewDecision === 'APPROVED'}
+                      disabled={!selectedDetail.canApprove}
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <polyline points="20 6 9 17 4 12" />
@@ -712,14 +715,9 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                   </div>
                 </div>
 
-                <div className="detail-section checklist-section">
-                  <h3>Recorded server validation</h3>
-                  <p>{selectedDetail.validation?.status || 'Not available'}</p>
-                  <ul>{selectedDetail.validation?.issues?.map((issue, i) => <li key={i}>{issue}</li>)}</ul>
-                  <p>These are recorded results. The server rechecks dispatch conditions when you approve.</p>
-                  <p>Agent 4 validation is unavailable. Functional regeneration is deferred.</p>
-                  {selectedDetail.workOrderId && <button className="dispatch-btn-primary" onClick={() => onOpenWorkOrder?.(selectedDetail.workOrderId!)}>View WorkOrder</button>}
-                </div>
+                <ValidationReviewPanel key={selectedDetail.recommendationId} detail={selectedDetail} token={authToken}
+                  onChange={(id) => { if (id) setSelectedRecId(id); setRefreshTrigger(v => v + 1); }} />
+                {selectedDetail.workOrderId && <button className="dispatch-btn-primary" onClick={() => onOpenWorkOrder?.(selectedDetail.workOrderId!)}>View WorkOrder</button>}
               </div>
             )}
           </section>
@@ -729,7 +727,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
       {/* Decision Modals */}
       {modalMode === 'approve' && activeListItem && (
         <ApproveRecommendationModal
-          recommendation={activeListItem}
+          recommendation={selectedDetail || activeListItem}
           token={authToken}
           onClose={() => setModalMode(null)}
           onSuccess={(workOrderId) => {
@@ -741,20 +739,25 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
       {modalMode === 'edit' && activeListItem && (
         <EditRecommendationModal
-          recommendation={activeListItem}
+          recommendation={selectedDetail || activeListItem}
           token={authToken}
           onClose={() => setModalMode(null)}
           onSuccess={(updatedDetail) => {
             // Immediately update the right panel with fresh data from the server
             setSelectedDetail(updatedDetail);
-            handleActionSuccess('Recommendation parameters successfully overridden.');
+            handleActionSuccess('Recommendation saved. Validate the new revision before approval.');
           }}
         />
       )}
 
+      {modalMode === 'regenerate' && activeListItem && (
+        <RegenerateRecommendationModal recommendation={selectedDetail || activeListItem} token={authToken}
+          onClose={() => setModalMode(null)} onSuccess={() => handleActionSuccess('Regeneration queued. Progress appears in the review panel.')} />
+      )}
+
       {modalMode === 'reject' && activeListItem && (
         <RejectRecommendationModal
-          recommendation={activeListItem}
+          recommendation={selectedDetail || activeListItem}
           token={authToken}
           onClose={() => setModalMode(null)}
           onSuccess={() => handleActionSuccess('Recommendation rejected.')}

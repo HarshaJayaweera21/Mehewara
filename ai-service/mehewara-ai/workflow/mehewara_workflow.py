@@ -16,6 +16,7 @@ from typing import Any, TypedDict
 from uuid import UUID
 
 from langgraph.graph import END, StateGraph
+from agents.safety_agent import validate_recommendation
 
 # Agent 1 (Member 1)
 from agents.report_agent import analyze_report_with_llm
@@ -48,6 +49,8 @@ class MehewaraWorkflowState(TypedDict, total=False):
     Authoritative state flowing sequentially through all agent nodes.
     Each agent reads from this state and attaches its output dictionary.
     """
+    job_id: str | None
+    coordinator_feedback: str | None
     workflow_id: str
     raw_report: dict[str, Any]
 
@@ -263,6 +266,7 @@ async def agent_3_prioritization_node(state: MehewaraWorkflowState) -> dict[str,
             problem_data=problem_data,
             structured_report=structured_report,
             available_crews=available_crews,
+            coordinator_feedback=state.get("coordinator_feedback"),
         )
 
         logger.info(
@@ -289,10 +293,14 @@ async def agent_3_prioritization_node(state: MehewaraWorkflowState) -> dict[str,
 # 3. StateGraph Assembly & Compilation
 # ────────────────────────────────────────────────────────────────
 
+async def agent_4_validation_node(state: MehewaraWorkflowState) -> dict[str, Any]:
+    return {"safety_validation": await validate_recommendation(dict(state))}
+
+
 def build_mehewara_graph() -> StateGraph:
     """
     Assembles and compiles the full multi-agent workflow graph.
-    Flow: START -> Agent 1 -> Agent 2 -> Agent 3 -> END (Agent 4 plug-in ready)
+    Flow: START -> Agent 1 -> Agent 2 -> Agent 3 -> Agent 4 -> END
     """
     builder = StateGraph(MehewaraWorkflowState)
 
@@ -305,7 +313,9 @@ def build_mehewara_graph() -> StateGraph:
     builder.set_entry_point("agent_1_report_analysis")
     builder.add_edge("agent_1_report_analysis", "agent_2_problem_consolidation")
     builder.add_edge("agent_2_problem_consolidation", "agent_3_prioritization")
-    builder.add_edge("agent_3_prioritization", END)
+    builder.add_node("agent_4_validation", agent_4_validation_node)
+    builder.add_edge("agent_3_prioritization", "agent_4_validation")
+    builder.add_edge("agent_4_validation", END)
 
     return builder.compile()
 
@@ -339,11 +349,6 @@ async def run_mehewara_workflow(
 
     final_state = await mehewara_graph.ainvoke(initial_state)
 
-    if final_state.get("error") and not final_state.get("problem_analysis"):
-        error_msg = final_state["error"]
-        logger.error("[Workflow %s] Workflow terminated with error: %s", workflow_id, error_msg)
-        raise RuntimeError(error_msg)
-
     structured_report = final_state.get("structured_report")
     problem_analysis = final_state.get("problem_analysis")
     priority_analysis = final_state.get("priority_analysis")
@@ -351,7 +356,8 @@ async def run_mehewara_workflow(
 
     return {
         "workflow_id": str(workflow_id),
-        "status": "completed",
+        "status": "failed" if final_state.get("error") or (final_state.get("safety_validation") or {}).get("status") == "ERROR" else "waiting",
+        "safety_validation": final_state.get("safety_validation"),
         "report_analysis": structured_report,
         "problem_analysis": problem_analysis,
         "priority_analysis": priority_analysis,

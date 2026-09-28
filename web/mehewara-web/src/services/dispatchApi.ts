@@ -1,4 +1,5 @@
 import type {
+  ReviewJob,
   RecommendationListItem,
   RecommendationDetail,
   RecommendationQueryParams,
@@ -120,7 +121,7 @@ export async function rejectRecommendation(
 }
 
 /**
- * Record a regeneration request; this does not execute an AI rerun
+ * Queue a durable Agent 3 + Agent 4 regeneration job
  */
 export async function regenerateRecommendation(
   token: string,
@@ -137,4 +138,16 @@ export async function regenerateRecommendation(
   });
 
   return handleResponse<RegenerateRecommendationResponse>(res);
+}
+
+export async function validateRecommendation(token: string, id: string, data: RegenerateRecommendationRequest): Promise<RegenerateRecommendationResponse> {
+  const res = await fetch(`${API_BASE}/dispatch/recommendations/${id}/validate`, {
+    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse<RegenerateRecommendationResponse>(res);
+}
+export async function getReviewJob(token: string, id: string): Promise<ReviewJob> {
+  const res = await fetch(`${API_BASE}/dispatch/review-jobs/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+  return handleResponse<ReviewJob>(res);
 }

@@ -2,6 +2,11 @@ namespace Mehewara.API.DTOs.Dispatch;
 
 public class RecommendationListItemDto
 {
+    public int Revision { get; set; }
+    public bool IsCurrent { get; set; }
+    public bool CanApprove { get; set; }
+    public Guid? PreviousRecommendationId { get; set; }
+    public Mehewara.API.Models.AiReviewJob? LatestJob { get; set; }
     public Guid RecommendationId { get; set; }
     public Guid ProblemId { get; set; }
     public string ProblemTitle { get; set; } = string.Empty;

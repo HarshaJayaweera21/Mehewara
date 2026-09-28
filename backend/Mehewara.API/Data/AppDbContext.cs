@@ -23,6 +23,8 @@ public class AppDbContext : DbContext
     public DbSet<WorkflowRun> WorkflowRuns { get; set; }
     public DbSet<WorkflowEvent> WorkflowEvents { get; set; }
 
+    public DbSet<AiReviewJob> AiReviewJobs { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -929,5 +931,6 @@ public class AppDbContext : DbContext
             entity.HasIndex(a => new { a.ActorUserId, a.CreatedAt })
                 .HasDatabaseName("idx_activity_history_actor_time");
         });
+        AiReviewSchema.Configure(modelBuilder);
     }
 }

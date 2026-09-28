@@ -2,6 +2,9 @@ namespace Mehewara.API.DTOs.Dispatch;
 
 public class RecommendationDetailDto : RecommendationListItemDto
 {
+    public List<ValidationAttemptDto> ValidationHistory { get; set; } = new();
+    public List<RecommendationEditDto> EditHistory { get; set; } = new();
+    public List<ReviewHistoryItem> History { get; set; } = new();
     public string? ProblemDescription { get; set; }
     public decimal Latitude { get; set; }
     public decimal Longitude { get; set; }

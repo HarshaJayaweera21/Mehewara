@@ -23,12 +23,16 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.5-flash-lite"
 
     # --- ASP.NET Core Backend ---
-    dotnet_api_base_url: str = "http://localhost:5153"
+    dotnet_api_base_url: str = "http://localhost:5194"
+
+    internal_ai_api_key: str = ""
+    agent4_evidence_timeout_seconds: float = 10
+    agent4_review_timeout_seconds: float = 30
 
     # --- Service Configuration ---
     port: int = 8000
     environment: str = "development"
-    cors_origins: str = "http://localhost:5173,http://localhost:5153"
+    cors_origins: str = "http://localhost:5173,http://localhost:5194"
 
     @property
     def is_development(self) -> bool:

@@ -1,10 +1,13 @@
 # Mehewara AI service
 
+> 2026-09-28 update: the initial graph now includes Agent 4, and coordinator jobs reuse Agents 3/4. All `/internal/ai/*` routes require the shared service key. Agent 4 fetches authoritative evidence through ASP.NET. The implementation is unverified; see [setup and current behavior](../../AGENT4_SETUP.md). Historical limitations about no Agent 4 and no authenticated evidence retrieval below are superseded.
+
+
 Updated 2026-09-26. Python 3.12+ FastAPI service using LangGraph and LangChain's Gemini integration. See the [root guide](../../README.md) and [API reference](<../../Mehewara_API_Contract (1).md>).
 
 ## Current pipeline
 
-Agent 1 (report analysis) - Agent 2 (single-Problem consolidation) - Agent 3 (priority/crew recommendation) - end. Agent 3 is skipped for UNCERTAIN consolidation. There is no Agent 4 node or generated/saved task plan.
+Agent 1 (report analysis) - Agent 2 (single-Problem consolidation) - Agent 3 (priority/crew recommendation) - Agent 4 (validation) - end. Agent 3 is skipped for UNCERTAIN consolidation. Agent 4 is present; a generated/saved task plan remains absent.
 
 Tools inspect context supplied by ASP.NET and a local asset catalogue. They do not call separate backend tool endpoints. Agent 1 receives text, location information, and the number of photos; it does not inspect photo contents. Agents 1/2 require Gemini configuration. Agent 3 can use rule-based fallback after missing configuration or a failed model call, but that does not make the whole pipeline independent of Gemini.
 
