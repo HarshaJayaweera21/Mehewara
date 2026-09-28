@@ -19,6 +19,7 @@ public class ProblemsController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<PagedResult<ProblemResponse>>> GetProblems(
         [FromQuery] GetProblemsQuery query)
     {
@@ -27,6 +28,7 @@ public class ProblemsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [AllowAnonymous]
     public async Task<ActionResult<ProblemDetailResponse>> GetProblemById(Guid id)
     {
         var result = await _problemService.GetProblemByIdAsync(id);
@@ -76,5 +78,23 @@ public class ProblemsController : ControllerBase
             nameof(GetProblemById),
             new { id = result.Id },
             result);
+    }
+
+    [HttpPost("uncertain-reports/{id:guid}/cancel")]
+    public async Task<ActionResult> CancelUncertainReport(
+        Guid id,
+        [FromBody] Mehewara.API.DTOs.Problems.Consolidation.CancelUncertainReportRequest? request = null)
+    {
+        var reportId = id != Guid.Empty ? id : (request?.ReportId ?? Guid.Empty);
+        await _problemService.CancelUncertainReportAsync(reportId, request?.Reason);
+        return Ok(new { message = "Report cancelled successfully.", reportId, status = "CANCELLED" });
+    }
+
+    [HttpPost("uncertain-reports/cancel")]
+    public async Task<ActionResult> CancelUncertainReportByBody(
+        [FromBody] Mehewara.API.DTOs.Problems.Consolidation.CancelUncertainReportRequest request)
+    {
+        await _problemService.CancelUncertainReportAsync(request.ReportId, request.Reason);
+        return Ok(new { message = "Report cancelled successfully.", reportId = request.ReportId, status = "CANCELLED" });
     }
 }

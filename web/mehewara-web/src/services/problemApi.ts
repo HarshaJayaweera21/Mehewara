@@ -15,13 +15,18 @@ const API_BASE = 'http://localhost:5194/api';
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem('mehewara_token');
+      localStorage.removeItem('mehewara_user');
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    }
     let errorData: ApiError | null = null;
     try {
       errorData = await res.json();
     } catch {
       // response wasn't JSON
     }
-    const message = errorData?.error?.message || `Request failed with status ${res.status}`;
+    const message = errorData?.error?.message || (res.status === 401 ? 'Session expired. Please log in again.' : `Request failed with status ${res.status}`);
     throw new Error(message);
   }
   return res.json();
@@ -152,5 +157,25 @@ export async function createProblemFromUncertainReport(
   });
 
   return handleResponse<ProblemResponse>(res);
+}
+
+/**
+ * Cancel an unnecessary uncertain report, updating its status to CANCELLED
+ */
+export async function cancelUncertainReport(
+  token: string,
+  reportId: string,
+  reason?: string
+): Promise<{ message: string; reportId: string }> {
+  const res = await fetch(`${API_BASE}/problems/uncertain-reports/${reportId}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ reportId, reason }),
+  });
+
+  return handleResponse<{ message: string; reportId: string }>(res);
 }
 

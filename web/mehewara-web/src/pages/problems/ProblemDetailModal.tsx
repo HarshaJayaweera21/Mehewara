@@ -87,7 +87,14 @@ const ReportDetailPopup: React.FC<ReportDetailPopupProps> = ({
     setLoading(true);
     setError(null);
 
-    getReportById(token, reportId)
+    const authToken = token || localStorage.getItem('mehewara_token') || '';
+    if (!authToken) {
+      setError('Please log in with coordinator credentials to view full resident report details.');
+      setLoading(false);
+      return;
+    }
+
+    getReportById(authToken, reportId)
       .then((data) => {
         if (!ignore) setReport(data);
       })
