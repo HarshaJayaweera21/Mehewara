@@ -1,0 +1,304 @@
+/* ==========================================================================
+   Mehewara Municipal Operations - Crews Directory Styling
+   Visual Philosophy: Restrained, Editorial, Civic-Tech Minimalism
+   Matching ProblemsPage.css aesthetics & color systems
+   ========================================================================== */
+
+.crews-page-container {
+  min-height: 100vh;
+  background-color: var(--mw-page-bg, #F7F7F2);
+  color: var(--mw-text-primary, #18211E);
+  font-family: var(--mw-font-family, 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif);
+  padding: 2.25rem 2.5rem 4rem;
+  box-sizing: border-box;
+}
+
+.crews-content-wrap {
+  width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* 1. Welcome Banner */
+.crews-welcome-banner {
+  background-color: #F6FAF7;
+  background-image: url('../../assets/bg.png');
+  background-position: center bottom;
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 10px;
+  min-height: 180px;
+  padding: 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.04);
+}
+
+.crews-banner-heading {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--mw-primary-forest, #123C32);
+  margin: 0 0 0.4rem;
+  letter-spacing: -0.02em;
+}
+
+.crews-banner-sub {
+  font-size: 0.95rem;
+  color: var(--mw-text-secondary, #68736E);
+  margin: 0;
+  max-width: 720px;
+  line-height: 1.45;
+}
+
+/* 2. Metrics Strip */
+.crews-metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: #FFFFFF;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.03);
+}
+
+.crews-metric-cell {
+  padding: 1.25rem 1.5rem;
+  border-right: 1px solid var(--mw-border-subtle, #EBEFEA);
+  display: flex;
+  flex-direction: column;
+}
+
+.crews-metric-cell:last-child {
+  border-right: none;
+}
+
+/* 3. Toolbar */
+.crews-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.crews-search-box {
+  position: relative;
+  flex: 1;
+  max-width: 440px;
+}
+
+.crews-search-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 1rem 0 2.5rem;
+  background: #FFFFFF;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--mw-text-primary, #18211E);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.crews-search-input:focus {
+  border-color: var(--mw-primary-forest, #123C32);
+}
+
+.crews-filters-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.crews-filter-wrap {
+  position: relative;
+}
+
+.crews-filter-select {
+  height: 40px;
+  padding: 0 1.25rem;
+  background: #FFFFFF;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--mw-text-primary, #18211E);
+  cursor: pointer;
+  outline: none;
+}
+
+.crews-clear-filters-btn {
+  background: none;
+  border: 1px dashed #B5BFBA;
+  color: #68736E;
+  padding: 0 0.85rem;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.crews-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 40px;
+  padding: 0 1rem;
+  background: #FFFFFF;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #123C32;
+  cursor: pointer;
+}
+
+.crews-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.25rem;
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FEE2E2;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+/* 4. Crews Cards Grid */
+.crews-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.25rem;
+}
+
+.crew-card {
+  background: #FFFFFF;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 10px;
+  padding: 1.35rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.crew-card:hover {
+  transform: translateY(-2px);
+  border-color: #BEE0D1;
+  box-shadow: 0 4px 12px rgba(18, 60, 50, 0.06);
+}
+
+.crew-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.crew-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #123C32;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.crew-card-details {
+  background: #FDFDFB;
+  border: 1px solid #EBEFEA;
+  border-radius: 8px;
+  padding: 0.75rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.crew-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.detail-meta-label {
+  color: #68736E;
+  font-weight: 500;
+}
+
+.detail-meta-val {
+  color: #18211E;
+  font-weight: 600;
+}
+
+.active-wo-tag {
+  color: #C2410C;
+  background: #FFF7ED;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.standby-tag {
+  color: #166534;
+  background: #F0FDF4;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.crew-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  border-top: 1px solid #EBEFEA;
+  padding-top: 0.75rem;
+}
+
+.crew-view-profile-btn {
+  background: none;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0F766E;
+  cursor: pointer;
+  padding: 0;
+}
+
+.crew-view-profile-btn:hover {
+  text-decoration: underline;
+}
+
+/* Skeletons */
+.crews-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.25rem;
+}
+
+.crews-empty-state {
+  background: #FFFFFF;
+  border: 1px solid #DDE2DE;
+  border-radius: 10px;
+  padding: 3rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.crews-empty-state h3 {
+  font-size: 1.1rem;
+  color: #123C32;
+  margin: 0.8rem 0 0.3rem;
+}
+
+.crews-empty-state p {
+  font-size: 0.85rem;
+  color: #8F9995;
+  margin: 0;
+}

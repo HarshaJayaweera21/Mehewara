@@ -575,7 +575,9 @@ namespace Mehewara.API.Migrations
                         .HasDatabaseName("idx_work_orders_created_at");
 
                     b.HasIndex("CrewId")
-                        .HasDatabaseName("idx_work_orders_crew_id");
+                        .IsUnique()
+                        .HasDatabaseName("idx_work_orders_single_in_progress_crew")
+                        .HasFilter("\"status\" = 'IN_PROGRESS'");
 
                     b.HasIndex("Priority")
                         .HasDatabaseName("idx_work_orders_priority");

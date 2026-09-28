@@ -1108,3 +1108,53 @@
   border-radius: 999px;
 }
 
+.problems-dispatch-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #E5F6EE;
+  border: 1px solid #A7F3D0;
+  color: #123C32;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.problems-dispatch-nav-btn:hover {
+  background: #D1EAE0;
+  border-color: #6EE7B7;
+}
+
+.dispatch-nav-badge {
+  background: #123C32;
+  color: #FFFFFF;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+}
+
+.problems-crews-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #FFFFFF;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  color: var(--mw-text-primary, #18211E);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.problems-crews-nav-btn:hover {
+  background: #F7F7F2;
+  border-color: #BEE0D1;
+}
+
+
