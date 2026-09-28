@@ -35,7 +35,10 @@ public sealed record ReviewJobMetadata : ReviewMetadata
     public required string Origin { get; init; }
     // Domain corrections are distinct from AiReviewJob.Attempts (worker claims).
     public required int CorrectionCount { get; init; }
+    public int EvidenceRetryCount { get; init; }
     public DateTimeOffset? NextAttemptAt { get; init; }
+    // Numeric selector avoids timestamp casts on legacy/malformed JSON in PostgreSQL.
+    public long? NextAttemptUnixSeconds { get; init; }
     public ReviewFeedbackMetadata? Feedback { get; init; }
 }
 
@@ -125,7 +128,8 @@ public static class ReviewMetadataJson
 
     private static bool IsSupported(ReviewMetadata metadata) => metadata.SchemaVersion == CurrentVersion && (metadata switch
     {
-        ReviewJobMetadata job => job.ChainId != Guid.Empty && job.CorrectionCount >= 0 &&
+        ReviewJobMetadata job => job.ChainId != Guid.Empty && job.CorrectionCount >= 0 && job.EvidenceRetryCount >= 0 &&
+            (job.NextAttemptUnixSeconds == null || job.NextAttemptUnixSeconds >= 0) &&
             job.ParentJobId != Guid.Empty && job.Origin is ReviewOrigins.System or ReviewOrigins.Coordinator,
         RecommendationReviewMetadata rec => rec.Revision > 0 &&
             (rec.Origin == ReviewOrigins.AiGenerated || (rec.Origin == ReviewOrigins.HumanOverride &&

@@ -42,14 +42,35 @@ async def regenerate(state: MehewaraWorkflowState) -> dict:
     selected = next((p for p in candidates if p.get("problemId") == pid), None)
     if not selected:
         return {"error": "Established Problem context is missing", "priority_analysis": None}
+    rejected = set((state.get("validation_feedback") or {}).get("rejected_crew_ids", []))
+    roster = [c for c in state.get("available_crews", []) if str(c.get("crewId", "")).lower() not in rejected]
     result = await run_priority_recommendation(selected, state.get("structured_report"),
-        state.get("available_crews", []), validation_feedback=state.get("validation_feedback"))
-    return {"priority_analysis": result.model_dump(by_alias=True)}
+        roster, validation_feedback=state.get("validation_feedback"))
+    return {"priority_analysis": result.model_dump(by_alias=True), "available_crews": roster}
+
+
+async def review_with_exclusions(state: MehewaraWorkflowState) -> dict:
+    result = await agent_4_validation_node(state)
+    review = result["safety_validation"]
+    recommendation = state.get("priority_analysis") or {}
+    crew = str(recommendation.get("recommendedCrewId") or "").lower()
+    rejected = set((state.get("validation_feedback") or {}).get("rejected_crew_ids", []))
+    if crew in rejected and review.get("status") in ("VALID", "REVISION_REQUIRED"):
+        # A model must not bypass the accumulated blacklist. Keep its exact output
+        # for audit and request a correction rather than silently rewriting it.
+        message = "Agent 3 selected a crew excluded by an earlier validation attempt."
+        review["status"] = "REVISION_REQUIRED"
+        review["suggestedAction"] = "REGENERATE"
+        review.setdefault("checks", []).append({"code": "REJECTED_CREW", "passed": False, "message": message})
+        review.setdefault("issues", []).append(message)
+        review.setdefault("findings", []).append({"code": "REJECTED_CREW", "message": message,
+            "correction": "Choose a matching available crew outside rejected_crew_ids, or output NONE.", "evidenceRefs": []})
+    return result
 
 
 def review_graph(regeneration: bool):
     graph = StateGraph(MehewaraWorkflowState)
-    graph.add_node("agent_4_validation", agent_4_validation_node)
+    graph.add_node("agent_4_validation", review_with_exclusions)
     if regeneration:
         graph.add_node("agent_3_regeneration", regenerate)
         graph.set_entry_point("agent_3_regeneration")

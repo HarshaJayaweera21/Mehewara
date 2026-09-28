@@ -59,7 +59,15 @@ public partial class AiReviewService
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         var now = DateTime.UtcNow;
-        var candidates = await db.AiReviewJobs.FromSqlInterpolated($"SELECT * FROM ai_review_jobs WHERE status = 'QUEUED' OR (status = 'RUNNING' AND lease_until < {now}) ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED").ToListAsync(ct);
+        var epoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var candidates = await db.AiReviewJobs.FromSqlInterpolated($@"SELECT * FROM ai_review_jobs
+            WHERE (status = 'QUEUED' AND
+                CASE WHEN input_data->'reviewMetadata'->>'nextAttemptUnixSeconds' IS NULL THEN 0
+                WHEN input_data->'reviewMetadata'->>'nextAttemptUnixSeconds' ~ '^[0-9]{{1,12}}$'
+                THEN (input_data->'reviewMetadata'->>'nextAttemptUnixSeconds')::bigint
+                ELSE 999999999999 END <= {epoch})
+                OR (status = 'RUNNING' AND lease_until < {now})
+            ORDER BY created_at, id LIMIT 1 FOR UPDATE SKIP LOCKED").ToListAsync(ct);
         var job = candidates.FirstOrDefault();
         if (job == null) return null;
         if (job.Attempts >= 3)
@@ -70,6 +78,7 @@ public partial class AiReviewService
         else
         {
             job.Status = "RUNNING"; job.Attempts++; job.LeaseToken = Guid.NewGuid();
+            job.Error = null;
             job.LeaseUntil = now.AddMinutes(4); job.UpdatedAt = now;
         }
         await db.SaveChangesAsync(ct);
@@ -127,7 +136,15 @@ public partial class AiReviewService
             throw new BadRequestException("Original consolidated Problem is outside the saved context or mapping.");
         var reviewRecommendation = job.Kind == "VALIDATE" && uneditedAi
             ? ev.OriginalOutputData ?? throw new BadRequestException("Original Agent 3 output is missing.") : ev.OutputData!;
-        var origin = ReviewMetadataJson.Read<ReviewJobMetadata>(job.InputData)?.Origin;
+        var metadata = ReviewMetadataJson.Read<ReviewJobMetadata>(job.InputData);
+        var origin = metadata?.Origin;
+        var previous = Obj(job.InputData)["previousValidation"] as JsonObject ?? new();
+        var rejectedCrews = metadata?.Feedback?.RejectedCrewIds.ToList() ?? new List<Guid>();
+        if ((previous["checks"] as JsonArray ?? new()).Any(c =>
+            c?["passed"] is JsonValue value && value.TryGetValue<bool>(out var passed) && !passed &&
+            Text(c?["code"]) is "SPECIALTY" or "CREW_AVAILABLE" or "REJECTED_CREW") &&
+            Id(Obj(ev.OutputData)["recommendedCrewId"]) is Guid rejectedCrew)
+            rejectedCrews.Add(rejectedCrew);
         // Keep all saved metadata while replacing stale execution evidence. Legacy jobs
         // without metadata retain that absence; a read must not invent an origin/chain.
         return ReviewMetadataJson.MergeExecutionContext(job.InputData, new JsonObject {
@@ -137,8 +154,15 @@ public partial class AiReviewService
             ["report"] = original.DeepClone(), ["reportAnalysis"] = JsonNode.Parse(reportAnalysis),
             ["problemAnalysis"] = consolidation, ["priorityAnalysis"] = JsonNode.Parse(reviewRecommendation),
             ["previousValidation"] = Obj(job.InputData)["previousValidation"]?.DeepClone(),
+            ["validationFeedback"] = metadata == null ? null : new JsonObject {
+                ["status"] = metadata.Feedback?.Status ?? "NOT_RUN",
+                ["retry_count"] = metadata.CorrectionCount,
+                ["rejected_crew_ids"] = Node(rejectedCrews.Distinct().ToArray()),
+                ["issues"] = Node(metadata.Feedback?.Issues ?? new()),
+                ["suggested_action"] = metadata.Feedback?.SuggestedAction,
+                ["coordinator_reason"] = metadata.Feedback?.CoordinatorReason },
             ["coordinatorFeedback"] = origin == ReviewOrigins.System ? null :
-                job.Reason + "\nPrevious findings: " + Text(Obj(job.InputData)["previousValidation"]?["issues"]),
+                metadata?.Feedback?.CoordinatorReason ?? job.Reason,
             ["context"] = new JsonObject {
                 ["complete"] = related.Count == authorizedReports.Length,
                 ["candidateProblems"] = Node(new[] { new { problemId = pid, problem.Title, problem.Description, problem.Category,
@@ -154,6 +178,7 @@ public partial class AiReviewService
         if (claimed.Error != null) { await FinishAsync(claimed.Id, token, null, claimed.Error); return; }
         try
         {
+            if (!await MarkRunningAsync(claimed.Id, token)) return;
             var input = await BuildReviewInputAsync(claimed);
             // Freeze this attempt's authorization context before Python requests evidence.
             var saved = await db.AiReviewJobs.Where(j => j.Id == claimed.Id && j.LeaseToken == token && j.Status == "RUNNING")
@@ -177,11 +202,13 @@ public partial class AiReviewService
         {
             var message = ex is BadRequestException || ex is ConflictException ? ex.Message : $"AI review failed ({ex.GetType().Name}). Check service configuration and retry.";
             db.ChangeTracker.Clear();
-            await FinishAsync(claimed.Id, token, null, message);
+            var transient = ex is OperationCanceledException || ex is HttpRequestException http &&
+                (http.StatusCode == null || (int)http.StatusCode == 408 || (int)http.StatusCode == 429 || (int)http.StatusCode >= 500);
+            await FinishAsync(claimed.Id, token, null, message, transient);
         }
     }
 
-    private async Task FinishAsync(Guid id, Guid? token, JsonObject? result, string? error)
+    private async Task FinishAsync(Guid id, Guid? token, JsonObject? result, string? error, bool retryTransport = false)
     {
         db.ChangeTracker.Clear();
         var identity = await db.AiReviewJobs.AsNoTracking().SingleAsync(j => j.Id == id);
@@ -191,6 +218,7 @@ public partial class AiReviewService
         var job = await db.AiReviewJobs.FromSqlInterpolated($"SELECT * FROM ai_review_jobs WHERE id = {id} FOR UPDATE").SingleAsync();
         if (job.LeaseToken != token || job.Status != "RUNNING" || job.LeaseUntil == null || job.LeaseUntil <= DateTime.UtcNow) return;
         var ev = await db.WorkflowEvents.SingleAsync(e => e.WorkflowEventId == job.RecommendationId);
+        AiReviewJob? successor = null;
         if (ev.Revision != job.ExpectedRevision || run.CurrentRecommendationId != ev.WorkflowEventId)
         {
             job.Status = "FAILED"; job.Error = "Result discarded because its recommendation changed.";
@@ -216,6 +244,17 @@ public partial class AiReviewService
             if (Text(validation["status"]) == "VALID" && (!bindingMatches || !HasPassingReviewEnvelope(validation, run.ReportId)
                 || !Id(recRaw?["recommendedCrewId"]).HasValue))
                 validation = Failure("Review does not match the exact recommendation input/revision. Retry validation.");
+            if (Text(validation["status"]) == "VALID" && Id(recRaw?["recommendedCrewId"]) is Guid selectedCrew &&
+                (input["validationFeedback"]?["rejected_crew_ids"] as JsonArray ?? new()).Any(n => Id(n) == selectedCrew))
+            {
+                const string message = "Review selected a crew excluded by an earlier validation attempt.";
+                validation["status"] = "REVISION_REQUIRED";
+                validation["suggestedAction"] = "REGENERATE";
+                validation["issues"]!.AsArray().Add(message);
+                validation["checks"]!.AsArray().Add(new JsonObject { ["code"] = "REJECTED_CREW", ["passed"] = false, ["message"] = message });
+                validation["findings"]!.AsArray().Add(new JsonObject { ["code"] = "REJECTED_CREW", ["message"] = message,
+                    ["correction"] = "Select a matching available crew outside the accumulated exclusions, or return NONE.", ["evidenceRefs"] = new JsonArray() });
+            }
             var request = new ValidationContextRequest { WorkflowId = runId, JobId = id, ProblemId = run.ProblemId,
                 CrewId = Id(recRaw?["recommendedCrewId"] ?? Obj(ev.OutputData)["recommendedCrewId"]),
                 ReportIds = (input["problemAnalysis"]?["relatedReportIds"] as JsonArray ?? new()).Select(Id).Where(x => x.HasValue).Select(x => x!.Value).ToList() };
@@ -229,7 +268,8 @@ public partial class AiReviewService
             // under these locks; avoid fetching the same evidence twice.
             if (!JsonNode.DeepEquals(receivedValidation, validation))
                 validation["agentReview"] = receivedValidation;
-            var technicalFailure = error != null || recRaw == null || Text(validation["status"]) is "ERROR" or "NOT_RUN";
+            var technicalFailure = error != null || recRaw == null || Text(validation["status"]) is "ERROR" or "NOT_RUN" ||
+                job.Kind == "REGENERATE" && (Text(validation["status"]) == "INVALID" || !bindingMatches);
             var target = ev;
             if (job.Kind == "REGENERATE" && !technicalFailure && run.ProblemId.HasValue)
             {
@@ -244,7 +284,19 @@ public partial class AiReviewService
                 ev.ValidatedRevision = null;
             }
             validation = await RecordValidationAsync(run, target, validation, request, id);
-            technicalFailure = error != null || recRaw == null || Text(validation["status"]) is "ERROR" or "NOT_RUN";
+            var reviewedRecommendationId = target.WorkflowEventId;
+            technicalFailure = error != null || recRaw == null || Text(validation["status"]) is "ERROR" or "NOT_RUN" ||
+                job.Kind == "REGENERATE" && (Text(validation["status"]) == "INVALID" || !bindingMatches);
+            if (technicalFailure && target != ev)
+            {
+                // Keep the failed candidate and its review for audit, but do not replace
+                // the previous current recommendation on a technical failure.
+                run.CurrentRecommendationId = ev.WorkflowEventId;
+                ev.ValidatedRevision = null;
+                ev.ValidationResult = Failure("Regeneration failed. Retry or explicitly revalidate the previous recommendation.").ToJsonString(Json);
+                target = ev;
+                SetReviewProgress(run, ev, "NEEDS_ATTENTION", "Regeneration failed; previous recommendation retained.", job);
+            }
             // Step 3: When Agent 4 validation passes, update the Problem's priority/status.
             // This was previously done inline in PersistInitialAsync but now only happens
             // after the worker produces a real VALID result.
@@ -265,16 +317,43 @@ public partial class AiReviewService
             }
             job.Status = technicalFailure ? "FAILED" : "COMPLETED";
             job.Error = technicalFailure ? error ?? string.Join("; ", (validation["issues"] as JsonArray ?? new()).Select(Text)) : null;
-            job.ResultRecommendationId = target.WorkflowEventId;
+            job.ResultRecommendationId = reviewedRecommendationId;
             var state = Obj(run.StateData);
             state["priorityAnalysis"] = JsonNode.Parse(target.OutputData!);
             state["recommendations"] = new JsonArray(JsonNode.Parse(target.OutputData!));
-            state["safetyValidation"] = validation.DeepClone();
+            state["safetyValidation"] = Obj(target.ValidationResult);
             state["latestReview"] = Node(new { jobId = job.Id, recommendationId = target.WorkflowEventId, revision = target.Revision, job.Status });
             run.StateData = state.ToJsonString(Json);
+            var metadata = ReviewMetadataJson.Read<ReviewJobMetadata>(job.InputData);
+            // Retry the same durable job for transient transport/model/evidence errors.
+            // Every failed review remains a separate event; claims have their own cap.
+            if (technicalFailure && metadata != null && job.Attempts < 3 &&
+                (retryTransport || error == null && job.Kind == "VALIDATE" && Text(validation["status"]) == "ERROR"))
+            {
+                var due = DateTimeOffset.UtcNow.AddSeconds(job.Attempts == 1 ? 10 : 30);
+                job.Status = "QUEUED";
+                job.InputData = ReviewMetadataJson.Write(job.InputData, metadata with {
+                    NextAttemptAt = due, NextAttemptUnixSeconds = due.ToUnixTimeSeconds() });
+                QueueProgress(run, target, job);
+            }
+            else if (!technicalFailure && bindingMatches && metadata != null)
+            {
+                successor = CreateSuccessor(job, target, validation, metadata, recRaw!);
+                if (successor != null) QueueProgress(run, target, successor);
+                else if (Text(validation["status"]) == "REVISION_REQUIRED" &&
+                    Text(validation["suggestedAction"]) is "REGENERATE" or "RETRY_VALIDATION")
+                    SetReviewProgress(run, target, "NEEDS_ATTENTION", "Automatic review limit reached. Coordinator action is required.", job);
+            }
         }
         job.LeaseToken = null; job.LeaseUntil = null; job.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
+        // Release the parent's active-job unique-index slot before inserting its child,
+        // while retaining both writes in the same transaction under the workflow lock.
+        if (successor != null)
+        {
+            db.AiReviewJobs.Add(successor);
+            await db.SaveChangesAsync();
+        }
         await tx.CommitAsync();
     }
 }
