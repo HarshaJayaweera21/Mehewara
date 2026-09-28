@@ -29,7 +29,9 @@ from schemas.priority_recommendation import (
 )
 from tools.crew_tools import (
     AGENT_3_TOOLS,
+    calculate_crew_proximity,
     check_crew_availability,
+    estimate_remediation_duration,
     get_crew_capabilities,
     get_recent_jobs,
     reset_workflow_crew_context,
@@ -171,6 +173,40 @@ def _generate_deterministic_fallback(
         crew_name = None
         reason = f"No registered municipal crews found matching specialty {crew_type.value}. Coordinator intervention required."
 
+    dur_info = estimate_remediation_duration.invoke({
+        "category": crew_type.value,
+        "priority": priority.value,
+        "report_count": problem_data.get("reportCount", 1),
+    })
+    est_duration = dur_info.get("estimatedDurationMinutes", 60)
+    is_quick_win = dur_info.get("isQuickWin", False)
+
+    distance_km = None
+    travel_mins = None
+    strategy = "STANDARD_DISPATCH"
+
+    prob_lat = float(problem_data.get("latitude") or 0.0)
+    prob_lon = float(problem_data.get("longitude") or 0.0)
+
+    if chosen:
+        crew_lat = float(chosen.get("latitude") or 6.927079)
+        crew_lon = float(chosen.get("longitude") or 79.861244)
+        if crew_lat != 0.0 and prob_lat != 0.0:
+            prox_info = calculate_crew_proximity.invoke({
+                "crew_lat": crew_lat,
+                "crew_lon": crew_lon,
+                "problem_lat": prob_lat,
+                "problem_lon": prob_lon,
+            })
+            distance_km = prox_info.get("roadDistanceKm")
+            travel_mins = prox_info.get("estimatedTravelMinutes")
+
+    if priority == PriorityLevel.CRITICAL:
+        strategy = "URGENT_CRITICAL_PRIORITY"
+    elif is_quick_win and distance_km is not None and distance_km <= 3.0:
+        strategy = "IMMEDIATE_QUICK_WIN"
+        reasons.append(f"Opportunistic Quick Win: Estimated {est_duration}m fix located within {distance_km}km of crew baseline.")
+
     return PriorityRecommendationOutput(
         problem_id=prob_id,
         priority=priority,
@@ -180,6 +216,10 @@ def _generate_deterministic_fallback(
         recommended_crew_id=crew_id,
         recommended_crew_name=crew_name,
         recommendation_reason=reason,
+        estimated_duration_minutes=est_duration,
+        distance_km=distance_km,
+        estimated_travel_minutes=travel_mins,
+        dispatch_strategy=strategy,
     )
 
 
@@ -244,8 +284,53 @@ Report Count: {problem_data.get('reportCount', 1)}
 {json.dumps(crew_workloads, indent=2, default=str) if crew_workloads else 'No active work order workloads detected.'}
 
 Evaluate the severity, assign priority tier (CRITICAL/HIGH/MEDIUM/LOW) with score (0-100), and recommend an available crew.
+Estimate the physical remediation duration in minutes (estimatedDurationMinutes).
 Return your response conforming to the PriorityRecommendationOutput schema.
 """
+
+        dur_info = estimate_remediation_duration.invoke({
+            "category": required_cat,
+            "priority": "MEDIUM",
+            "report_count": problem_data.get("reportCount", 1),
+        })
+        fallback_dur = dur_info.get("estimatedDurationMinutes", 60)
+        prob_lat = float(problem_data.get("latitude") or 0.0)
+        prob_lon = float(problem_data.get("longitude") or 0.0)
+
+        def enrich_output(out: PriorityRecommendationOutput) -> PriorityRecommendationOutput:
+            if not out.recommended_crew_name and out.recommended_crew_id:
+                for c in all_crews:
+                    if str(c.get("crewId")).lower() == str(out.recommended_crew_id).lower():
+                        out.recommended_crew_name = c.get("name")
+                        break
+
+            if not out.estimated_duration_minutes or out.estimated_duration_minutes == 60:
+                out.estimated_duration_minutes = fallback_dur
+
+            # Spatial distance
+            if out.recommended_crew_id and prob_lat != 0.0:
+                for c in all_crews:
+                    if str(c.get("crewId")).lower() == str(out.recommended_crew_id).lower():
+                        c_lat = float(c.get("latitude") or 6.927079)
+                        c_lon = float(c.get("longitude") or 79.861244)
+                        prox = calculate_crew_proximity.invoke({
+                            "crew_lat": c_lat,
+                            "crew_lon": c_lon,
+                            "problem_lat": prob_lat,
+                            "problem_lon": prob_lon,
+                        })
+                        out.distance_km = prox.get("roadDistanceKm")
+                        out.estimated_travel_minutes = prox.get("estimatedTravelMinutes")
+                        break
+
+            if out.priority == PriorityLevel.CRITICAL:
+                out.dispatch_strategy = "URGENT_CRITICAL_PRIORITY"
+            elif out.estimated_duration_minutes <= 45 and out.distance_km and out.distance_km <= 3.0:
+                out.dispatch_strategy = "IMMEDIATE_QUICK_WIN"
+            else:
+                out.dispatch_strategy = "STANDARD_DISPATCH"
+
+            return out
 
         try:
             llm = get_llm()
@@ -258,23 +343,12 @@ Return your response conforming to the PriorityRecommendationOutput schema.
 
             if isinstance(result, PriorityRecommendationOutput):
                 result.problem_id = prob_id
-                # Enrich recommended_crew_name if missing
-                if not result.recommended_crew_name and result.recommended_crew_id:
-                    for c in all_crews:
-                        if str(c.get("crewId")).lower() == str(result.recommended_crew_id).lower():
-                            result.recommended_crew_name = c.get("name")
-                            break
-                return result
+                return enrich_output(result)
 
             if isinstance(result, dict):
                 result["problemId"] = prob_id
                 parsed = PriorityRecommendationOutput(**result)
-                if not parsed.recommended_crew_name and parsed.recommended_crew_id:
-                    for c in all_crews:
-                        if str(c.get("crewId")).lower() == str(parsed.recommended_crew_id).lower():
-                            parsed.recommended_crew_name = c.get("name")
-                            break
-                return parsed
+                return enrich_output(parsed)
 
             logger.warning("Agent 3 returned unexpected type %s; falling back to deterministic calculation.", type(result))
             return _generate_deterministic_fallback(problem_data, structured_report, all_crews)
