@@ -484,3 +484,84 @@ async def test_deterministic_fallback_populates_spatial_and_duration():
         assert out.distance_km < 1.0
         assert out.dispatch_strategy in ["IMMEDIATE_QUICK_WIN", "STANDARD_DISPATCH", "URGENT_CRITICAL_PRIORITY"]
 
+
+@pytest.mark.asyncio
+async def test_agent4_regeneration_feedback_excludes_rejected_crew():
+    """Verify Agent 3 blacklists rejected crew and picks alternative available crew."""
+    from agents.priority_crew_agent import run_priority_recommendation
+    from unittest.mock import patch
+
+    with patch("agents.priority_crew_agent.is_llm_configured", return_value=False):
+        prob = {
+            "problemId": "550e8400-e29b-41d4-a716-446655440001",
+            "title": "Severe road pothole",
+            "description": "Hazardous road crater",
+            "category": "ROAD",
+            "latitude": 6.9275,
+            "longitude": 79.8615,
+            "reportCount": 2,
+        }
+        crews = [
+            {
+                "crewId": "crew-road-1",
+                "name": "Road Crew 1",
+                "crewType": "ROAD",
+                "status": "AVAILABLE",
+                "latitude": 6.9271,
+                "longitude": 79.8612,
+            },
+            {
+                "crewId": "crew-road-2",
+                "name": "Road Crew 2",
+                "crewType": "ROAD",
+                "status": "AVAILABLE",
+                "latitude": 6.9280,
+                "longitude": 79.8620,
+            },
+        ]
+        validation_feedback = {
+            "status": "REVISION_REQUIRED",
+            "retry_count": 1,
+            "rejected_crew_ids": ["crew-road-1"],
+            "issues": ["Crew 1 was disqualified by safety constraint."],
+        }
+        out = await run_priority_recommendation(prob, None, crews, validation_feedback=validation_feedback)
+        assert out.recommended_crew_id == "crew-road-2"
+        assert out.recommended_crew_name == "Road Crew 2"
+        assert "Agent 4" in out.recommendation_reason
+
+
+@pytest.mark.asyncio
+async def test_agent4_regeneration_feedback_exhausts_crews():
+    """When all available crews are rejected by Agent 4, output recommendedCrewId is NONE."""
+    from agents.priority_crew_agent import run_priority_recommendation
+    from unittest.mock import patch
+
+    with patch("agents.priority_crew_agent.is_llm_configured", return_value=False):
+        prob = {
+            "problemId": "550e8400-e29b-41d4-a716-446655440002",
+            "title": "Fallen tree blocking lane",
+            "description": "Debris on road",
+            "category": "ENVIRONMENT",
+            "reportCount": 1,
+        }
+        crews = [
+            {
+                "crewId": "crew-env-1",
+                "name": "Env Squad",
+                "crewType": "ENVIRONMENT",
+                "status": "AVAILABLE",
+            }
+        ]
+        validation_feedback = {
+            "status": "REVISION_REQUIRED",
+            "retry_count": 1,
+            "rejected_crew_ids": ["crew-env-1"],
+            "issues": ["Crew equipment insufficient."],
+        }
+        out = await run_priority_recommendation(prob, None, crews, validation_feedback=validation_feedback)
+        assert out.recommended_crew_id == "NONE"
+        assert out.recommended_crew_name is None
+        assert "exhausted following Agent 4" in out.recommendation_reason
+
+
