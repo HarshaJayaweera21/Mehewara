@@ -4,13 +4,18 @@ public class RecommendationListItemDto
 {
     public int Revision { get; set; }
     public bool IsCurrent { get; set; }
+    public Guid? CurrentRecommendationId { get; set; }
     public bool CanApprove { get; set; }
     public string? Origin { get; set; }
     public Guid? EditedBy { get; set; }
     public DateTimeOffset? EditedAt { get; set; }
     public bool RequiresResponsibilityAcknowledgement { get; set; }
     public Guid? PreviousRecommendationId { get; set; }
-    public Mehewara.API.Models.AiReviewJob? LatestJob { get; set; }
+    public ReviewJobDto? LatestJob { get; set; }
+    public string ReviewBucket { get; set; } = "NEEDS_ATTENTION";
+    public string ReviewProgress { get; set; } = "NEEDS_ATTENTION";
+    public string? AttentionReason { get; set; }
+    public List<string> AllowedActions { get; set; } = new();
     public Guid RecommendationId { get; set; }
     public Guid ProblemId { get; set; }
     public string ProblemTitle { get; set; } = string.Empty;

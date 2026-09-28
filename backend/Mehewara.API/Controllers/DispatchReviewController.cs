@@ -21,6 +21,6 @@ public class DispatchReviewController(AiReviewService review) : ControllerBase
     public async Task<IActionResult> Job(Guid id)
     {
         var job = await review.GetJobAsync(id);
-        return job == null ? NotFound() : Ok(job);
+        return job == null ? NotFound() : Ok(ReviewJobDto.From(job));
     }
 }

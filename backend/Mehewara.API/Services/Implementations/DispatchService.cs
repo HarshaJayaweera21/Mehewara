@@ -13,7 +13,7 @@ using Npgsql;
 
 namespace Mehewara.API.Services.Implementations;
 
-public class DispatchService : IDispatchService
+public partial class DispatchService : IDispatchService
 {
     private readonly AppDbContext _context;
     private readonly ILogger<DispatchService> _logger;
@@ -47,9 +47,22 @@ public class DispatchService : IDispatchService
         }
 
         var isAscending = string.Equals(query.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+        if (query.ReviewBucket is "READY" or "PROCESSING" or "NEEDS_ATTENTION")
+        {
+            eventsQuery = eventsQuery.Where(e => e.WorkflowRun.CurrentRecommendationId == e.WorkflowEventId);
+            eventsQuery = eventsQuery.Where(e => !_context.ApprovalHistories.Any(a => a.RecommendationId == e.WorkflowEventId &&
+                (a.Decision == "APPROVED" || a.Decision == "REJECTED")));
+            if (query.ReviewBucket == "PROCESSING")
+                eventsQuery = eventsQuery.Where(e => _context.AiReviewJobs.Any(j => j.WorkflowRunId == e.WorkflowRunId && (j.Status == "QUEUED" || j.Status == "RUNNING")));
+            else
+                eventsQuery = eventsQuery.Where(e => !_context.AiReviewJobs.Any(j => j.WorkflowRunId == e.WorkflowRunId && (j.Status == "QUEUED" || j.Status == "RUNNING")));
+        }
+        else if (query.ReviewBucket == "DECIDED")
+            eventsQuery = eventsQuery.Where(e => _context.ApprovalHistories.Any(a => a.RecommendationId == e.WorkflowEventId &&
+                (a.Decision == "APPROVED" || a.Decision == "REJECTED")));
         eventsQuery = isAscending
-            ? eventsQuery.OrderBy(e => e.StartedAt)
-            : eventsQuery.OrderByDescending(e => e.StartedAt);
+            ? eventsQuery.OrderBy(e => e.StartedAt).ThenBy(e => e.WorkflowEventId)
+            : eventsQuery.OrderByDescending(e => e.StartedAt).ThenByDescending(e => e.WorkflowEventId);
 
         var allEvents = await eventsQuery.ToListAsync();
 
@@ -104,7 +117,8 @@ public class DispatchService : IDispatchService
             }
 
             if (!string.IsNullOrWhiteSpace(query.ReviewDecision) &&
-                !string.Equals(reviewDecision, query.ReviewDecision.Trim(), StringComparison.OrdinalIgnoreCase))
+                (query.ReviewDecision.Equals("PENDING", StringComparison.OrdinalIgnoreCase) ? reviewDecision != null :
+                !string.Equals(reviewDecision, query.ReviewDecision.Trim(), StringComparison.OrdinalIgnoreCase)))
             {
                 continue;
             }
@@ -129,7 +143,9 @@ public class DispatchService : IDispatchService
                 crewName = cName;
             }
 
-            listItems.Add(new RecommendationListItemDto
+            var search = query.Search?.Trim();
+            if (!string.IsNullOrWhiteSpace(search) && !($"{problem?.Title} {problem?.Category ?? payload.RequiredCrewType} {crewName} {payload.ProblemId}".Contains(search, StringComparison.OrdinalIgnoreCase))) continue;
+            var item = new RecommendationListItemDto
             {
                 RecommendationId = ev.WorkflowEventId,
                 Revision = ev.Revision,
@@ -138,7 +154,7 @@ public class DispatchService : IDispatchService
                 CanApprove = !await _context.ApprovalHistories.AnyAsync(a => a.RecommendationId == ev.WorkflowEventId && (a.Decision == "APPROVED" || a.Decision == "REJECTED")) && await _review.CanApproveAsync(ev),
                 Origin = reviewMetadata?.Origin, EditedBy = reviewMetadata?.EditedBy, EditedAt = reviewMetadata?.EditedAt,
                 RequiresResponsibilityAcknowledgement = await _review.GetHumanOverrideAsync(ev) != null,
-                LatestJob = await _context.AiReviewJobs.AsNoTracking().Where(j => j.WorkflowRunId == ev.WorkflowRunId).OrderByDescending(j => j.CreatedAt).FirstOrDefaultAsync(),
+                LatestJob = await LatestReviewJobAsync(ev.WorkflowRunId),
                 ProblemId = payload.ProblemId != Guid.Empty ? payload.ProblemId : (ev.WorkflowRun.ProblemId ?? Guid.Empty),
                 ProblemTitle = problem?.Title ?? string.Empty,
                 Category = problem?.Category ?? payload.RequiredCrewType,
@@ -156,12 +172,15 @@ public class DispatchService : IDispatchService
                 Validation = validation,
                 ReviewDecision = reviewDecision,
                 CreatedAt = ev.StartedAt
-            });
+            };
+            SetDisplayState(ev, item);
+            if (!string.IsNullOrWhiteSpace(query.ReviewBucket) && query.ReviewBucket != "ALL" && item.ReviewBucket != query.ReviewBucket) continue;
+            listItems.Add(item);
         }
 
         var totalItems = listItems.Count;
         var page = query.Page < 1 ? 1 : query.Page;
-        var pageSize = query.PageSize < 1 ? 20 : query.PageSize;
+        var pageSize = Math.Clamp(query.PageSize < 1 ? 20 : query.PageSize, 1, 100);
 
         var pagedItems = listItems
             .Skip((page - 1) * pageSize)
@@ -252,7 +271,7 @@ public class DispatchService : IDispatchService
             .ToList() ?? new List<string>();
         var reviewMetadata = ReviewMetadataJson.Read<RecommendationReviewMetadata>(ev.InputData);
 
-        return new RecommendationDetailDto
+        var detail = new RecommendationDetailDto
         {
             RecommendationId = ev.WorkflowEventId,
                 Revision = ev.Revision,
@@ -261,7 +280,10 @@ public class DispatchService : IDispatchService
                 CanApprove = !await _context.ApprovalHistories.AnyAsync(a => a.RecommendationId == ev.WorkflowEventId && (a.Decision == "APPROVED" || a.Decision == "REJECTED")) && await _review.CanApproveAsync(ev),
                 Origin = reviewMetadata?.Origin, EditedBy = reviewMetadata?.EditedBy, EditedAt = reviewMetadata?.EditedAt,
                 RequiresResponsibilityAcknowledgement = await _review.GetHumanOverrideAsync(ev) != null,
-                LatestJob = await _context.AiReviewJobs.AsNoTracking().Where(j => j.WorkflowRunId == ev.WorkflowRunId).OrderByDescending(j => j.CreatedAt).FirstOrDefaultAsync(),
+                LatestJob = await LatestReviewJobAsync(ev.WorkflowRunId),
+            OriginalOutputData = ev.OriginalOutputData,
+            JobHistory = (await _context.AiReviewJobs.AsNoTracking().Where(j => j.WorkflowRunId == ev.WorkflowRunId)
+                .OrderBy(j => j.CreatedAt).ThenBy(j => j.Id).ToListAsync()).Select(ReviewJobDto.From).ToList(),
             ProblemId = problemId,
             ProblemTitle = problem?.Title ?? string.Empty,
             ProblemDescription = problem?.Description,
@@ -275,9 +297,9 @@ public class DispatchService : IDispatchService
                 .OrderBy(e => e.StartedAt).Select(e => new ValidationAttemptDto(e.WorkflowEventId, e.StartedAt, e.CompletedAt, e.Status, e.ValidationResult)).ToListAsync(),
             HumanOverrideApproval = AiReviewService.Obj(ev.InputData)["humanOverrideApproval"] as JsonObject,
             EditHistory = await _context.ActivityHistories.AsNoTracking().Where(a => a.RecommendationId == recommendationId && a.Action == "RECOMMENDATION_EDITED")
-                .OrderBy(a => a.CreatedAt).Select(a => new RecommendationEditDto(a.ActivityId, a.CreatedAt, a.Note, a.BeforeData, a.AfterData)).ToListAsync(),
+                .OrderBy(a => a.CreatedAt).Select(a => new RecommendationEditDto(a.ActivityId, a.CreatedAt, a.Note, a.BeforeData, a.AfterData, a.ActorUserId)).ToListAsync(),
             History = await _context.WorkflowEvents.AsNoTracking().Where(e => e.WorkflowRunId == ev.WorkflowRunId && e.Stage == "PRIORITIZATION")
-                .OrderBy(e => e.StartedAt).Select(e => new ReviewHistoryItem(e.WorkflowEventId, e.PreviousRecommendationId, e.Revision, e.StartedAt, e.OutputData, e.ValidationResult)).ToListAsync(),
+                .OrderBy(e => e.StartedAt).Select(e => new ReviewHistoryItem(e.WorkflowEventId, e.PreviousRecommendationId, e.Revision, e.StartedAt, e.OutputData, e.ValidationResult, e.OriginalOutputData)).ToListAsync(),
             Priority = payload.Priority,
             PriorityScore = payload.PriorityScore,
             PriorityReasons = payload.PriorityReasons ?? new(),
@@ -298,6 +320,8 @@ public class DispatchService : IDispatchService
             WorkOrderId = approval?.WorkOrderId,
             CreatedAt = ev.StartedAt
         };
+        SetDisplayState(ev, detail);
+        return detail;
     }
 
     public async Task<RecommendationDetailDto> EditRecommendationAsync(Guid recommendationId, EditRecommendationRequest request, Guid adminUserId)

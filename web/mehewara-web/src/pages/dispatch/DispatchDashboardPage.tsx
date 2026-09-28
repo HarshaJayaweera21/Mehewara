@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { User } from '../../types/auth';
 import type {
   RecommendationListItem,
@@ -18,6 +18,7 @@ import { RejectRecommendationModal } from './components/RejectRecommendationModa
 import { RegenerateRecommendationModal } from './components/RegenerateRecommendationModal';
 import { ValidationReviewPanel } from './components/ValidationReviewPanel';
 import './DispatchDashboardPage.css';
+import './ReviewDashboard.css';
 
 export interface DispatchDashboardPageProps {
   currentUser?: User | null;
@@ -32,6 +33,8 @@ export interface DispatchDashboardPageProps {
 
 const PRIORITIES: (PriorityLevel | 'ALL')[] = ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
 const DECISIONS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const;
+const REVIEW_TABS = [ ['READY', 'Ready for Approval'], ['PROCESSING', 'Processing'],
+  ['NEEDS_ATTENTION', 'Needs Attention'], ['DECIDED', 'Decided'], ['ALL', 'All / History'] ] as const;
 
 export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   currentUser,
@@ -57,8 +60,15 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
+  const [backendSearch, setBackendSearch] = useState('');
   const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
   const [selectedDecision, setSelectedDecision] = useState<string>('ALL');
+  const [reviewBucket, setReviewBucket] = useState('READY');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const fetchSequence = useRef(0);
+  const requestedSelection = useRef<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Modal states
@@ -73,6 +83,10 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
   // Auto-dismiss toast
   useEffect(() => {
+    const timer = setTimeout(() => setBackendSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+  useEffect(() => {
     if (activeToast) {
       const timer = setTimeout(() => setActiveToast(null), 4500);
       return () => clearTimeout(timer);
@@ -80,34 +94,26 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   }, [activeToast]);
 
   // 1. Fetch recommendations and crew telemetry
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (quiet = false) => {
     if (!authToken) return;
-    setIsLoadingList(true);
+    const sequence = ++fetchSequence.current;
+    if (!quiet) setIsLoadingList(true);
     setErrorMessage(null);
 
     try {
       const [recsRes, crewsRes] = await Promise.all([
         getRecommendations(authToken, {
           priority: selectedPriority !== 'ALL' ? selectedPriority : undefined,
-          pageSize: 100,
-          reviewDecision: ['APPROVED', 'REJECTED'].includes(selectedDecision) ? selectedDecision : undefined,
+          page, pageSize: 20, reviewBucket, search: backendSearch || undefined,
+          reviewDecision: selectedDecision !== 'ALL' ? selectedDecision : undefined,
         }),
         getCrewAvailability(authToken),
       ]);
 
-      const allItems = [...(recsRes.items || [])];
-      for (let page = 2; page <= recsRes.totalPages; page++) {
-        const more = await getRecommendations(authToken, {
-          page, pageSize: 100,
-          priority: selectedPriority !== 'ALL' ? selectedPriority : undefined,
-          reviewDecision: ['APPROVED', 'REJECTED'].includes(selectedDecision) ? selectedDecision : undefined,
-        });
-        allItems.push(...more.items);
-      }
-      const search = searchQuery.trim().toLowerCase();
-      const items = allItems.filter(item =>
-        (selectedDecision !== 'PENDING' || !item.reviewDecision) &&
-        (!search || `${item.problemTitle} ${item.category} ${item.recommendedCrewName || ''}`.toLowerCase().includes(search)));
+      if (sequence !== fetchSequence.current) return;
+      setTotalPages(Math.max(1, recsRes.totalPages)); setTotalItems(recsRes.totalItems);
+      if (page > Math.max(1, recsRes.totalPages)) { setPage(Math.max(1, recsRes.totalPages)); return; }
+      const items = recsRes.items || [];
 
       // Heuristic sort: Pending decisions first, then highest priority score
       const sorted = [...items].sort((a, b) => {
@@ -120,21 +126,22 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
       setAvailableCrews(crewsRes.items || []);
 
       // Retain or auto-select first recommendation
-      if (sorted.length > 0) {
-        setSelectedRecId((prev) => (prev && sorted.some((r) => r.recommendationId === prev) ? prev : sorted[0].recommendationId));
+      if (sorted.length > 0 || requestedSelection.current) {
+        setSelectedRecId((prev) => requestedSelection.current || (prev && sorted.some((r) => r.recommendationId === prev) ? prev : sorted[0].recommendationId));
       } else {
         setSelectedRecId(null);
         setSelectedDetail(null);
       }
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Unable to connect to dispatch recommendation engine.');
+      if (sequence === fetchSequence.current) setErrorMessage(err instanceof Error ? err.message : 'Unable to connect to dispatch recommendation engine.');
     } finally {
-      setIsLoadingList(false);
+      if (sequence === fetchSequence.current) setIsLoadingList(false);
     }
-  }, [authToken, selectedPriority, selectedDecision, searchQuery]);
+  }, [authToken, selectedPriority, selectedDecision, backendSearch, reviewBucket, page]);
 
   useEffect(() => {
     fetchData();
+    return () => { fetchSequence.current++; };
   }, [fetchData, refreshTrigger]);
 
   // 2. Fetch single detailed recommendation when selection changes
@@ -142,6 +149,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
     if (!selectedRecId || !authToken) return;
     let ignore = false;
     setIsLoadingDetail(true);
+    setSelectedDetail(null);
 
     getRecommendationById(authToken, selectedRecId)
       .then((detail) => {
@@ -153,6 +161,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
       .catch((err) => {
         if (!ignore) {
           console.error('Failed to load recommendation detail:', err);
+          setErrorMessage(err instanceof Error ? err.message : 'Unable to load recommendation detail.');
           setIsLoadingDetail(false);
         }
       });
@@ -161,6 +170,27 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
       ignore = true;
     };
   }, [selectedRecId, authToken, refreshTrigger]);
+
+  // Refresh processing/attention views even when no row is selected. New children
+  // and recommendations are discovered from the backend, not guessed from a parent job.
+  useEffect(() => {
+    if (!authToken || modalMode || isLoadingDetail) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    async function poll() {
+      await fetchData(true);
+      if (cancelled) return;
+      if (selectedRecId) {
+        try {
+          const fresh = await getRecommendationById(authToken, selectedRecId);
+          if (!cancelled) setSelectedDetail(fresh);
+        } catch { /* existing detail is retained; the next poll or manual refresh retries */ }
+      }
+      if (!cancelled) timer = setTimeout(poll, 5000);
+    }
+    timer = setTimeout(poll, 5000);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [authToken, modalMode, fetchData, selectedRecId, isLoadingDetail]);
 
   // Metrics summary
   const metrics = useMemo(() => {
@@ -174,10 +204,11 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
   // Active item in list (for modals)
   const activeListItem = useMemo(() => {
-    return recommendations.find((r) => r.recommendationId === selectedRecId) || null;
-  }, [recommendations, selectedRecId]);
+    return selectedDetail?.recommendationId === selectedRecId ? selectedDetail : recommendations.find((r) => r.recommendationId === selectedRecId) || null;
+  }, [recommendations, selectedRecId, selectedDetail]);
 
   const handleActionSuccess = (msg: string) => {
+    requestedSelection.current = null;
     setModalMode(null);
     setActiveToast({ message: msg, type: 'success' });
     setRefreshTrigger((prev) => prev + 1);
@@ -339,6 +370,16 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
         </section>
 
         {/* 4. Filter Toolbar */}
+        <nav className="dispatch-review-tabs" aria-label="Recommendation review views">
+          {REVIEW_TABS.map(([value, label]) => <button key={value} type="button"
+            aria-pressed={reviewBucket === value} className={reviewBucket === value ? 'active' : ''}
+            onClick={() => { requestedSelection.current = null; setReviewBucket(value); setSelectedDecision('ALL'); setPage(1); setModalMode(null); }}>{label}</button>)}
+        </nav>
+        <div className="dispatch-pagination" aria-live="polite">
+          <span>{totalItems} matching recommendations · Page {page} of {totalPages}. Recommendation summaries describe this page; crew availability describes the roster.</span>
+          <button type="button" disabled={page <= 1 || isLoadingList} onClick={() => { requestedSelection.current = null; setPage(p => p - 1); }}>Previous</button>
+          <button type="button" disabled={page >= totalPages || isLoadingList} onClick={() => { requestedSelection.current = null; setPage(p => p + 1); }}>Next</button>
+        </div>
         <section className="dispatch-toolbar" aria-label="Filter Dispatch Recommendations">
           <div className="dispatch-search-box">
             <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -348,9 +389,9 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
             <input
               type="text"
               className="dispatch-search-input"
-              placeholder="Search problem title, ward or crew..."
+              placeholder="Search problem title, category, crew or Problem ID..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { requestedSelection.current = null; setSearchQuery(e.target.value); setPage(1); }}
               aria-label="Search dispatch recommendations"
             />
           </div>
@@ -361,7 +402,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
               <select
                 className="dispatch-filter-select"
                 value={selectedPriority}
-                onChange={(e) => setSelectedPriority(e.target.value)}
+                onChange={(e) => { requestedSelection.current = null; setSelectedPriority(e.target.value); setPage(1); }}
                 aria-label="Filter by Priority"
               >
                 {PRIORITIES.map((pri) => (
@@ -377,7 +418,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
               <select
                 className="dispatch-filter-select"
                 value={selectedDecision}
-                onChange={(e) => setSelectedDecision(e.target.value)}
+                onChange={(e) => { requestedSelection.current = null; setSelectedDecision(e.target.value); setPage(1); }}
                 aria-label="Filter by Decision"
               >
                 {DECISIONS.map((dec) => (
@@ -394,8 +435,10 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                 className="dispatch-clear-filters-btn"
                 onClick={() => {
                   setSearchQuery('');
+                  requestedSelection.current = null;
                   setSelectedPriority('ALL');
                   setSelectedDecision('ALL');
+                  setPage(1);
                 }}
               >
                 Clear filters
@@ -486,12 +529,12 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                     <article
                       key={rec.recommendationId}
                       className={`queue-item-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => setSelectedRecId(rec.recommendationId)}
+                      onClick={() => { requestedSelection.current = null; setSelectedRecId(rec.recommendationId); }}
                       tabIndex={0}
                       role="button"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
-                          setSelectedRecId(rec.recommendationId);
+                          requestedSelection.current = null; setSelectedRecId(rec.recommendationId);
                         }
                       }}
                     >
@@ -511,7 +554,8 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                           </span>
                           {isApproved && <span className="decision-tag approved">APPROVED</span>}
                           {isRejected && <span className="decision-tag rejected">REJECTED</span>}
-                          {!rec.reviewDecision && <span className="decision-tag pending">PENDING</span>}
+                          {!rec.reviewDecision && <span className="decision-tag pending">{rec.reviewProgress.replace(/_/g, ' ')}</span>}
+                          {rec.origin === 'HUMAN_OVERRIDE' && <span className="decision-tag pending">Human override</span>}
                         </div>
                       </div>
 
@@ -628,7 +672,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       className="dispatch-action-btn edit-btn"
                       onClick={() => setModalMode('edit')}
                       title={selectedDetail.reviewDecision ? 'Cannot override a reviewed recommendation' : 'Override priority, score or assigned crew'}
-                      disabled={!!selectedDetail.reviewDecision || !selectedDetail.isCurrent || ['QUEUED', 'RUNNING'].includes(selectedDetail.latestJob?.status || '')}
+                      disabled={!selectedDetail.allowedActions.includes('EDIT')}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M12 20h9" />
@@ -641,7 +685,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       type="button"
                       className="dispatch-action-btn regen-btn"
                       onClick={() => setModalMode('regenerate')}
-                      disabled={!!selectedDetail.reviewDecision || !selectedDetail.isCurrent || ['QUEUED', 'RUNNING'].includes(selectedDetail.latestJob?.status || '')}
+                      disabled={!selectedDetail.allowedActions.includes('REGENERATE')}
                       title="Generate a new recommendation and validate it"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -657,7 +701,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       className="dispatch-action-btn reject-btn"
                       onClick={() => setModalMode('reject')}
                       title="Reject recommendation"
-                      disabled={!!selectedDetail.reviewDecision || !selectedDetail.isCurrent || ['QUEUED', 'RUNNING'].includes(selectedDetail.latestJob?.status || '')}
+                      disabled={!selectedDetail.allowedActions.includes('REJECT')}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <line x1="18" y1="6" x2="6" y2="18" />
@@ -671,7 +715,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       className="dispatch-action-btn approve-btn"
                       onClick={() => setModalMode('approve')}
                       title="Approve and create Municipal Work Order"
-                      disabled={!selectedDetail.canApprove}
+                      disabled={!selectedDetail.allowedActions.includes('APPROVE')}
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <polyline points="20 6 9 17 4 12" />
@@ -772,7 +816,8 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                 </div>
 
                 <ValidationReviewPanel key={selectedDetail.recommendationId} detail={selectedDetail} token={authToken}
-                  onChange={(id) => { if (id) setSelectedRecId(id); setRefreshTrigger(v => v + 1); }} />
+                  onChange={(id, bucket) => { if (id) { requestedSelection.current = id; setReviewBucket('ALL'); setPage(1); setSelectedRecId(id); }
+                    if (bucket) { requestedSelection.current = null; setReviewBucket(bucket); setPage(1); } setRefreshTrigger(v => v + 1); }} />
                 {selectedDetail.workOrderId && <button className="dispatch-btn-primary" onClick={() => onOpenWorkOrder?.(selectedDetail.workOrderId!)}>View WorkOrder</button>}
                 {/* Opportunistic Routing & Execution Telemetry */}
                 <div className="detail-section telemetry-section">
@@ -878,6 +923,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
           token={authToken}
           onClose={() => setModalMode(null)}
           onSuccess={(workOrderId) => {
+            setReviewBucket('DECIDED'); setPage(1);
             handleActionSuccess(`Work Order ${workOrderId.substring(0, 8)} authorized successfully.`);
             onOpenWorkOrder?.(workOrderId);
           }}
@@ -892,14 +938,17 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
           onSuccess={(updatedDetail) => {
             // Immediately update the right panel with fresh data from the server
             setSelectedDetail(updatedDetail);
-            handleActionSuccess('Recommendation saved. Validate the new revision before approval.');
+            setReviewBucket(updatedDetail.reviewBucket === 'HISTORY' ? 'ALL' : updatedDetail.reviewBucket); setPage(1);
+            handleActionSuccess(updatedDetail.requiresResponsibilityAcknowledgement
+              ? 'Human override saved. Review backend eligibility and acknowledge responsibility before approval.'
+              : 'Recommendation saved. Review the current validation and available actions.');
           }}
         />
       )}
 
       {modalMode === 'regenerate' && activeListItem && (
         <RegenerateRecommendationModal recommendation={selectedDetail || activeListItem} token={authToken}
-          onClose={() => setModalMode(null)} onSuccess={() => handleActionSuccess('Regeneration queued. Progress appears in the review panel.')} />
+          onClose={() => setModalMode(null)} onSuccess={() => { setReviewBucket('PROCESSING'); setPage(1); handleActionSuccess('Regeneration queued. Progress appears in the review panel.'); }} />
       )}
 
       {modalMode === 'reject' && activeListItem && (
@@ -907,7 +956,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
           recommendation={selectedDetail || activeListItem}
           token={authToken}
           onClose={() => setModalMode(null)}
-          onSuccess={() => handleActionSuccess('Recommendation rejected.')}
+          onSuccess={() => { setReviewBucket('DECIDED'); setPage(1); handleActionSuccess('Recommendation rejected.'); }}
         />
       )}
 

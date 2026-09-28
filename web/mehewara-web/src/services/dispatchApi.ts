@@ -27,6 +27,7 @@ export async function getRecommendations(
   if (params?.pageSize) query.append('pageSize', params.pageSize.toString());
   if (params?.priority) query.append('priority', params.priority);
   if (params?.reviewDecision) query.append('reviewDecision', params.reviewDecision);
+  if (params?.reviewBucket) query.append('reviewBucket', params.reviewBucket);
   if (params?.status) query.append('status', params.status);
   if (params?.search) query.append('search', params.search);
 

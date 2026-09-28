@@ -14,12 +14,21 @@ export interface RecommendationValidation {
   checks?: { code: string; passed: boolean; message: string }[];
   findings?: { code: string; message: string; evidenceRefs: string[]; correction: string }[];
   evidenceRefs?: string[];
+  suggestedAction?: string | null;
+  policyVersion?: string | null;
+  snapshotHash?: string | null;
+  snapshotAt?: string | null;
 }
 
 export interface RecommendationListItem {
   recommendationId: string;
   revision: number;
   isCurrent: boolean;
+  currentRecommendationId?: string | null;
+  reviewBucket: string;
+  reviewProgress: string;
+  attentionReason: string | null;
+  allowedActions: string[];
   canApprove: boolean;
   origin?: string | null;
   editedBy?: string | null;
@@ -47,12 +56,14 @@ export interface RecommendationListItem {
 }
 
 export interface RecommendationDetail extends RecommendationListItem {
+  originalOutputData?: string | null;
+  jobHistory: ReviewJob[];
   humanOverrideApproval?: { revision: number; acknowledgedBy: string; acknowledgedAt: string;
     responsibilityAcknowledged: boolean; reason: string; approvalId: string; workOrderId: string } | null;
   validationHistory: { id: string; startedAt: string; completedAt: string | null; status: string; result: string | null }[];
-  editHistory: { id: string; createdAt: string; reason: string | null; before: string; after: string }[];
+  editHistory: { id: string; createdAt: string; reason: string | null; before: string; after: string; actorUserId: string }[];
   history: { recommendationId: string; previousRecommendationId: string | null; revision: number;
-    createdAt: string; outputData: string | null; validationResult: string | null }[];
+    createdAt: string; outputData: string | null; validationResult: string | null; originalOutputData?: string | null }[];
   problemDescription: string | null;
   latitude: number;
   longitude: number;
@@ -71,6 +82,7 @@ export interface RecommendationQueryParams {
   pageSize?: number;
   priority?: string;
   reviewDecision?: string;
+  reviewBucket?: string;
   status?: string;
   search?: string;
 }
@@ -115,6 +127,18 @@ export interface RegenerateRecommendationResponse {
   statusUrl: string;
 }
 export interface ReviewJob {
+  requestId: string;
+  requestedBy: string;
+  origin: string | null;
+  workflowRunId: string;
+  recommendationId: string;
+  expectedRevision: number;
+  updatedAt: string;
+  chainId: string | null;
+  parentJobId: string | null;
+  correctionCount: number | null;
+  evidenceRetryCount: number | null;
+  nextAttemptAt: string | null;
   id: string;
   kind: 'REGENERATE' | 'VALIDATE';
   status: 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED';

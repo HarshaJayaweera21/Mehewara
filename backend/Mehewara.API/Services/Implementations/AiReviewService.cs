@@ -112,6 +112,10 @@ public partial class AiReviewService(AppDbContext db, IHttpClientFactory clients
             await db.AiReviewJobs.AnyAsync(j => j.WorkflowRunId == ev.WorkflowRunId && (j.Status == "QUEUED" || j.Status == "RUNNING"))) return false;
         if (await db.ApprovalHistories.AnyAsync(a => a.RecommendationId == ev.WorkflowEventId && (a.Decision == "APPROVED" || a.Decision == "REJECTED"))) return false;
         var humanOverride = await GetHumanOverrideAsync(ev);
+        // A retained human edit must not regain approval eligibility automatically
+        // after a failed regeneration of that same revision.
+        if (humanOverride != null && await db.AiReviewJobs.AnyAsync(j => j.RecommendationId == ev.WorkflowEventId &&
+            j.ExpectedRevision == ev.Revision && j.Kind == "REGENERATE" && j.Status == "FAILED")) return false;
         if (ReviewMetadataJson.Read<RecommendationReviewMetadata>(ev.InputData)?.Origin == ReviewOrigins.HumanOverride && humanOverride == null) return false;
         if (humanOverride == null && (ev.ValidatedRevision != ev.Revision || Text(Obj(ev.ValidationResult)["status"]) != "VALID")) return false;
         var payload = Obj(ev.OutputData); var pid = Id(payload["problemId"]); var cid = Id(payload["recommendedCrewId"]);
