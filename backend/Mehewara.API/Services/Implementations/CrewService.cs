@@ -222,17 +222,22 @@ public class CrewService : ICrewService
         var hasActiveJob = await _context.WorkOrders
             .AnyAsync(w => w.CrewId == crewId && w.Status == "IN_PROGRESS");
 
-        if (hasActiveJob && normalized == "UNAVAILABLE")
+        if (normalized == "UNAVAILABLE")
         {
-            throw new Mehewara.API.Exceptions.ConflictException("Cannot set crew status to UNAVAILABLE while an active work order is currently assigned or in progress.", "ACTIVE_WORK_ORDER_EXISTS");
+            // Crew can always mark themselves unavailable (lunch, tea break, rest, accident, vehicle breakdown)
+            crew.Status = "UNAVAILABLE";
+        }
+        else if (normalized == "AVAILABLE")
+        {
+            // If the crew has an active in-progress mission, returning to duty resumes BUSY status.
+            // Otherwise, they are AVAILABLE on standby for assignments.
+            crew.Status = hasActiveJob ? "BUSY" : "AVAILABLE";
+        }
+        else if (normalized == "BUSY")
+        {
+            crew.Status = "BUSY";
         }
 
-        if (hasActiveJob && normalized == "AVAILABLE")
-        {
-            throw new Mehewara.API.Exceptions.ConflictException("Cannot set crew status to AVAILABLE while an active work order is currently underway.", "ACTIVE_WORK_ORDER_EXISTS");
-        }
-
-        crew.Status = normalized;
         crew.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 

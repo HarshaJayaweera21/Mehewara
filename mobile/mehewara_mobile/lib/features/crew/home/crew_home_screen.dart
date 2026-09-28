@@ -105,7 +105,11 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Squad availability updated to $targetStatus'),
+            content: Text(
+              makeAvailable
+                  ? (updated.isBusy ? 'Squad resumed active duty on current mission' : 'Squad marked AVAILABLE on standby')
+                  : 'Squad marked UNAVAILABLE (On break / off-duty)',
+            ),
             backgroundColor: makeAvailable ? AppColors.primaryForest : AppColors.textSecondary,
             behavior: SnackBarBehavior.floating,
           ),

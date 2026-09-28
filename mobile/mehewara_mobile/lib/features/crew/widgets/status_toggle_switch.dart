@@ -16,8 +16,9 @@ class StatusToggleSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAvailable = crew.isAvailable;
     final isBusy = crew.isBusy;
+    final isUnavailable = crew.isUnavailable;
+    final isOnDuty = crew.isOnDuty;
 
     return Card(
       child: Padding(
@@ -28,30 +29,37 @@ class StatusToggleSwitch extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Squad Availability Toggle',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Squad Duty & Availability',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isBusy
-                          ? 'Locked: Deployed on active mission'
-                          : (isAvailable ? 'Standby (Ready for AI assignment)' : 'Off-duty / Depot maintenance'),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isBusy ? AppColors.statusBusyText : AppColors.textSecondary,
-                        fontWeight: isBusy ? FontWeight.w600 : FontWeight.w400,
+                      const SizedBox(height: 2),
+                      Text(
+                        isUnavailable
+                            ? 'Off-duty / On Break (Lunch, Tea, Emergency)'
+                            : (isBusy
+                                ? 'Active Mission Underway (Toggle off to take break)'
+                                : 'Standby (Ready for AI assignment)'),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isUnavailable
+                              ? AppColors.textMuted
+                              : (isBusy ? AppColors.statusBusyText : AppColors.textSecondary),
+                          fontWeight: isBusy ? FontWeight.w600 : FontWeight.w400,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 12),
                 if (isLoading)
                   const SizedBox(
                     width: 24,
@@ -60,16 +68,38 @@ class StatusToggleSwitch extends StatelessWidget {
                   )
                 else
                   Switch(
-                    value: isAvailable,
+                    value: isOnDuty,
                     activeThumbColor: AppColors.primaryForest,
                     activeTrackColor: AppColors.softSage,
                     inactiveThumbColor: AppColors.textMuted,
                     inactiveTrackColor: AppColors.borderSubtle,
-                    onChanged: isBusy ? null : onToggle,
+                    onChanged: onToggle,
                   ),
               ],
             ),
-            if (isBusy) ...[
+            if (isUnavailable) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.statusUnavailableBg,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.statusUnavailableBorder),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.coffee_outlined, size: 16, color: AppColors.statusUnavailableText),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Squad is currently inactive. Dispatch Coordinator & AI will not assign new jobs until you toggle back on duty.',
+                        style: TextStyle(fontSize: 11, color: AppColors.statusUnavailableText, height: 1.3),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else if (isBusy) ...[
               const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -84,7 +114,7 @@ class StatusToggleSwitch extends StatelessWidget {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Availability is locked while active work order is underway. Completing the work order restores standby readiness.',
+                        'Active mission in progress. You can toggle off at any time for lunch, tea breaks, rest, vehicle maintenance, or incident reporting.',
                         style: TextStyle(fontSize: 11, color: AppColors.statusBusyText, height: 1.3),
                       ),
                     ),
