@@ -3,9 +3,11 @@ import '../../../core/theme/app_colors.dart';
 import '../../../models/crew_model.dart';
 import '../../../models/work_order_model.dart';
 import '../../../services/crew_service.dart';
+import '../../../services/location_service.dart';
 import '../widgets/crew_status_badge.dart';
 import '../widgets/status_toggle_switch.dart';
 import '../widgets/active_work_order_card.dart';
+import '../widgets/crew_work_map.dart';
 import '../jobs/problem_detail_screen.dart';
 
 class CrewHomeScreen extends StatefulWidget {
@@ -29,11 +31,32 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
   bool _isLoading = true;
   bool _isTogglingStatus = false;
   String? _errorMessage;
+  CrewLocation _crewLocation = CrewLocation.defaultDepot;
+  bool _isRefreshingLocation = false;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _fetchLocation();
+  }
+
+  Future<void> _fetchLocation() async {
+    setState(() => _isRefreshingLocation = true);
+    try {
+      final loc = await LocationService().getCurrentLocation();
+      if (mounted) {
+        setState(() {
+          _crewLocation = loc;
+          _isRefreshingLocation = false;
+        });
+      }
+      widget.crewService.sendHeartbeat(loc.latitude, loc.longitude);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isRefreshingLocation = false);
+      }
+    }
   }
 
   void _openProblemDetails(WorkOrderModel order) {
@@ -76,6 +99,7 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
           _queuedOrders = queued;
           _isLoading = false;
         });
+        _fetchLocation();
       }
     } catch (e) {
       if (mounted) {
@@ -462,77 +486,18 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
 
             const SizedBox(height: 20),
 
-            // Telemetry & Specs
-            const Text(
-              'SQUAD TELEMETRY & SPECIFICATIONS',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textSecondary,
-                letterSpacing: 0.6,
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildSpecRow(
-                      icon: Icons.business_outlined,
-                      label: 'Assigned Depot / Ward',
-                      value: 'Central Colombo Depot',
-                    ),
-                    const Divider(height: 20),
-                    _buildSpecRow(
-                      icon: Icons.phone_outlined,
-                      label: 'Emergency Contact Line',
-                      value: crew.contactNumber ?? '+94 11 269 1111',
-                    ),
-                    const Divider(height: 20),
-                    _buildSpecRow(
-                      icon: Icons.fingerprint,
-                      label: 'Municipal Registry ID',
-                      value: crew.id.length > 18 ? '${crew.id.substring(0, 18)}...' : crew.id,
-                    ),
-                  ],
-                ),
-              ),
+            // Operational Field Work Map
+            CrewWorkMap(
+              crewLocation: _crewLocation,
+              inProgressOrder: _inProgressOrder,
+              queuedOrders: _queuedOrders,
+              onSelectOrder: _openProblemDetails,
+              onRefreshGps: _fetchLocation,
+              isRefreshingGps: _isRefreshingLocation,
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSpecRow({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: AppColors.primaryForest),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

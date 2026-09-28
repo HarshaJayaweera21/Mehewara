@@ -182,6 +182,56 @@ class _CrewProfileScreenState extends State<CrewProfileScreen> {
 
           const SizedBox(height: 16),
 
+          // Squad Telemetry & Specifications Section
+          const Text(
+            'SQUAD TELEMETRY & SPECIFICATIONS',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textSecondary,
+              letterSpacing: 0.6,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildProfileRow(
+                    icon: Icons.business_outlined,
+                    label: 'Assigned Depot / Ward',
+                    value: 'Central Colombo Depot',
+                  ),
+                  const Divider(height: 18),
+                  _buildProfileRow(
+                    icon: Icons.phone_outlined,
+                    label: 'Emergency Contact Line',
+                    value: crew?.contactNumber ?? '+94 11 269 1111',
+                  ),
+                  const Divider(height: 18),
+                  _buildProfileRow(
+                    icon: Icons.fingerprint,
+                    label: 'Municipal Registry ID',
+                    value: crew != null && crew.id.isNotEmpty
+                        ? (crew.id.length > 20 ? '${crew.id.substring(0, 20)}...' : crew.id)
+                        : '—',
+                  ),
+                  const Divider(height: 18),
+                  _buildProfileRow(
+                    icon: Icons.local_shipping_outlined,
+                    label: 'Field Dispatch Fleet Type',
+                    value: '${crew?.crewType ?? "GENERAL"} Remediation Squad',
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           // Municipal Support Hotline
           Card(
             color: AppColors.softSage.withValues(alpha: 0.4),
