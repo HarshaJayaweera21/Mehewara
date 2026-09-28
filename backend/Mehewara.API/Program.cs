@@ -90,23 +90,15 @@ builder.Services.AddControllers()
     });
 
 // 5. CORS
+var configuredCorsOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.SetIsOriginAllowed(origin =>
-              {
-                  if (string.IsNullOrWhiteSpace(origin)) return false;
-                  try
-                  {
-                      var uri = new Uri(origin);
-                      return uri.Host == "localhost" || uri.Host == "127.0.0.1";
-                  }
-                  catch
-                  {
-                      return false;
-                  }
-              })
+        policy.WithOrigins(configuredCorsOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -155,8 +147,8 @@ var app = builder.Build();
 // 7. Global Exception Handling Middleware (First in HTTP pipeline)
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
-// 8. Swagger in Development
-if (app.Environment.IsDevelopment())
+// 8. Swagger can be enabled for evaluator access through Swagger:Enabled=true.
+if (app.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
@@ -184,7 +176,7 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/uploads"
 });
 
-if (!app.Environment.IsDevelopment())
+if (app.Configuration.GetValue<bool>("Https:Enabled"))
 {
     app.UseHttpsRedirection();
 }
@@ -194,7 +186,13 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// 9. Database Seeding
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "healthy",
+    service = "mehewara-api"
+}));
+
+// 9. Database migrations and seeding
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -202,7 +200,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var dbContext = services.GetRequiredService<AppDbContext>();
-        dbContext.Database.EnsureCreated();
+        await dbContext.Database.MigrateAsync();
         await DbSeeder.SeedAsync(dbContext, logger);
     }
     catch (Exception ex)
