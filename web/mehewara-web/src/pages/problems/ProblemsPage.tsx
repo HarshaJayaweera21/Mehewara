@@ -239,7 +239,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
     };
   }, [allProblemsForMetrics, problems]);
 
-  const handleCardClick = (problemId: string, _title?: string) => {
+  const handleCardClick = (problemId: string) => {
     setSelectedProblemId(problemId);
     if (onSelectProblem) {
       onSelectProblem(problemId);
@@ -673,11 +673,11 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
                   className="problem-card"
                   tabIndex={0}
                   role="button"
-                  onClick={() => handleCardClick(problem.id, problem.title)}
+                  onClick={() => handleCardClick(problem.id)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      handleCardClick(problem.id, problem.title);
+                      handleCardClick(problem.id);
                     }
                   }}
                   aria-label={`Problem ${problem.title}, priority ${problem.priority}, category ${problem.category}`}
@@ -723,7 +723,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
                       className="view-details-btn"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleCardClick(problem.id, problem.title);
+                        handleCardClick(problem.id);
                       }}
                       tabIndex={-1}
                       aria-hidden="true"
