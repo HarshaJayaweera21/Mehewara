@@ -84,6 +84,12 @@ public partial class AiReviewService
                 ? "Validation is incomplete or evidence could not be bound to this revision." : issues, job);
     }
 
+    /// <summary>
+    /// Step 3: Save Agents 1–3 outputs and queue Agent 4 validation atomically.
+    /// The Python graph now ends after Agent 3; validation always starts as NOT_RUN.
+    /// A VALIDATE job is inserted so the background worker runs Agent 4 independently.
+    /// Repeated calls for the same workflow are idempotent (existing events guard).
+    /// </summary>
     public async Task PersistInitialAsync(Guid runId, string response)
     {
         await using var transaction = await db.Database.BeginTransactionAsync();
@@ -94,25 +100,23 @@ public partial class AiReviewService
         var analysis = result["reportAnalysis"] ?? result["analysis"];
         var consolidation = result["problemAnalysis"] as JsonObject;
         var recRaw = result["priorityAnalysis"] as JsonObject;
-        var validation = result["safetyValidation"] as JsonObject ?? Failure("Agent 4 result is missing.", "NOT_RUN");
+        // Agent 4 has NOT run in the initial graph. Any safetyValidation from Python is
+        // a placeholder (status: NOT_RUN). Force NOT_RUN unconditionally so that only
+        // the durable background worker can produce a real validation result.
+        var validation = Failure("Agent 4 validation is queued.", "NOT_RUN");
         if (analysis != null) Record(run, "REPORT_ANALYSIS", "Report Analysis Agent", analysis);
         if (consolidation != null) Record(run, "PROBLEM_CONSOLIDATION", "Problem Consolidation Agent", consolidation);
         var ids = (consolidation?["relatedReportIds"] as JsonArray ?? new()).Select(Id).Where(i => i.HasValue).Select(i => i!.Value).ToList();
         var request = new ValidationContextRequest { WorkflowId = runId, ReportIds = ids,
             ProblemId = Id(consolidation?["problemId"]), CrewId = Id(recRaw?["recommendedCrewId"]) };
-        // Hold evidence rows stable while verifying and binding this initial result.
+        // Hold evidence rows stable while saving the initial recommendation.
         if (request.ProblemId.HasValue)
             await db.Problems.FromSqlInterpolated($"SELECT * FROM problems WHERE problem_id = {request.ProblemId.Value} FOR UPDATE").ToListAsync();
         if (request.CrewId.HasValue)
             await db.Crews.FromSqlInterpolated($"SELECT * FROM crews WHERE crew_id = {request.CrewId.Value} FOR UPDATE").ToListAsync();
         var evidenceIds = ids.Append(run.ReportId).Distinct().ToArray();
         await db.Reports.FromSqlInterpolated($"SELECT * FROM reports WHERE report_id = ANY({evidenceIds}) ORDER BY report_id FOR UPDATE").ToListAsync();
-        if (Text(validation["status"]) == "VALID")
-        {
-            var fresh = await GetEvidenceAsync(request);
-            if (Text(fresh["evidenceHash"]) != Text(validation["evidenceHash"]))
-                validation = Failure("Evidence changed during AI processing. Revalidate.", "REVISION_REQUIRED");
-        }
+        // No inline evidence-hash binding — validation is NOT_RUN; Agent 4 will do this.
         Problem? problem = null;
         var candidates = input["context"]?["candidateProblems"] as JsonArray ?? new();
         if (Text(consolidation?["decision"]) == "LINK_EXISTING" && request.ProblemId.HasValue &&
@@ -149,6 +153,7 @@ public partial class AiReviewService
                 problem.Description = Text(consolidation!["updatedProblemDescription"]);
         }
         WorkflowEvent? rec = null;
+        AiReviewJob? initialJob = null;
         if (recRaw != null && problem != null)
         {
             rec = Record(run, "PRIORITIZATION", "Priority & Crew Recommendation Agent", NormalizeRecommendation(recRaw, problem.ProblemId));
@@ -164,16 +169,41 @@ public partial class AiReviewService
             {
                 problem.EstimatedDurationMinutes = duration;
             }
-            if (Text(validation["status"]) == "VALID")
-            {
-                problem.Priority = Text(recRaw["priority"]);
-                problem.PriorityScore = recRaw["priorityScore"]?.GetValue<int>();
-                if (problem.Status is "IDENTIFIED" or "AWAITING_ASSIGNMENT") problem.Status = "AWAITING_ASSIGNMENT";
-            }
+            // Problem priority/status are NOT updated here. That only happens after Agent 4
+            // validates the recommendation (in FinishAsync). At this point validation is NOT_RUN.
+
+            // --- Step 3: Insert the initial VALIDATE job ---
+            // Use a deterministic request ID derived from the workflow run to prevent duplicates
+            // if this method is called more than once for the same workflow.
+            var requestId = new Guid(System.Security.Cryptography.MD5.HashData(
+                System.Text.Encoding.UTF8.GetBytes($"initial-validate-{runId}")));
+            initialJob = new AiReviewJob {
+                Id = Guid.NewGuid(), WorkflowRunId = runId, RecommendationId = rec.WorkflowEventId,
+                ExpectedRevision = rec.Revision, RequestId = requestId,
+                // Per plan: automatic initial jobs reference the report's initiating resident.
+                // This identifies the initiating user, not a resident approval or admin action.
+                RequestedBy = report.ResidentId,
+                Kind = "VALIDATE", Reason = "Initial Agent 4 validation after Agents 1–3.",
+                Status = "QUEUED", Attempts = 0 };
+            initialJob.InputData = ReviewMetadataJson.Write(
+                new JsonObject { ["previousValidation"] = validation.DeepClone() }.ToJsonString(Json),
+                new ReviewJobMetadata {
+                    SchemaVersion = ReviewMetadataJson.CurrentVersion, ChainId = initialJob.Id,
+                    Origin = ReviewOrigins.System, CorrectionCount = 0 });
+            db.AiReviewJobs.Add(initialJob);
         }
         run.StateData = response;
-        await db.SaveChangesAsync(); // Resolve new Problem/report links before binding normalized evidence.
+        // Set workflow status to reflect queued validation rather than completed.
+        run.Status = rec != null ? "RUNNING" : "WAITING";
+        run.CurrentStage = rec != null ? "VALIDATION" : (consolidation != null ? "PROBLEM_CONSOLIDATION" : "REPORT_ANALYSIS");
+        run.CompletedAt = null;
+        await db.SaveChangesAsync(); // Resolve new Problem/report links before recording validation.
+        // Record the NOT_RUN validation event for visibility. The real validation will be
+        // recorded by the worker when it executes the job.
         await RecordValidationAsync(run, rec, validation, request);
+        // Set review tracking to QUEUED so the dashboard shows this workflow as processing.
+        if (rec != null)
+            SetReviewProgress(run, rec, "QUEUED", job: initialJob);
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
     }

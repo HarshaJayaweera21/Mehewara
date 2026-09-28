@@ -208,6 +208,24 @@ public partial class AiReviewService
                 ev.ValidatedRevision = null;
             }
             await RecordValidationAsync(run, target, validation, request, id);
+            // Step 3: When Agent 4 validation passes, update the Problem's priority/status.
+            // This was previously done inline in PersistInitialAsync but now only happens
+            // after the worker produces a real VALID result.
+            if (Text(validation["status"]) == "VALID" && run.ProblemId.HasValue)
+            {
+                var recOutput = Obj(target.OutputData);
+                var problem = await db.Problems.SingleOrDefaultAsync(p => p.ProblemId == run.ProblemId.Value);
+                if (problem != null)
+                {
+                    var priority = Text(recOutput["priority"]);
+                    var score = recOutput["priorityScore"]?.GetValue<int>();
+                    if (!string.IsNullOrEmpty(priority)) problem.Priority = priority;
+                    if (score.HasValue) problem.PriorityScore = score;
+                    if (problem.Status is "IDENTIFIED" or "AWAITING_ASSIGNMENT")
+                        problem.Status = "AWAITING_ASSIGNMENT";
+                    problem.UpdatedAt = DateTime.UtcNow;
+                }
+            }
             job.Status = technicalFailure ? "FAILED" : "COMPLETED";
             job.Error = technicalFailure ? error ?? string.Join("; ", (validation["issues"] as JsonArray ?? new()).Select(Text)) : null;
             job.ResultRecommendationId = target.WorkflowEventId;
