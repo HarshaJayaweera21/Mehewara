@@ -11,6 +11,7 @@ class WorkOrderModel {
   final int reportCount;
   final String priority;
   final int priorityScore;
+  final int? estimatedDurationMinutes;
   final String status;
   final String? instructions;
   final DateTime? assignedAt;
@@ -32,6 +33,7 @@ class WorkOrderModel {
     this.reportCount = 0,
     required this.priority,
     this.priorityScore = 0,
+    this.estimatedDurationMinutes,
     required this.status,
     this.instructions,
     this.assignedAt,
@@ -47,6 +49,7 @@ class WorkOrderModel {
   bool get isCompleted => status == 'COMPLETED';
   bool get isClosed => status == 'COMPLETED' || status == 'CANCELLED' || status == 'FAILED';
   bool get hasValidCoordinates => latitude != 0.0 && longitude != 0.0;
+  bool get isQuickWin => (estimatedDurationMinutes ?? 60) <= 45;
 
   int get priorityWeight {
     switch (priority.toUpperCase()) {
@@ -85,6 +88,9 @@ class WorkOrderModel {
       priorityScore: json['priorityScore'] is int
           ? json['priorityScore']
           : int.tryParse(json['priorityScore']?.toString() ?? '0') ?? 0,
+      estimatedDurationMinutes: json['estimatedDurationMinutes'] is int
+          ? json['estimatedDurationMinutes']
+          : int.tryParse(json['estimatedDurationMinutes']?.toString() ?? ''),
       status: (json['status'] ?? 'ASSIGNED').toString().toUpperCase(),
       instructions: json['instructions'],
       assignedAt: json['assignedAt'] != null ? DateTime.tryParse(json['assignedAt']) : null,

@@ -432,6 +432,9 @@ public class AppDbContext : DbContext
             entity.Property(p => p.PriorityScore)
                 .HasColumnName("priority_score");
 
+            entity.Property(p => p.EstimatedDurationMinutes)
+                .HasColumnName("estimated_duration_minutes");
+
             entity.Property(p => p.Status)
                 .HasColumnName("status")
                 .HasMaxLength(30)

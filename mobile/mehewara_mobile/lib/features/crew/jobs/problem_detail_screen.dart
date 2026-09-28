@@ -597,6 +597,63 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
               ],
             ),
 
+            const SizedBox(height: 10),
+
+            // Remediation Duration & Quick-Win Banner
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                if (_currentOrder.isQuickWin)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.statusAvailableBg,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.statusAvailableText.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.bolt, size: 13, color: AppColors.statusAvailableText),
+                        SizedBox(width: 3),
+                        Text(
+                          'QUICK WIN OPPORTUNITY',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.statusAvailableText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.canvasBg,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.borderDefault),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.timer_outlined, size: 13, color: AppColors.textSecondary),
+                      const SizedBox(width: 4),
+                      Text(
+                        'EST. FIX TIME: ~${_currentOrder.estimatedDurationMinutes ?? 60} MINS',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
             const SizedBox(height: 20),
 
             // Section 1: Problem Description

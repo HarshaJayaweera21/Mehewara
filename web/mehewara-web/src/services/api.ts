@@ -1,5 +1,5 @@
 import type { LoginResponse, User, RegisterRequest, UpdateProfileRequest } from '../types/auth';
-export const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5194/api').replace(/\/$/, '');
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
 
 export class ApiRequestError extends Error {
   status: number;

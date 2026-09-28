@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mehewara.API.Data;
 using Mehewara.API.Models;
+using Mehewara.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace Mehewara.API.Integrations.AiService;
@@ -12,17 +13,20 @@ public class AiWorkflowClient : IAiWorkflowClient
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ICrewLocationService _crewLocationService;
     private readonly ILogger<AiWorkflowClient> _logger;
 
     public AiWorkflowClient(
         HttpClient httpClient,
         IConfiguration configuration,
         IServiceScopeFactory scopeFactory,
+        ICrewLocationService crewLocationService,
         ILogger<AiWorkflowClient> logger)
     {
         _httpClient = httpClient;
         _configuration = configuration;
         _scopeFactory = scopeFactory;
+        _crewLocationService = crewLocationService;
         _logger = logger;
     }
 
@@ -108,7 +112,20 @@ public class AiWorkflowClient : IAiWorkflowClient
                 })
                 .ToListAsync();
 
-            availableCrews = dbCrews.Cast<object>().ToList();
+            availableCrews = dbCrews.Select(c =>
+            {
+                var loc = _crewLocationService.GetCurrentLocation(c.crewId);
+                return (object)new
+                {
+                    crewId = c.crewId,
+                    name = c.name,
+                    crewType = c.crewType,
+                    status = c.status,
+                    activeWorkOrderId = c.activeWorkOrderId,
+                    latitude = (double)loc.Latitude,
+                    longitude = (double)loc.Longitude
+                };
+            }).ToList();
         }
         catch (Exception ex)
         {

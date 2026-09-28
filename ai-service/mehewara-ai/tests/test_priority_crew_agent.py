@@ -415,3 +415,153 @@ def test_zero_database_dependency_guardrail():
     for kw in forbidden_keywords:
         assert kw not in crew_tools_source, f"Architectural violation: SQL keyword '{kw}' found in crew_tools.py."
         assert kw not in agent_source, f"Architectural violation: SQL keyword '{kw}' found in priority_crew_agent.py."
+
+
+def test_calculate_crew_proximity_and_duration_tools():
+    """Verify that calculate_crew_proximity and estimate_remediation_duration compute valid metrics."""
+    from tools.crew_tools import calculate_crew_proximity, estimate_remediation_duration
+
+    # Colombo Municipal Depot to Town Hall (~1.5 km)
+    prox = calculate_crew_proximity.invoke({
+        "crew_lat": 6.9271,
+        "crew_lon": 79.8612,
+        "problem_lat": 6.9147,
+        "problem_lon": 79.8653,
+    })
+    assert "roadDistanceKm" in prox
+    assert prox["roadDistanceKm"] > 0
+    assert "estimatedTravelMinutes" in prox
+    assert prox["estimatedTravelMinutes"] >= 2
+
+    # Waste problem quick win estimation
+    dur = estimate_remediation_duration.invoke({
+        "category": "WASTE",
+        "priority": "LOW",
+        "report_count": 1,
+    })
+    assert dur["estimatedDurationMinutes"] <= 45
+    assert dur["isQuickWin"] is True
+
+    # Critical road issue multi-hour estimation
+    dur_crit = estimate_remediation_duration.invoke({
+        "category": "ROAD",
+        "priority": "CRITICAL",
+        "report_count": 4,
+    })
+    assert dur_crit["estimatedDurationMinutes"] > 100
+    assert dur_crit["isQuickWin"] is False
+
+
+@pytest.mark.asyncio
+async def test_deterministic_fallback_populates_spatial_and_duration():
+    """Verify that Agent 3 fallback populates estimatedDurationMinutes and dispatchStrategy."""
+    from agents.priority_crew_agent import run_priority_recommendation
+    from unittest.mock import patch
+
+    with patch("agents.priority_crew_agent.is_llm_configured", return_value=False):
+        prob = {
+            "problemId": "550e8400-e29b-41d4-a716-446655440000",
+            "title": "Blocked storm drain",
+            "description": "Severe street flooding",
+            "category": "DRAINAGE",
+            "latitude": 6.9275,
+            "longitude": 79.8615,
+            "reportCount": 2,
+        }
+        crews = [
+            {
+                "crewId": "c1111111-1111-1111-1111-111111111111",
+                "name": "Drainage Squad Alpha",
+                "crewType": "DRAINAGE",
+                "status": "AVAILABLE",
+                "latitude": 6.9271,
+                "longitude": 79.8612,
+            }
+        ]
+        out = await run_priority_recommendation(prob, None, crews)
+        assert out.estimated_duration_minutes > 0
+        assert out.distance_km is not None
+        assert out.distance_km < 1.0
+        assert out.dispatch_strategy in ["IMMEDIATE_QUICK_WIN", "STANDARD_DISPATCH", "URGENT_CRITICAL_PRIORITY"]
+
+
+@pytest.mark.asyncio
+async def test_agent4_regeneration_feedback_excludes_rejected_crew():
+    """Verify Agent 3 blacklists rejected crew and picks alternative available crew."""
+    from agents.priority_crew_agent import run_priority_recommendation
+    from unittest.mock import patch
+
+    with patch("agents.priority_crew_agent.is_llm_configured", return_value=False):
+        prob = {
+            "problemId": "550e8400-e29b-41d4-a716-446655440001",
+            "title": "Severe road pothole",
+            "description": "Hazardous road crater",
+            "category": "ROAD",
+            "latitude": 6.9275,
+            "longitude": 79.8615,
+            "reportCount": 2,
+        }
+        crews = [
+            {
+                "crewId": "crew-road-1",
+                "name": "Road Crew 1",
+                "crewType": "ROAD",
+                "status": "AVAILABLE",
+                "latitude": 6.9271,
+                "longitude": 79.8612,
+            },
+            {
+                "crewId": "crew-road-2",
+                "name": "Road Crew 2",
+                "crewType": "ROAD",
+                "status": "AVAILABLE",
+                "latitude": 6.9280,
+                "longitude": 79.8620,
+            },
+        ]
+        validation_feedback = {
+            "status": "REVISION_REQUIRED",
+            "retry_count": 1,
+            "rejected_crew_ids": ["crew-road-1"],
+            "issues": ["Crew 1 was disqualified by safety constraint."],
+        }
+        out = await run_priority_recommendation(prob, None, crews, validation_feedback=validation_feedback)
+        assert out.recommended_crew_id == "crew-road-2"
+        assert out.recommended_crew_name == "Road Crew 2"
+        assert "Agent 4" in out.recommendation_reason
+
+
+@pytest.mark.asyncio
+async def test_agent4_regeneration_feedback_exhausts_crews():
+    """When all available crews are rejected by Agent 4, output recommendedCrewId is NONE."""
+    from agents.priority_crew_agent import run_priority_recommendation
+    from unittest.mock import patch
+
+    with patch("agents.priority_crew_agent.is_llm_configured", return_value=False):
+        prob = {
+            "problemId": "550e8400-e29b-41d4-a716-446655440002",
+            "title": "Fallen tree blocking lane",
+            "description": "Debris on road",
+            "category": "ENVIRONMENT",
+            "reportCount": 1,
+        }
+        crews = [
+            {
+                "crewId": "crew-env-1",
+                "name": "Env Squad",
+                "crewType": "ENVIRONMENT",
+                "status": "AVAILABLE",
+            }
+        ]
+        validation_feedback = {
+            "status": "REVISION_REQUIRED",
+            "retry_count": 1,
+            "rejected_crew_ids": ["crew-env-1"],
+            "issues": ["Crew equipment insufficient."],
+        }
+        out = await run_priority_recommendation(prob, None, crews, validation_feedback=validation_feedback)
+        assert out.recommended_crew_id == "NONE"
+        assert out.recommended_crew_name is None
+        assert "exhausted following Agent 4" in out.recommendation_reason
+
+

@@ -33,6 +33,10 @@ export interface RecommendationListItem {
   recommendedCrewId: string | null;
   recommendedCrewName: string | null;
   recommendationReason: string;
+  dispatchStrategy?: 'IMMEDIATE_QUICK_WIN' | 'URGENT_CRITICAL_PRIORITY' | 'CLUSTERED_EN_ROUTE' | 'STANDARD_DISPATCH' | string;
+  estimatedDurationMinutes?: number | null;
+  distanceKm?: number | null;
+  estimatedTravelMinutes?: number | null;
   validation: RecommendationValidation;
   reviewDecision: ReviewDecision | null;
   createdAt: string;

@@ -134,6 +134,12 @@ public partial class AiReviewService
             rec.OriginalOutputData = recRaw.ToJsonString(Json);
             run.CurrentRecommendationId = rec.WorkflowEventId;
             request.ProblemId = problem.ProblemId;
+            // Preserve Agent 3's repair estimate independently of Agent 4's validation outcome.
+            if (recRaw["estimatedDurationMinutes"] is JsonValue durationValue &&
+                durationValue.TryGetValue<int>(out var duration) && duration is >= 10 and <= 2880)
+            {
+                problem.EstimatedDurationMinutes = duration;
+            }
             if (Text(validation["status"]) == "VALID")
             {
                 problem.Priority = Text(recRaw["priority"]);

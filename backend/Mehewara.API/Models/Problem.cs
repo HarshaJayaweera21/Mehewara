@@ -11,6 +11,7 @@ public class Problem
     public string? Address { get; set; }
     public string? Priority { get; set; }
     public int? PriorityScore { get; set; }
+    public int? EstimatedDurationMinutes { get; set; }
     public string Status { get; set; } = "IDENTIFIED";
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

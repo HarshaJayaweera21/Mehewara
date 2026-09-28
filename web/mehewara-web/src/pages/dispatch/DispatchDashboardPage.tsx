@@ -64,6 +64,13 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   // Modal states
   const [modalMode, setModalMode] = useState<'approve' | 'edit' | 'reject' | 'regenerate' | null>(null);
 
+  const validationChecklist = (selectedDetail?.validation.checks ?? []).map((check) => ({
+    id: check.code,
+    label: check.code.replace(/_/g, ' '),
+    passed: check.passed,
+    note: check.message,
+  }));
+
   // Auto-dismiss toast
   useEffect(() => {
     if (activeToast) {
@@ -186,6 +193,19 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
         return 'priority-medium';
       default:
         return 'priority-low';
+    }
+  };
+
+  const getStrategyBadge = (strategy?: string) => {
+    switch (strategy?.toUpperCase()) {
+      case 'IMMEDIATE_QUICK_WIN':
+        return { label: '⚡ Quick Win', className: 'strategy-tag quick-win', tooltip: 'Low-effort defect (<60m) near crew location' };
+      case 'URGENT_CRITICAL_PRIORITY':
+        return { label: '🚨 Urgent Life Hazard', className: 'strategy-tag urgent-hazard', tooltip: 'Life-safety emergency override' };
+      case 'CLUSTERED_EN_ROUTE':
+        return { label: '📍 En Route Cluster', className: 'strategy-tag clustered', tooltip: 'Geographically clustered defect' };
+      default:
+        return null;
     }
   };
 
@@ -478,6 +498,14 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       <div className="queue-item-top">
                         <span className="queue-category-badge">{rec.category}</span>
                         <div className="queue-badges-row">
+                          {(() => {
+                            const strat = getStrategyBadge(rec.dispatchStrategy);
+                            return strat ? (
+                              <span className={strat.className} title={strat.tooltip}>
+                                {strat.label}
+                              </span>
+                            ) : null;
+                          })()}
                           <span className={`priority-tag ${getPriorityColorClass(rec.priority)}`}>
                             {rec.priority} ({rec.priorityScore})
                           </span>
@@ -488,6 +516,26 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       </div>
 
                       <h3 className="queue-item-title">{rec.problemTitle}</h3>
+
+                      {(rec.estimatedDurationMinutes || rec.distanceKm != null) && (
+                        <div className="queue-item-telemetry-row">
+                          {rec.estimatedDurationMinutes && (
+                            <span className="queue-telemetry-pill duration-pill" title="Estimated remediation duration">
+                              ⏱️ ~{rec.estimatedDurationMinutes}m fix
+                            </span>
+                          )}
+                          {rec.distanceKm != null && (
+                            <span className="queue-telemetry-pill distance-pill" title="Crew proximity distance">
+                              📍 {rec.distanceKm.toFixed(1)} km
+                            </span>
+                          )}
+                          {rec.estimatedTravelMinutes != null && (
+                            <span className="queue-telemetry-pill transit-pill" title="Estimated driving transit">
+                              🚗 ~{rec.estimatedTravelMinutes}m drive
+                            </span>
+                          )}
+                        </div>
+                      )}
 
                       <div className="queue-item-footer">
                         <div className="queue-crew-info">
@@ -542,6 +590,14 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                     <div className="detail-meta-tags">
                       <span className="detail-category-tag">{selectedDetail.category}</span>
                       <span className="detail-ref-tag">Problem ID: {selectedDetail.problemId.substring(0, 8)}...</span>
+                      {(() => {
+                        const strat = getStrategyBadge(selectedDetail.dispatchStrategy);
+                        return strat ? (
+                          <span className={strat.className} title={strat.tooltip}>
+                            {strat.label}
+                          </span>
+                        ) : null;
+                      })()}
                       {selectedDetail.reviewDecision === 'APPROVED' && (
                         <span className="detail-status-pill approved">
                           <span className="status-dot green" /> Work Order Authorized
@@ -718,6 +774,97 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                 <ValidationReviewPanel key={selectedDetail.recommendationId} detail={selectedDetail} token={authToken}
                   onChange={(id) => { if (id) setSelectedRecId(id); setRefreshTrigger(v => v + 1); }} />
                 {selectedDetail.workOrderId && <button className="dispatch-btn-primary" onClick={() => onOpenWorkOrder?.(selectedDetail.workOrderId!)}>View WorkOrder</button>}
+                {/* Opportunistic Routing & Execution Telemetry */}
+                <div className="detail-section telemetry-section">
+                  <div className="telemetry-header">
+                    <div>
+                      <span className="detail-section-label">Opportunistic Routing & Execution Telemetry</span>
+                      <p className="telemetry-sub">Recommendation travel and repair estimates. Crew availability is checked again at approval.</p>
+                    </div>
+                    {selectedDetail.dispatchStrategy === 'IMMEDIATE_QUICK_WIN' && (
+                      <span className="telemetry-opportunity-tag">
+                        ⚡ High Efficiency Quick Win
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="telemetry-grid">
+                    <div className="telemetry-cell">
+                      <span className="telemetry-cell-label">Est. Remediation Duration</span>
+                      <div className="telemetry-cell-value">
+                        {selectedDetail.estimatedDurationMinutes ? `${selectedDetail.estimatedDurationMinutes} mins` : 'Standard (~60m)'}
+                      </div>
+                      <span className="telemetry-cell-desc">Duration to repair on-site</span>
+                    </div>
+
+                    <div className="telemetry-cell">
+                      <span className="telemetry-cell-label">Crew Distance</span>
+                      <div className="telemetry-cell-value">
+                        {selectedDetail.distanceKm != null ? `${selectedDetail.distanceKm.toFixed(1)} km` : 'Depot / Standby'}
+                      </div>
+                      <span className="telemetry-cell-desc">Haversine with urban tortuosity</span>
+                    </div>
+
+                    <div className="telemetry-cell">
+                      <span className="telemetry-cell-label">Est. Transit Time</span>
+                      <div className="telemetry-cell-value">
+                        {selectedDetail.estimatedTravelMinutes != null ? `${selectedDetail.estimatedTravelMinutes} mins` : '~15 mins'}
+                      </div>
+                      <span className="telemetry-cell-desc">At average urban speeds</span>
+                    </div>
+
+                    <div className="telemetry-cell">
+                      <span className="telemetry-cell-label">Dispatch Strategy</span>
+                      <div className="telemetry-cell-value strategy-name">
+                        {selectedDetail.dispatchStrategy?.replace(/_/g, ' ') || 'STANDARD DISPATCH'}
+                      </div>
+                      <span className="telemetry-cell-desc">
+                        {selectedDetail.dispatchStrategy === 'IMMEDIATE_QUICK_WIN'
+                          ? 'Prioritized before distant jobs'
+                          : selectedDetail.dispatchStrategy === 'URGENT_CRITICAL_PRIORITY'
+                          ? 'Life safety override takes precedence'
+                          : 'Normal sequence'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recorded Agent 4 checks; no frontend assumptions are treated as passing validation. */}
+                <div className="detail-section checklist-section">
+                  <div className="checklist-header">
+                    <div>
+                      <span className="detail-section-label">Recorded Agent 4 Checks</span>
+                      <p className="checklist-sub">Checks from the saved review. Approval requires a passing review for the current revision.</p>
+                    </div>
+                    <span className="checklist-count-badge">
+                      {validationChecklist.filter((c) => c.passed).length} / {validationChecklist.length} Passed
+                    </span>
+                  </div>
+
+                  {validationChecklist.length === 0 && <p>No Agent 4 checks have been recorded for this review.</p>}
+                  <div className="checklist-grid">
+                    {validationChecklist.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`checklist-item ${item.passed ? 'passed' : 'pending'}`}
+                      >
+                        <div className="item-icon">
+                          {item.passed ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          ) : (
+                            <span className="pending-dot" />
+                          )}
+                        </div>
+                        <div className="item-text-group">
+                          <span className="item-label">{item.label}</span>
+                          <span className="item-note">{item.note}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </section>

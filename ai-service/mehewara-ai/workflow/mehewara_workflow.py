@@ -70,8 +70,9 @@ class MehewaraWorkflowState(TypedDict, total=False):
     priority_analysis: dict[str, Any] | None
     recommendations: list[dict[str, Any]] | None
 
-    # Stage 4 Output (Member 4 — Validation & Safety - Future)
+    # Stage 4 Output (Member 4 — Validation & Safety)
     safety_validation: dict[str, Any] | None
+    validation_feedback: dict[str, Any] | None
 
     error: str | None
 
@@ -261,12 +262,13 @@ async def agent_3_prioritization_node(state: MehewaraWorkflowState) -> dict[str,
                 state.get("workflow_id"),
             )
 
-        # 4. Execute Agent 3 recommendation
+        # 4. Execute Agent 3 recommendation (supports Agent 4 revision feedback)
+        validation_feedback = state.get("validation_feedback")
         result: PriorityRecommendationOutput = await run_priority_recommendation(
             problem_data=problem_data,
             structured_report=structured_report,
             available_crews=available_crews,
-            coordinator_feedback=state.get("coordinator_feedback"),
+            validation_feedback=validation_feedback,
         )
 
         logger.info(
