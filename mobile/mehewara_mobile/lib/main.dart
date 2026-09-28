@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/routes/app_routes.dart';
 import 'core/storage/token_storage.dart';
 import 'core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {
+    // Graceful fallback if .env is missing in certain build environments
+  }
   final isLoggedIn = await TokenStorage.isLoggedIn();
 
   runApp(MehewaraMobileApp(
@@ -17,7 +23,7 @@ class MehewaraMobileApp extends StatelessWidget {
 
   const MehewaraMobileApp({
     super.key,
-    required this.initialRoute,
+    this.initialRoute = AppRoutes.initial,
   });
 
   @override
@@ -29,5 +35,14 @@ class MehewaraMobileApp extends StatelessWidget {
       initialRoute: initialRoute,
       onGenerateRoute: AppRoutes.onGenerateRoute,
     );
+  }
+}
+
+class MehewaraApp extends StatelessWidget {
+  const MehewaraApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MehewaraMobileApp(initialRoute: AppRoutes.residentHome);
   }
 }

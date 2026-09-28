@@ -8,8 +8,35 @@ import { CrewListPage } from './pages/crews';
 import { LandingPage } from './pages/landing';
 import type { User } from './types/auth';
 
+function isTokenExpired(token: string | null): boolean {
+  if (!token) return true;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const payload = JSON.parse(atob(parts[1]));
+    if (!payload.exp) return false;
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true;
+  }
+}
+
 function App() {
+  const [token, setToken] = useState<string | null>(() => {
+    const savedToken = localStorage.getItem('mehewara_token');
+    if (isTokenExpired(savedToken)) {
+      localStorage.removeItem('mehewara_token');
+      localStorage.removeItem('mehewara_user');
+      return null;
+    }
+    return savedToken;
+  });
+
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const savedToken = localStorage.getItem('mehewara_token');
+    if (isTokenExpired(savedToken)) {
+      return null;
+    }
     try {
       const saved = localStorage.getItem('mehewara_user');
       return saved ? JSON.parse(saved) : null;
@@ -18,16 +45,15 @@ function App() {
     }
   });
 
-  const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem('mehewara_token');
-  });
-
   const [viewMode, setViewMode] = useState<
     'landing' | 'reports' | 'problems' | 'uncertain-reports' | 'dispatch' | 'crews' | 'profile' | 'login'
   >(() => {
     try {
-      const saved = localStorage.getItem('mehewara_user');
       const savedToken = localStorage.getItem('mehewara_token');
+      if (isTokenExpired(savedToken)) {
+        return 'landing';
+      }
+      const saved = localStorage.getItem('mehewara_user');
       const user: User | null = saved ? JSON.parse(saved) : null;
       if (user && savedToken) {
         if (user.role === 'ADMIN') {
@@ -43,8 +69,16 @@ function App() {
 
   useEffect(() => {
     const handleStorageChange = () => {
-      const savedUser = localStorage.getItem('mehewara_user');
       const savedToken = localStorage.getItem('mehewara_token');
+      if (isTokenExpired(savedToken)) {
+        localStorage.removeItem('mehewara_token');
+        localStorage.removeItem('mehewara_user');
+        setCurrentUser(null);
+        setToken(null);
+        setViewMode('landing');
+        return;
+      }
+      const savedUser = localStorage.getItem('mehewara_user');
       const user: User | null = savedUser ? JSON.parse(savedUser) : null;
       setCurrentUser(user);
       setToken(savedToken);
@@ -57,8 +91,18 @@ function App() {
       }
     };
 
+    const handleUnauthorized = () => {
+      setCurrentUser(null);
+      setToken(null);
+      setViewMode('login');
+    };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -94,7 +138,13 @@ function App() {
             setViewMode('login');
           }
         }}
-        onNavigateToProblems={() => setViewMode('problems')}
+        onNavigateToProblems={() => {
+          if (currentUser && token && !isTokenExpired(token)) {
+            setViewMode('problems');
+          } else {
+            setViewMode('login');
+          }
+        }}
       />
     );
   }
