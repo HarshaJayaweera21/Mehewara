@@ -9,6 +9,7 @@ and this FastAPI microservice. The request schema mirrors exactly what
 from __future__ import annotations
 
 from uuid import UUID
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -88,6 +89,15 @@ class WorkflowTriggerResponse(BaseModel):
         default=None,
         alias="problemAnalysis",
         description="Municipal problem clustering and consolidation produced by Agent 2",
+    )
+    priority_analysis: dict[str, Any] | None = Field(
+        default=None,
+        alias="priorityAnalysis",
+        description="Priority ranking and crew recommendation produced by Agent 3",
+    )
+    recommendations: list[dict[str, Any]] | None = Field(
+        default=None,
+        description="List of recommendations produced by the workflow",
     )
     analysis: StructuredReport | None = Field(
         default=None,

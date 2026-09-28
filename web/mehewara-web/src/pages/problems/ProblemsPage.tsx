@@ -7,6 +7,7 @@ import type {
   ProblemStatus,
 } from '../../types/problems';
 import { getProblems, getUncertainReports } from '../../services/problemApi';
+import { getRecommendations } from '../../services/dispatchApi';
 import { Header } from '../../components/common';
 import { CoordinatorWelcomeBanner } from './CoordinatorWelcomeBanner';
 import { ProblemDetailModal } from './ProblemDetailModal';
@@ -21,6 +22,8 @@ export interface ProblemsPageProps {
   onNavigateToLanding?: () => void;
   onSelectProblem?: (problemId: string) => void;
   onNavigateToUncertainReports?: () => void;
+  onNavigateToDispatch?: () => void;
+  onNavigateToCrews?: () => void;
 }
 
 const CATEGORIES: (ProblemCategory | 'ALL')[] = [
@@ -57,6 +60,8 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   onNavigateToLanding,
   onSelectProblem,
   onNavigateToUncertainReports,
+  onNavigateToDispatch,
+  onNavigateToCrews,
 }) => {
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -70,6 +75,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   const [problems, setProblems] = useState<ProblemResponse[]>([]);
   const [allProblemsForMetrics, setAllProblemsForMetrics] = useState<ProblemResponse[]>([]);
   const [uncertainCount, setUncertainCount] = useState<number>(0);
+  const [pendingDispatchCount, setPendingDispatchCount] = useState<number>(0);
   const [totalResults, setTotalResults] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,6 +96,26 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
       })
       .catch(() => {
         // Silently catch if not authenticated or error
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [token, retryTrigger]);
+
+  // Fetch count of pending dispatch recommendations requiring coordinator review
+  useEffect(() => {
+    let ignore = false;
+    const authToken = token || localStorage.getItem('mehewara_token') || '';
+    getRecommendations(authToken)
+      .then((data) => {
+        if (!ignore && data?.items) {
+          const pending = data.items.filter((r) => !r.reviewDecision).length;
+          setPendingDispatchCount(pending);
+        }
+      })
+      .catch(() => {
+        // Silently catch
       });
 
     return () => {
@@ -478,10 +504,42 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
                 title="Review citizen reports flagged by Agent 2 as uncertain"
               >
                 <span className="uncertain-nav-dot" />
-                <span>Uncertain Reports Queue</span>
+                <span>Uncertain Reports</span>
                 {uncertainCount > 0 && (
                   <span className="uncertain-nav-badge">{uncertainCount}</span>
                 )}
+              </button>
+            )}
+            {onNavigateToDispatch && (
+              <button
+                type="button"
+                className="problems-dispatch-nav-btn"
+                onClick={onNavigateToDispatch}
+                title="Open Agent 3 Dispatch Queue & Recommendation Authorizations"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                  <polyline points="2 17 12 22 22 17" />
+                  <polyline points="2 12 12 17 22 12" />
+                </svg>
+                <span>Dispatch Queue</span>
+                {pendingDispatchCount > 0 && (
+                  <span className="dispatch-nav-badge">{pendingDispatchCount}</span>
+                )}
+              </button>
+            )}
+            {onNavigateToCrews && (
+              <button
+                type="button"
+                className="problems-crews-nav-btn"
+                onClick={onNavigateToCrews}
+                title="Open Municipal Response Crews Directory"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                </svg>
+                <span>Crews</span>
               </button>
             )}
             <div className="results-count-pill">
