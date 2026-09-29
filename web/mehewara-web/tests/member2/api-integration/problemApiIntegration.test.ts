@@ -69,7 +69,7 @@ describe('Problem API Integration Tests (Member 2)', () => {
     });
 
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-    const [calledUrl, calledOptions] = (globalThis.fetch as any).mock.calls[0];
+    const [calledUrl, calledOptions] = vi.mocked(globalThis.fetch).mock.calls[0] as [string, RequestInit & { headers: Record<string, string> }];
 
     expect(calledUrl).toContain('/api/problems?');
     expect(calledUrl).toContain('page=1');
@@ -110,7 +110,7 @@ describe('Problem API Integration Tests (Member 2)', () => {
     const result = await getProblemById(fakeToken, 'prob-42');
 
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-    const [calledUrl, calledOptions] = (globalThis.fetch as any).mock.calls[0];
+    const [calledUrl, calledOptions] = vi.mocked(globalThis.fetch).mock.calls[0] as [string, RequestInit & { headers: Record<string, string> }];
 
     expect(calledUrl).toBe('http://localhost:5194/api/problems/prob-42');
     expect(calledOptions.method).toBe('GET');
