@@ -47,6 +47,7 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [viewLayout, setViewLayout] = useState<'grid' | 'table'>('grid');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const fetchCrewsData = useCallback(async () => {
@@ -260,6 +261,39 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
               </button>
             )}
 
+            <div className="crews-view-toggle" role="group" aria-label="Layout View Switcher">
+              <button
+                type="button"
+                className={`crews-toggle-btn ${viewLayout === 'grid' ? 'active' : ''}`}
+                onClick={() => setViewLayout('grid')}
+                title="Grid Card View"
+                aria-label="Grid Card View"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="7" height="7" />
+                  <rect x="14" y="3" width="7" height="7" />
+                  <rect x="14" y="14" width="7" height="7" />
+                  <rect x="3" y="14" width="7" height="7" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className={`crews-toggle-btn ${viewLayout === 'table' ? 'active' : ''}`}
+                onClick={() => setViewLayout('table')}
+                title="Table View"
+                aria-label="Table View"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="8" y1="6" x2="21" y2="6" />
+                  <line x1="8" y1="12" x2="21" y2="12" />
+                  <line x1="8" y1="18" x2="21" y2="18" />
+                  <line x1="3" y1="6" x2="3.01" y2="6" />
+                  <line x1="3" y1="12" x2="3.01" y2="12" />
+                  <line x1="3" y1="18" x2="3.01" y2="18" />
+                </svg>
+              </button>
+            </div>
+
             <button
               type="button"
               className="crews-refresh-btn"
@@ -313,7 +347,7 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
             </div>
           )}
 
-          {!isLoading && crews.length > 0 && (
+          {!isLoading && crews.length > 0 && viewLayout === 'grid' && (
             <div className="crews-cards-container">
               {crews.map((crew) => (
                 <article
@@ -368,6 +402,75 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
                   </div>
                 </article>
               ))}
+            </div>
+          )}
+
+          {!isLoading && crews.length > 0 && viewLayout === 'table' && (
+            <div className="crews-table-container">
+              <table className="crews-table">
+                <thead>
+                  <tr>
+                    <th>Squad / Unit</th>
+                    <th>Category</th>
+                    <th>Operational Status</th>
+                    <th>Current Assignment</th>
+                    <th>Registry Ref</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {crews.map((crew) => (
+                    <tr
+                      key={crew.id}
+                      onClick={() => setSelectedCrewId(crew.id)}
+                    >
+                      <td>
+                        <div className="table-crew-name-cell">
+                          <span className="table-crew-name">{crew.name}</span>
+                          <span className="table-crew-specialization">{crew.crewType} SPECIALIZATION</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="crew-category-badge">
+                          <span className="crew-badge-dot" />
+                          {crew.crewType}
+                        </span>
+                      </td>
+                      <td>
+                        <div className={`crew-status-pill status-${crew.status.toLowerCase()}`}>
+                          <span className="status-dot" />
+                          <span>{crew.status}</span>
+                        </div>
+                      </td>
+                      <td>
+                        {crew.activeWorkOrderId ? (
+                          <span className="active-wo-tag">WO: {crew.activeWorkOrderId.substring(0, 8)}...</span>
+                        ) : (
+                          <span className="standby-tag">Standby</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className="detail-meta-val font-mono">{crew.id.substring(0, 13)}...</span>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="crew-view-profile-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCrewId(crew.id);
+                          }}
+                        >
+                          <span>Inspect</span>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </section>

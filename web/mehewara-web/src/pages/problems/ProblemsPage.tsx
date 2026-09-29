@@ -316,6 +316,67 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
           onBrandClick={onNavigateToLanding}
         />
 
+        {/* Operations Navigation Strip */}
+        <nav className="operations-nav-strip" aria-label="Operations Navigation">
+          <div className="nav-strip-left">
+            <button
+              type="button"
+              className="nav-strip-btn active"
+              aria-current="page"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>Problems Board</span>
+            </button>
+            <span className="nav-strip-divider">/</span>
+            <button
+              type="button"
+              className="nav-strip-btn"
+              onClick={onNavigateToDispatch}
+              title="Open Agent 3 Prioritization & Dispatch Queue"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                <polyline points="2 17 12 22 22 17" />
+                <polyline points="2 12 12 17 22 12" />
+              </svg>
+              <span>Dispatch Queue (Agent 3)</span>
+              {pendingDispatchCount > 0 && (
+                <span className="nav-strip-counter-pill">{pendingDispatchCount}</span>
+              )}
+            </button>
+            <span className="nav-strip-divider">/</span>
+            <button
+              type="button"
+              className="nav-strip-btn"
+              onClick={onNavigateToCrews}
+              title="View Municipal Crew Directory & Readiness"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              <span>Municipal Crews</span>
+            </button>
+          </div>
+          {onNavigateToReports && (
+            <div className="nav-strip-right">
+              <button
+                type="button"
+                className="nav-strip-subtle-link"
+                onClick={onNavigateToReports}
+              >
+                Resident Reports Portal →
+              </button>
+            </div>
+          )}
+        </nav>
+
         {/* 1. Coordinator Welcome Banner (Stitch Generated with Real Time Greeting) */}
         <CoordinatorWelcomeBanner roleName="Coordinator" activeProblemsCount={metrics.totalActive} />
 
