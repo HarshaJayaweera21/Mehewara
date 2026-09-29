@@ -306,7 +306,7 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
             if (_inProgressOrder != null)
               ActiveWorkOrderCard(
                 workOrder: _inProgressOrder!,
-                onViewDetails: () => _openProblemDetails(_inProgressOrder!),
+                onViewDetails: widget.onNavigateToJobs,
               )
             else if (_queuedOrders.isNotEmpty)
               Card(
@@ -317,7 +317,7 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
                   side: BorderSide(color: AppColors.mintAccent.withValues(alpha: 0.5)),
                 ),
                 child: InkWell(
-                  onTap: () => _openProblemDetails(_queuedOrders.first),
+                  onTap: widget.onNavigateToJobs,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
