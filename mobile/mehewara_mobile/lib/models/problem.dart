@@ -55,12 +55,12 @@ class Problem {
       title: json['title'] ?? '',
       description: json['description'],
       category: (json['category'] ?? 'OTHER').toString().toUpperCase(),
-      latitude: (json['latitude'] as num?)?.toDouble() ??
-          double.tryParse(json['latitude']?.toString() ?? '') ??
-          0.0,
-      longitude: (json['longitude'] as num?)?.toDouble() ??
-          double.tryParse(json['longitude']?.toString() ?? '') ??
-          0.0,
+      latitude: json['latitude'] is num
+          ? (json['latitude'] as num).toDouble()
+          : double.tryParse(json['latitude']?.toString() ?? '') ?? 0.0,
+      longitude: json['longitude'] is num
+          ? (json['longitude'] as num).toDouble()
+          : double.tryParse(json['longitude']?.toString() ?? '') ?? 0.0,
       address: json['address'],
       priority: json['priority']?.toString().toUpperCase(),
       priorityScore: json['priorityScore'] as int?,
@@ -124,12 +124,12 @@ class RelatedReportSummary {
       category: (json['category'] ?? 'OTHER').toString().toUpperCase(),
       status: (json['status'] ?? 'PENDING').toString().toUpperCase(),
       address: json['address'],
-      latitude: (json['latitude'] as num?)?.toDouble() ??
-          double.tryParse(json['latitude']?.toString() ?? '') ??
-          0.0,
-      longitude: (json['longitude'] as num?)?.toDouble() ??
-          double.tryParse(json['longitude']?.toString() ?? '') ??
-          0.0,
+      latitude: json['latitude'] is num
+          ? (json['latitude'] as num).toDouble()
+          : double.tryParse(json['latitude']?.toString() ?? '') ?? 0.0,
+      longitude: json['longitude'] is num
+          ? (json['longitude'] as num).toDouble()
+          : double.tryParse(json['longitude']?.toString() ?? '') ?? 0.0,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
           : DateTime.now(),
