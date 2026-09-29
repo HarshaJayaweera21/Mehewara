@@ -21,6 +21,15 @@ describe('Problem API Integration Tests (Member 2)', () => {
   const fakeToken = 'test-jwt-token-member2';
   const originalFetch = globalThis.fetch;
 
+  function mockJsonResponse(data: unknown, status = 200): Response {
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => data,
+    } as unknown as Response;
+  }
+
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -54,10 +63,7 @@ describe('Problem API Integration Tests (Member 2)', () => {
       totalPages: 1,
     };
 
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockPagedData,
-    } as unknown as Response);
+    globalThis.fetch = vi.fn().mockResolvedValue(mockJsonResponse(mockPagedData));
 
     const result = await getProblems(fakeToken, {
       page: 1,
@@ -102,10 +108,7 @@ describe('Problem API Integration Tests (Member 2)', () => {
       updatedAt: '2026-03-29T08:00:00Z',
     };
 
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockDetail,
-    } as unknown as Response);
+    globalThis.fetch = vi.fn().mockResolvedValue(mockJsonResponse(mockDetail));
 
     const result = await getProblemById(fakeToken, 'prob-42');
 
@@ -136,10 +139,7 @@ describe('Problem API Integration Tests (Member 2)', () => {
       },
     ];
 
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockReports,
-    } as unknown as Response);
+    globalThis.fetch = vi.fn().mockResolvedValue(mockJsonResponse(mockReports));
 
     const result = await getProblemReports(fakeToken, 'prob-42');
 
@@ -176,10 +176,7 @@ describe('Problem API Integration Tests (Member 2)', () => {
       updatedAt: '2026-03-29T11:00:00Z',
     };
 
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockCreated,
-    } as unknown as Response);
+    globalThis.fetch = vi.fn().mockResolvedValue(mockJsonResponse(mockCreated));
 
     const result = await createProblem(fakeToken, newProblemPayload);
 
@@ -217,10 +214,7 @@ describe('Problem API Integration Tests (Member 2)', () => {
       updatedAt: '2026-03-29T07:00:00Z',
     };
 
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockResponse,
-    } as unknown as Response);
+    globalThis.fetch = vi.fn().mockResolvedValue(mockJsonResponse(mockResponse));
 
     const result = await linkUncertainReport(fakeToken, linkPayload);
 
@@ -260,10 +254,7 @@ describe('Problem API Integration Tests (Member 2)', () => {
       updatedAt: '2026-03-29T12:00:00Z',
     };
 
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockCreated,
-    } as unknown as Response);
+    globalThis.fetch = vi.fn().mockResolvedValue(mockJsonResponse(mockCreated));
 
     const result = await createProblemFromUncertainReport(fakeToken, createPayload);
 
@@ -284,10 +275,7 @@ describe('Problem API Integration Tests (Member 2)', () => {
       reportId: 'rep-888',
     };
 
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockCancelResponse,
-    } as unknown as Response);
+    globalThis.fetch = vi.fn().mockResolvedValue(mockJsonResponse(mockCancelResponse));
 
     const result = await cancelUncertainReport(fakeToken, 'rep-888', 'Spam report duplicate');
 
