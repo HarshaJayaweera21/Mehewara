@@ -249,7 +249,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                 <polyline points="2 17 12 22 22 17" />
                 <polyline points="2 12 12 17 22 12" />
               </svg>
-              <span>Dispatch Queue (Agent 3)</span>
+              <span>Dispatch Queue</span>
             </button>
             <span className="nav-strip-divider">/</span>
             <button

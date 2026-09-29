@@ -343,7 +343,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
                 <polyline points="2 17 12 22 22 17" />
                 <polyline points="2 12 12 17 22 12" />
               </svg>
-              <span>Dispatch Queue (Agent 3)</span>
+              <span>Dispatch Queue</span>
               {pendingDispatchCount > 0 && (
                 <span className="nav-strip-counter-pill">{pendingDispatchCount}</span>
               )}
