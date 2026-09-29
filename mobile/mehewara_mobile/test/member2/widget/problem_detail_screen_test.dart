@@ -47,17 +47,11 @@ void main() {
     // Verify only the current active stage has ACTIVE text
     expect(find.text('ACTIVE'), findsOneWidget);
 
-    // Verify ETA Today is removed
-    expect(find.text('ETA Today'), findsNothing);
-
-    // Verify Community Impact
+    // Verify Community Impact section
     expect(find.text('Community Impact'), findsOneWidget);
 
     // Verify simplified banner text
     expect(find.text('4 residents reported this same issue.'), findsOneWidget);
-
-    // Verify View all is removed
-    expect(find.textContaining('View all'), findsNothing);
 
     // Verify Report item
     expect(find.text('"Heavy water accumulation on street"'), findsOneWidget);

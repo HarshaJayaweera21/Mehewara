@@ -166,4 +166,12 @@ class ProblemExplorerProvider extends ChangeNotifier {
       mapController.move(mapController.camera.center, currentZoom - 1);
     } catch (_) {}
   }
+
+  @visibleForTesting
+  void setProblemsForTesting(List<Problem> problems) {
+    _allProblems = problems;
+    _applyFilters();
+    notifyListeners();
+  }
 }
+
