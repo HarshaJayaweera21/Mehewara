@@ -1,103 +1,180 @@
-# Agent 4 and coordinator review setup
+﻿# Agent 4: setup, deployment and verification
 
-Implemented in source on 2026-09-28. Builds, tests, model calls, migrations and runtime behavior were **not verified**, at the user's request. Apply the configuration and migration before starting the application. Existing Agent 1/2 modules are unchanged; Agent 3 only adds optional coordinator feedback. The initial graph now ends with Agent 4. Regeneration uses a separate Agent 3 → Agent 4 graph with the same implementations.
+Updated for Steps 2–8 on 2026-09-28. Builds, tests, migrations, service startup, model calls and browser/runtime checks were **not run**, as requested. Source is authoritative; this guide is not a runtime guarantee.
 
-## 1. Fill in your Gemini key locally
+## 1. Database status
 
-Work in `ai-service/mehewara-ai`. If `.env` does not exist, copy `.env.example` to `.env`. If it already exists, edit it and preserve your existing values. The implementation has not read or changed your `.env`.
+You report applying migration 9, `20260928090000_AddAgent4Review`. No additional migration is required for Steps 2–8. Do not reapply its SQL script. Your database and migration history were not inspected here.
+
+For another environment, check its actual EF history and matching source. The preceding migration is `20260928023710_AddProblemEstimatedDurationMinutes`; earlier concurrency and activity-history migrations also belong to the EF chain. From `backend/Mehewara.API`, user-run commands are:
+
+```powershell
+dotnet ef migrations list
+# Only for another environment which has not applied this migration:
+dotnet ef database update 20260928090000_AddAgent4Review
+```
+
+The alternate SQL script changes schema but does not update EF history. Do not apply SQL and EF versions to the same database. Reconcile an existing schema with missing/inconsistent history before running the EF chain. Incomplete legacy snapshots may require a new report workflow; missing evidence/provenance is not invented.
+
+## 2. Python configuration
+
+Use Python 3.12 or later and the project's uv dependency files. Work from `ai-service/mehewara-ai` so settings find `.env`. Copy `.env.example` only if `.env` does not exist; otherwise add missing settings while preserving existing values:
 
 ```dotenv
 GEMINI_API_KEY=YOUR_GEMINI_KEY
-# Preserve GEMINI_MODEL or select a Gemini model your account can use.
+# Preserve GEMINI_MODEL or choose a model available to your Gemini account.
 DOTNET_API_BASE_URL=http://localhost:5194
 INTERNAL_AI_API_KEY=YOUR_RANDOM_SHARED_SERVICE_SECRET
 AGENT4_EVIDENCE_TIMEOUT_SECONDS=10
 AGENT4_REVIEW_TIMEOUT_SECONDS=30
 ```
 
-The Gemini key is shared through the existing LLM factory. `INTERNAL_AI_API_KEY` is a separate secret for communication between ASP.NET and Python; it is not your Gemini key. Use a long random value (at least 32 random bytes), and configure the exact same value on both services. `.env` is already ignored by Git. The checked-in Gemini model default was preserved; provider availability has not been checked.
+All agents reuse the shared Gemini factory/key/model. Agent 4 needs no separate Gemini key. The configured example model's provider availability has not been checked. Timeout values must be positive and finite.
 
-From `backend/Mehewara.API`, configure the backend locally:
+Generate a random service secret locally and configure exactly the same value in Python and ASP.NET. It is separate from your Gemini key. Keep secrets out of source control and logs. Actual `.env` values were not read or changed during Step 8.
+
+## 3. Backend configuration
+
+Use the .NET 8 SDK. Preserve existing PostgreSQL, JWT and other integration configuration. From `backend/Mehewara.API`, run locally:
 
 ```powershell
 dotnet user-secrets set "AiService:InternalApiKey" "YOUR_RANDOM_SHARED_SERVICE_SECRET"
 dotnet user-secrets set "AiService:BaseUrl" "http://localhost:8000"
 ```
 
-Alternatively set `AiService__InternalApiKey` and `AiService__BaseUrl` in the environment of the backend process. ASP.NET does **not** automatically read the Python `.env`. Keep your existing PostgreSQL connection, JWT, Google and Cloudinary configuration.
+Alternatively set `AiService__InternalApiKey` and `AiService__BaseUrl` in the backend process environment. ASP.NET does not load Python's `.env`. User secrets are for development; deployed services need secrets in their deployment configuration.
 
-For React, `VITE_API_BASE_URL=http://localhost:5194/api` is the existing default. Never put either service secret or your Gemini key in frontend variables.
+The backend's `http` launch profile uses `http://localhost:5194`; its configured Python URL is `http://localhost:8000`. If ports/hosts change, update both service URLs. Development CORS includes `http://localhost:5173`, `http://localhost:5174` and `http://localhost:3000`. Configure additional browser origins through `Cors:AllowedOrigins`.
 
-## 2. Deploy the database change yourself
+## 4. Frontend configuration
 
-New EF migration: `20260928090000_AddAgent4Review`.
+Use Node/npm compatible with the project's package files. Create or update `web/mehewara-web/.env.local`:
 
-Prerequisite migrations include `20260926050014_LinkApprovalHistoryToRecommendation`, `20260926054657_LinkWorkOrderToRecommendation`, `20260926075934_ProtectDispatchConcurrency`, and `20260926084022_AddActivityHistory`, plus their preceding migration chain. Stop the application and take a database backup first.
-
-Inspect `__EFMigrationsHistory`. Earlier project notes reported a Docker schema with tables but missing migration history. Do not run the entire migration chain against that existing schema without reconciling its history and comparing its tables/constraints first.
-
-For a database with a correct EF migration history, run from `backend/Mehewara.API`:
-
-```powershell
-dotnet ef database update 20260928090000_AddAgent4Review
+```dotenv
+VITE_API_BASE_URL=http://localhost:5194/api
 ```
 
-For a manually managed existing database whose prerequisite schema is already present, the alternative schema-only script is `database/migrations/20260928090000_AddAgent4Review.sql`. Run it once with your PostgreSQL client. It uses a transaction but does not update EF history. Do not apply both the SQL script and the EF migration to the same database. Keep manual deployment records and reconcile EF history before a later EF deployment.
+The actual fallback is relative `/api`; current Vite configuration has no backend proxy. Direct Vite development therefore needs this URL. Restart Vite after changing environment settings. Never put Gemini or service secrets in `VITE_*` variables; these are exposed to browsers.
 
-This migration adds saved workflow inputs, recommendation revision/evidence fields and the durable `ai_review_jobs` table. It invalidates legacy passing validation and identifies the most recent recommendation per workflow. Legacy records without original report snapshots cannot be safely revalidated; use a new report workflow with the required evidence. Existing historical data is preserved, including any old rejection placeholders.
+For deployment, configure the API URL at frontend build time or serve `/api` through the deployment reverse proxy. Browser requests use existing user authentication, not internal service keys.
 
-Startup no longer calls `EnsureCreated`; schema deployment is explicit. The background review worker requires the new table.
+## 5. Deployment and startup
 
-## 3. Start the services
+Deploy matching Python/backend/frontend versions. Stop backend workers and report submissions while replacing services. Confirm existing schema/configuration, start Python, then backend, then frontend. The backend starts its hosted review worker automatically and may immediately claim saved jobs; no separate worker command exists.
 
-Run the backend from `backend/Mehewara.API` with `dotnet run --launch-profile http` (port 5194). Run Python from `ai-service/mehewara-ai` so pydantic-settings finds its `.env`:
+Each terminal below starts from the repository root. These commands were not executed here:
 
 ```powershell
+# Terminal 1
+Set-Location ai-service/mehewara-ai
 uv sync --extra dev
 uv run uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
-Run React from `web/mehewara-web` with `npm install`, then `npm run dev`. These commands are provided for you; they were not executed during implementation.
+```powershell
+# Terminal 2
+Set-Location backend/Mehewara.API
+dotnet run --launch-profile http
+```
 
-All `/internal/ai/*` Python routes, including health and diagram, now require the `X-Internal-Api-Key` header. The backend evidence endpoint requires the same header. In a deployed environment use TLS and configure both service URLs accordingly; neither service secret belongs in browser requests.
+```powershell
+# Terminal 3
+Set-Location web/mehewara-web
+npm ci
+npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
+```
 
-## 4. Coordinator behavior and API
+Open `http://localhost:5173` using an Admin account. Explicit Uvicorn `--port` controls its listener; setting `PORT` alone does not change this command. In deployment configure reachable hosts and appropriate HTTPS URLs; localhost refers to each process's own machine/container.
 
-Initial flow: report → Agents 1/2/3 → Agent 4 rule checks → authenticated backend evidence fetch → Gemini evidence review → persistence → coordinator review. Agent 4 cannot dispatch work.
+Both internal directions require `X-Internal-Api-Key`: backend calls to Python `/internal/ai/*` (including health/diagram), and Python calls to backend `POST /internal/ai/validation-context`. Missing/wrong secrets are rejected. Health/startup output does not prove Gemini review works.
 
-| Route | Behavior |
+## 6. Implemented workflow
+
+1. Initial Python generation runs Agents 1 → 2 → 3 and returns; Agent 4 is not inline.
+2. Backend persistence saves authorized inputs, original outputs, resolved Problem mapping, recommendation and its initial `VALIDATE` job atomically.
+3. The durable worker runs Agent 4 alone for `VALIDATE`, or Agent 3 → Agent 4 for `REGENERATE`, once per job.
+4. Agent 4 checks schema/references, retrieves authorized authoritative evidence within 10 seconds, applies consistency checks and performs structured Gemini review within 30 seconds by default. At most one model retry fits inside that overall deadline.
+5. Backend records a separate validation event bound to the exact revision and reviewed evidence. Fresh locked evidence comparison prevents changed evidence from passing.
+6. Bounded successors may follow. Admin approval performs fresh transactional business checks before creating a WorkOrder.
+
+Original output, validations, predecessor recommendations, jobs and human edits remain for audit. Original Agent 2 `CREATE_NEW` is preserved; resolved Problem ID is separate. Agent 4 never dispatches, silently rewrites output or fixes report associations.
+
+| Result/action | Backend action |
 | --- | --- |
-| `POST /api/dispatch/recommendations/{id}/regenerate` | Admin submits `reason`, `expectedRevision`, `requestId` (UUID). Returns `202` with `jobId`, `status`, `statusUrl`; queues Agents 3 + 4. |
-| `POST /api/dispatch/recommendations/{id}/validate` | Same request fields. Queues only Agent 4 against the current revision. |
-| `GET /api/dispatch/review-jobs/{id}` | Admin reads `QUEUED`, `RUNNING`, `COMPLETED` or `FAILED`, error and result recommendation ID. |
-| Existing recommendation list/detail | Adds revision, current/superseded flag, approval eligibility and latest job. Detail includes recommendation, edit and validation history. |
-| Existing PATCH | Requires `expectedRevision` and `editReason`; supports priority, score, crew, specialty, priority reasons and recommendation reason. Saving invalidates validation; select **Validate current revision** afterward. |
-| Existing approve | Requires `expectedRevision`; checks valid Agent 4 result, current evidence and live availability under database locks. |
-| Existing reject | Requires `expectedRevision` and a reason; records a final decision without a WorkOrder. |
-| `POST /internal/ai/validation-context` | Backend read-only evidence API. Request: `workflowId`, optional `jobId`, optional `problemId`/`crewId`, `reportIds`. References must be within the saved authorized context. |
-| `POST /internal/ai/recommendation-review` | Python job executor; called by the backend with saved original analysis and fresh context. |
+| `VALID` | Finish; approval still depends on current backend eligibility. |
+| `REVISION_REQUIRED` / `REGENERATE` | Queue Agent 3 → Agent 4; at most two automatic corrections per chain. |
+| `REVISION_REQUIRED` / `RETRY_VALIDATION` | Queue Agent 4 after five seconds; at most two evidence revalidations per chain. |
+| `REVISION_REQUIRED` / `WAIT_FOR_CREW` | Stop for attention; restored availability does not automatically restart work. |
+| `REVISION_REQUIRED` / `REVIEW_INPUT` | Stop for source/Problem review; regeneration cannot repair report links. |
+| `INVALID` or `NOT_RUN` | Stop for attention; no approval. |
+| Returned `ERROR` during `VALIDATE` | Bounded Agent 4-only retries. |
+| Returned `ERROR` during `REGENERATE` | Preserve predecessor and stop; do not rerun Agent 3 solely for failed review. |
 
-Use a new request UUID for each deliberate new review request. Reuse the same UUID only when retrying the same HTTP submission after an uncertain network result. Different content with the same ID is rejected. One active review job is allowed per workflow. Edit/approve/reject are blocked while it runs.
+Transient transport/timeouts/408/429/5xx retry the same job after 10 and 30 seconds, with at most three executions. Regeneration transport retries may rerun Agent 3 because no complete durable response was received. Permanent authentication/request errors stop. Technical failure never implies `VALID`.
 
-Jobs have four-minute leases, a 120-second AI HTTP deadline, and at most three claims after expired leases. Normal service/model failures are recorded for explicit coordinator retry; restarting the backend recovers abandoned jobs. Old or late results cannot replace a newer revision. Regeneration preserves previous recommendations and never dispatches automatically. The UI polls every 2.5 seconds and resumes polling from server state after refresh.
+Claims use `FOR UPDATE SKIP LOCKED`, four-minute leases and a 120-second AI HTTP deadline. Restart recovers expired claims; late results cannot commit. Parent completion/successor creation are atomic with one active job per workflow. Worker attempts, correction and evidence retry budgets are separate. Unsupported legacy metadata gains no invented automatic chain.
 
-Agent 4 statuses: `VALID`, `REVISION_REQUIRED`, `INVALID`, `ERROR`, `NOT_RUN`. Only `VALID` for the exact current revision and unchanged evidence can become eligible for approval. Availability and conflicts are always checked again at dispatch. Initial input context is limited to the existing ten nearby candidates/reports; the evidence endpoint retrieves exact referenced records. Regeneration uses linked reports with a 100-report safety limit; exceeding it produces an explicit failure rather than silently truncating evidence.
+### Human edits and dashboard
 
-## 5. Verification to perform on your side
+Views: Ready for Approval, Processing, Needs Attention, Decided, All / History. These are display groups, not extra validation statuses. Even `VALID` can need attention after availability/business conditions change.
 
-1. Build backend and frontend; run the existing Python checks with the new authenticated service contract. Test against a disposable migrated database before your main database.
-2. Submit a new report. Inspect four workflow events and a saved initial input snapshot. A successful review must wait for approval, not mark the municipal work complete.
-3. Exercise invalid score bands, specialty mismatch, missing/no crew, contradictory evidence and unavailable crews. Approval must stay blocked.
-4. Remove service credentials or make Gemini unavailable. Confirm `ERROR`, preserved earlier outputs, no WorkOrder and an explicit retry path.
-5. Edit a recommendation. Confirm its revision increments, prior validation stops applying, and the reason/before/after values appear in history. Validate again before approving.
-6. Regenerate with feedback. Confirm Agents 1/2 are not rerun, fresh crew context is used, a new recommendation replaces the current one, and both outputs remain in history.
-7. Submit the same request ID twice. Confirm one job. Submit competing new IDs, stale revisions and unauthorized calls; confirm rejection.
-8. Restart the backend during a job. Confirm lease recovery, bounded attempts and one resulting current recommendation. Check that failures preserve the previous recommendation but do not silently restore approval eligibility.
-9. Change a crew's availability or evidence before approval; confirm dispatch is blocked. Send concurrent approvals; confirm one WorkOrder and one decision.
-10. Reject a recommendation; confirm no cancelled placeholder WorkOrder is created. Verify existing Agent 1/2 behavior and ordinary Agent 3 output remain intact.
+A genuine Admin edit requires reason/expected revision and creates an audited `HUMAN_OVERRIDE`, incrementing revision while preserving original AI output. No Agent 4 rerun is queued. A meaningful no-op creates no override, audit or revision. Previous validation remains historical; the override's current display is `NOT_RUN` with the human approval policy.
 
-## Remaining operational limits
+Audited overrides need explicit responsibility acknowledgement, a nonblank approval reason and all mandatory backend checks. Unedited AI requires passing Agent 4 validation. Both paths check authorized source links, eligible Problem, correct available crew, active work, recommendation fields, current revision and previous decisions under transactional locks/concurrency constraints. Editor and approver may differ and both are recorded. Rejection records a decision without a WorkOrder.
 
-The initial resident-report trigger remains the existing in-process background task; only coordinator review/regeneration jobs have durable restart recovery. Agent 1 still does not inspect photo contents. Agent 2's existing tools and global context behavior are unchanged. No claim is made that runtime concurrency or model accuracy has been verified.
+Failed regeneration blocks predecessor approval. AI predecessors need retry or revalidation; audited human predecessors need successful regeneration or a genuine new audited edit/revision. Responsibility acknowledgement alone cannot remove that block.
 
-Graphify refresh was attempted, but the CLI was not available in this shell. Refresh graph metadata with `graphify update .` in an environment where graphify is installed.
+### Existing APIs
+
+| Route | Usage |
+| --- | --- |
+| `GET /api/dispatch/recommendations` | Admin list with `reviewBucket=ALL`, `READY`, `PROCESSING`, `NEEDS_ATTENTION`, `DECIDED`; search/filter/paging. |
+| `GET /api/dispatch/recommendations/{id}` | Findings, revision, original output, histories, allowed actions. |
+| `POST /api/dispatch/recommendations/{id}/validate` | Queue Agent 4; `reason`, `expectedRevision`, `requestId`; excludes audited overrides. |
+| `POST /api/dispatch/recommendations/{id}/regenerate` | Queue Agent 3 → Agent 4; same request fields. |
+| `GET /api/dispatch/review-jobs/{id}` | Safe job status, chain links, attempts and retry time; no raw context or lease credentials. |
+| `POST /internal/ai/validation-context` | Authenticated read-only backend evidence retrieval authorized against saved context. |
+| `POST /internal/ai/recommendation-review` | Authenticated Python executor used by the worker. |
+
+Queue requests return 202 with a job reference. New deliberate requests use new UUIDs; resubmission after uncertain HTTP outcomes reuses the same ID/content. Conflicting content is rejected. Active review blocks edit/approve/reject. UI `allowedActions` are advisory; endpoints enforce rules again.
+
+## 7. Consolidated user verification
+
+Run against suitable local test data. These checks have not been executed:
+
+| Check | Expected result |
+| --- | --- |
+| Normal report and valid AI output | Original Agents 1–3 output/snapshot persist, initial job runs, separate validation binds revision/evidence; no automatic WorkOrder. |
+| Existing Agents 1/2 and ordinary Agent 3 | Normal generation remains; review retries do not rerun Agents 1/2. |
+| CREATE_NEW and existing Problem | Original decision and separate real UUID; wrong/out-of-context IDs or unlinked reports cannot pass. |
+| Wrong types, priority/score bands, specialty, duration/travel bounds | Failed checks, issues/corrections, blocked approval. Travel shape checks do not prove a road route. |
+| Busy crew, active work, cancelled Problem/report | Approval blocked even after earlier `VALID`. |
+| No selected crew | `REVISION_REQUIRED`; regenerate if matching available alternatives, otherwise `WAIT_FOR_CREW`; never passing. |
+| Missing/incomplete/unauthorized evidence | Safe failure without invented evidence or passing fallback. |
+| Bad internal secret, backend outage, model timeout or malformed citations | Visible technical failure, bounded retry and no WorkOrder. |
+| Evidence changes during review | Snapshot mismatch prevents passing; five-second Agent 4-only child, separate two-revalidation limit. |
+| Repeated correction failures | Persisted children, accumulated rejected crews, last automatic correction count 2, then Needs Attention. |
+| Transport timeout or 429/503 | Persisted 10/30-second delays, at most three executions, visible failure history. |
+| Returned ERROR after regeneration | Previous recommendation stays current/blocked; failed candidate remains audit-only where retained. |
+| Worker restart during claim/delay; multiple workers | Delays survive, leases recover, exclusive claims/one successor, late results discarded. |
+| Duplicate ID, conflicting payload, stale revision | Deduplication or rejection; no duplicate active job or overwritten revision. |
+| Genuine edit and no-op | Audit actor/reason/before/after and revision for genuine edit, no Agent 4 job; no-op preserves existing state. |
+| Override approval | Missing acknowledgement/reason fails; eligible acknowledged approval records one decision/WorkOrder and atomic acknowledgement. |
+| Override regeneration fails | Acknowledgement cannot restore eligibility; new genuine edit or successful regeneration required. |
+| Rejection | Decision retained, no WorkOrder, no further decision/edit actions. |
+| Concurrent approvals or changing availability | Fresh checks/constraints prevent conflicting assignments and duplicate decisions. |
+| Dashboard tabs, filters, search and more than 20 records | Correct groups/totals, filter-before-pagination, stale response protection and historical action restrictions. |
+| Dashboard progress/history | Retry times, counts, child jobs, original AI output and human audit visible; failed candidate not silently selected as current. |
+| Non-Admin calls | Admin routes/actions denied. |
+
+Optional user-run compilation: `dotnet build` from the backend directory and `npm run build` from the frontend directory. Run existing tests using their project tooling. Compilation alone does not establish model accuracy, recovery or approval concurrency.
+
+## 8. Remaining operational limits
+
+- Initial report generation remains an in-process task; only review/correction jobs have durable recovery.
+- Workers are sequential per backend process, exclusive across processes. No global Gemini quota manager, queue capacity limit or initial-generation throttle was added.
+- Validation does not reserve crews. Availability changes require a deliberate later action; report association defects require source review.
+- Listing performs per-recommendation eligibility checks; large-scale performance is unverified. Workflows without persisted recommendations stay in earlier report/Problem handling.
+- Legacy missing evidence/provenance stays unknown. Generated graphs are navigation aids, not runtime verification.
+
+All planned steps have source/documentation delivery reports. Builds, tests, migrations, model calls and runtime behavior remain unverified. Next: configure locally, start matching services and perform this checklist; fix observed failures before relying on deployment.
