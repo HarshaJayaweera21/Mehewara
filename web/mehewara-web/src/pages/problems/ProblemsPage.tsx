@@ -9,7 +9,7 @@ import type {
 import { getProblems, getUncertainReports } from '../../services/problemApi';
 import { getRecommendations } from '../../services/dispatchApi';
 import { Header } from '../../components/common';
-import { CoordinatorWelcomeBanner } from './CoordinatorWelcomeBanner';
+import { CoordinatorWelcomeBanner } from '../../components/problems/CoordinatorWelcomeBanner';
 import { ProblemDetailModal } from './ProblemDetailModal';
 import './ProblemsPage.css';
 
