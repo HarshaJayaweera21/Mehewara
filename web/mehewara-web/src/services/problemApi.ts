@@ -9,28 +9,7 @@ import type {
   LinkUncertainReportRequest,
   CreateProblemFromUncertainReportRequest,
 } from '../types/problems';
-import type { ApiError } from '../types/auth';
-
-const API_BASE = 'http://localhost:5194/api';
-
-async function handleResponse<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    if (res.status === 401) {
-      localStorage.removeItem('mehewara_token');
-      localStorage.removeItem('mehewara_user');
-      window.dispatchEvent(new Event('auth:unauthorized'));
-    }
-    let errorData: ApiError | null = null;
-    try {
-      errorData = await res.json();
-    } catch {
-      // response wasn't JSON
-    }
-    const message = errorData?.error?.message || (res.status === 401 ? 'Session expired. Please log in again.' : `Request failed with status ${res.status}`);
-    throw new Error(message);
-  }
-  return res.json();
-}
+import { API_BASE, handleResponse, getAuthHeaders, buildQueryString } from './httpClient';
 
 /**
  * Get paginated list of municipal problems with optional filtering
@@ -39,25 +18,11 @@ export async function getProblems(
   token: string,
   params?: GetProblemsParams
 ): Promise<PagedResult<ProblemResponse>> {
-  const query = new URLSearchParams();
-  if (params?.page) query.append('page', params.page.toString());
-  if (params?.pageSize) query.append('pageSize', params.pageSize.toString());
-  if (params?.category) query.append('category', params.category);
-  if (params?.priority) query.append('priority', params.priority);
-  if (params?.status) query.append('status', params.status);
-  if (params?.search) query.append('search', params.search);
-  if (params?.fromDate) query.append('fromDate', params.fromDate);
-  if (params?.toDate) query.append('toDate', params.toDate);
-  if (params?.sortBy) query.append('sortBy', params.sortBy);
-  if (params?.sortDirection) query.append('sortDirection', params.sortDirection);
-
-  const url = `${API_BASE}/problems${query.toString() ? `?${query.toString()}` : ''}`;
+  const url = `${API_BASE}/problems${buildQueryString(params as Record<string, unknown>)}`;
 
   const res = await fetch(url, {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, false),
   });
 
   return handleResponse<PagedResult<ProblemResponse>>(res);
@@ -69,9 +34,7 @@ export async function getProblems(
 export async function getProblemById(token: string, id: string): Promise<ProblemDetailResponse> {
   const res = await fetch(`${API_BASE}/problems/${id}`, {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, false),
   });
 
   return handleResponse<ProblemDetailResponse>(res);
@@ -83,9 +46,7 @@ export async function getProblemById(token: string, id: string): Promise<Problem
 export async function getProblemReports(token: string, id: string): Promise<ProblemReportResponse[]> {
   const res = await fetch(`${API_BASE}/problems/${id}/reports`, {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, false),
   });
 
   return handleResponse<ProblemReportResponse[]>(res);
@@ -97,10 +58,7 @@ export async function getProblemReports(token: string, id: string): Promise<Prob
 export async function createProblem(token: string, data: CreateProblemRequest): Promise<ProblemResponse> {
   const res = await fetch(`${API_BASE}/problems`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, true),
     body: JSON.stringify(data),
   });
 
@@ -113,9 +71,7 @@ export async function createProblem(token: string, data: CreateProblemRequest): 
 export async function getUncertainReports(token: string): Promise<UncertainReportResponse[]> {
   const res = await fetch(`${API_BASE}/problems/uncertain-reports`, {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, false),
   });
 
   return handleResponse<UncertainReportResponse[]>(res);
@@ -130,10 +86,7 @@ export async function linkUncertainReport(
 ): Promise<ProblemResponse> {
   const res = await fetch(`${API_BASE}/problems/uncertain-reports/link`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, true),
     body: JSON.stringify(data),
   });
 
@@ -149,10 +102,7 @@ export async function createProblemFromUncertainReport(
 ): Promise<ProblemResponse> {
   const res = await fetch(`${API_BASE}/problems/uncertain-reports/create`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, true),
     body: JSON.stringify(data),
   });
 
@@ -169,13 +119,9 @@ export async function cancelUncertainReport(
 ): Promise<{ message: string; reportId: string }> {
   const res = await fetch(`${API_BASE}/problems/uncertain-reports/${reportId}/cancel`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, true),
     body: JSON.stringify({ reportId, reason }),
   });
 
   return handleResponse<{ message: string; reportId: string }>(res);
 }
-
