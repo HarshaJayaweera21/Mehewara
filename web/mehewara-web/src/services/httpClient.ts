@@ -34,8 +34,8 @@ export async function handleResponse<T>(res: Response): Promise<T> {
     return {} as T;
   }
 
-  const contentType = res.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
+  const contentType = res.headers?.get ? res.headers.get('content-type') : null;
+  if (!contentType || contentType.includes('application/json')) {
     return res.json();
   }
 
