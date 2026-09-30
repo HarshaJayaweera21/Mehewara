@@ -112,12 +112,33 @@ public class ProblemService : IProblemService
 
         queryable = sortBy switch
         {
+            "priority" => isAscending
+                ? queryable.OrderBy(p => p.Priority == "LOW" ? 1 :
+                                         p.Priority == "MEDIUM" ? 2 :
+                                         p.Priority == "HIGH" ? 3 :
+                                         p.Priority == "CRITICAL" ? 4 : 0)
+                           .ThenByDescending(p => p.CreatedAt)
+                : queryable.OrderByDescending(p => p.Priority == "CRITICAL" ? 4 :
+                                                   p.Priority == "HIGH" ? 3 :
+                                                   p.Priority == "MEDIUM" ? 2 :
+                                                   p.Priority == "LOW" ? 1 : 0)
+                           .ThenByDescending(p => p.CreatedAt),
             "title" => isAscending ? queryable.OrderBy(p => p.Title) : queryable.OrderByDescending(p => p.Title),
             "category" => isAscending ? queryable.OrderBy(p => p.Category) : queryable.OrderByDescending(p => p.Category),
-            "priority" => isAscending ? queryable.OrderBy(p => p.Priority) : queryable.OrderByDescending(p => p.Priority),
             "priorityscore" => isAscending ? queryable.OrderBy(p => p.PriorityScore) : queryable.OrderByDescending(p => p.PriorityScore),
             "status" => isAscending ? queryable.OrderBy(p => p.Status) : queryable.OrderByDescending(p => p.Status),
-            _ => isAscending ? queryable.OrderBy(p => p.CreatedAt) : queryable.OrderByDescending(p => p.CreatedAt)
+            "createdat" => isAscending ? queryable.OrderBy(p => p.CreatedAt) : queryable.OrderByDescending(p => p.CreatedAt),
+            _ => isAscending
+                ? queryable.OrderBy(p => p.Priority == "LOW" ? 1 :
+                                         p.Priority == "MEDIUM" ? 2 :
+                                         p.Priority == "HIGH" ? 3 :
+                                         p.Priority == "CRITICAL" ? 4 : 0)
+                           .ThenByDescending(p => p.CreatedAt)
+                : queryable.OrderByDescending(p => p.Priority == "CRITICAL" ? 4 :
+                                                   p.Priority == "HIGH" ? 3 :
+                                                   p.Priority == "MEDIUM" ? 2 :
+                                                   p.Priority == "LOW" ? 1 : 0)
+                           .ThenByDescending(p => p.CreatedAt)
         };
 
         var items = await queryable
@@ -304,7 +325,7 @@ public class ProblemService : IProblemService
                 })
                 .Where(x => x.Distance <= 2000.0)
                 .OrderBy(x => x.Distance)
-                .Take(4)
+                .Take(10)
                 .Select(x => new NearbyCandidateProblemSummary
                 {
                     ProblemId = x.Problem.ProblemId,
@@ -339,6 +360,7 @@ public class ProblemService : IProblemService
     public async Task<ProblemResponse> LinkUncertainReportAsync(LinkUncertainReportRequest request)
     {
         var report = await _context.Reports
+            .Include(r => r.WorkflowRuns)
             .FirstOrDefaultAsync(r => r.ReportId == request.ReportId);
 
         if (report == null)
@@ -384,12 +406,36 @@ public class ProblemService : IProblemService
         problem.UpdatedAt = DateTime.UtcNow;
 
         // 4. Audit trail
+        var latestRun = report.WorkflowRuns.OrderByDescending(w => w.StartedAt).FirstOrDefault();
+        if (latestRun == null)
+        {
+            latestRun = new WorkflowRun
+            {
+                WorkflowRunId = Guid.NewGuid(),
+                ReportId = report.ReportId,
+                ProblemId = problem.ProblemId,
+                CurrentStage = "PROBLEM_CONSOLIDATION",
+                Status = "COMPLETED",
+                StartedAt = DateTime.UtcNow,
+                CompletedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.WorkflowRuns.Add(latestRun);
+        }
+        else
+        {
+            latestRun.ProblemId = problem.ProblemId;
+            latestRun.CurrentStage = "PROBLEM_CONSOLIDATION";
+            latestRun.UpdatedAt = DateTime.UtcNow;
+        }
+
         var auditEvent = new WorkflowEvent
         {
             WorkflowEventId = Guid.NewGuid(),
-            WorkflowRunId = Guid.NewGuid(),
+            WorkflowRunId = latestRun.WorkflowRunId,
             AgentName = "Coordinator Manual Triage",
-            Stage = "COORDINATOR_CONSOLIDATION_REVIEW",
+            Stage = "PROBLEM_CONSOLIDATION",
             Status = "COMPLETED",
             InputData = System.Text.Json.JsonSerializer.Serialize(new { reportId = report.ReportId, problemId = problem.ProblemId }),
             OutputData = System.Text.Json.JsonSerializer.Serialize(new { action = "LINK_MANUAL", notes = request.CoordinatorNotes }),
@@ -422,6 +468,7 @@ public class ProblemService : IProblemService
     public async Task<ProblemResponse> CreateProblemFromUncertainReportAsync(CreateProblemFromUncertainReportRequest request)
     {
         var report = await _context.Reports
+            .Include(r => r.WorkflowRuns)
             .FirstOrDefaultAsync(r => r.ReportId == request.ReportId);
 
         if (report == null)
@@ -455,12 +502,36 @@ public class ProblemService : IProblemService
         report.UpdatedAt = DateTime.UtcNow;
 
         // Audit trail
+        var latestRun = report.WorkflowRuns.OrderByDescending(w => w.StartedAt).FirstOrDefault();
+        if (latestRun == null)
+        {
+            latestRun = new WorkflowRun
+            {
+                WorkflowRunId = Guid.NewGuid(),
+                ReportId = report.ReportId,
+                ProblemId = problem.ProblemId,
+                CurrentStage = "PROBLEM_CONSOLIDATION",
+                Status = "COMPLETED",
+                StartedAt = DateTime.UtcNow,
+                CompletedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.WorkflowRuns.Add(latestRun);
+        }
+        else
+        {
+            latestRun.ProblemId = problem.ProblemId;
+            latestRun.CurrentStage = "PROBLEM_CONSOLIDATION";
+            latestRun.UpdatedAt = DateTime.UtcNow;
+        }
+
         var auditEvent = new WorkflowEvent
         {
             WorkflowEventId = Guid.NewGuid(),
-            WorkflowRunId = Guid.NewGuid(),
+            WorkflowRunId = latestRun.WorkflowRunId,
             AgentName = "Coordinator Manual Triage",
-            Stage = "COORDINATOR_CONSOLIDATION_REVIEW",
+            Stage = "PROBLEM_CONSOLIDATION",
             Status = "COMPLETED",
             InputData = System.Text.Json.JsonSerializer.Serialize(new { reportId = report.ReportId }),
             OutputData = System.Text.Json.JsonSerializer.Serialize(new { action = "CREATE_MANUAL", problemId = problem.ProblemId, notes = request.CoordinatorNotes }),
@@ -488,6 +559,67 @@ public class ProblemService : IProblemService
             CreatedAt = problem.CreatedAt,
             UpdatedAt = problem.UpdatedAt
         };
+    }
+
+    public async Task CancelUncertainReportAsync(Guid reportId, string? reason = null)
+    {
+        var report = await _context.Reports
+            .Include(r => r.WorkflowRuns)
+            .FirstOrDefaultAsync(r => r.ReportId == reportId);
+
+        if (report == null)
+        {
+            throw new KeyNotFoundException($"Report with ID '{reportId}' was not found.");
+        }
+
+        report.Status = "CANCELLED";
+        report.UpdatedAt = DateTime.UtcNow;
+
+        var latestRun = report.WorkflowRuns.OrderByDescending(w => w.StartedAt).FirstOrDefault();
+        if (latestRun == null)
+        {
+            latestRun = new WorkflowRun
+            {
+                WorkflowRunId = Guid.NewGuid(),
+                ReportId = report.ReportId,
+                CurrentStage = "COMPLETED",
+                Status = "CANCELLED",
+                StartedAt = DateTime.UtcNow,
+                CompletedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.WorkflowRuns.Add(latestRun);
+        }
+        else
+        {
+            latestRun.Status = "CANCELLED";
+            latestRun.CurrentStage = "COMPLETED";
+            latestRun.CompletedAt = DateTime.UtcNow;
+            latestRun.UpdatedAt = DateTime.UtcNow;
+        }
+
+        var auditEvent = new WorkflowEvent
+        {
+            WorkflowEventId = Guid.NewGuid(),
+            WorkflowRunId = latestRun.WorkflowRunId,
+            AgentName = "Coordinator Manual Triage",
+            Stage = "COMPLETED",
+            Status = "CANCELLED",
+            InputData = System.Text.Json.JsonSerializer.Serialize(new { reportId = report.ReportId }),
+            OutputData = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                action = "CANCELLED",
+                reason = reason ?? "Unnecessary report cancelled by municipal coordinator during uncertain reports triage",
+                cancelledAt = DateTime.UtcNow
+            }),
+            ValidationResult = System.Text.Json.JsonSerializer.Serialize(new { result = "CANCELLED", decision = "MANUAL_CANCEL" }),
+            StartedAt = DateTime.UtcNow,
+            CompletedAt = DateTime.UtcNow
+        };
+        _context.WorkflowEvents.Add(auditEvent);
+
+        await _context.SaveChangesAsync();
     }
 
     private static double CalculateDistanceMeters(decimal lat1, decimal lon1, decimal lat2, decimal lon2)

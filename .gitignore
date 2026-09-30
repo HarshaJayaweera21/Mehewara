@@ -110,6 +110,10 @@ x86/
 *.ipr
 *.iws
 
+# Antigravity / Gemini IDE local state
+.gemini/
+**/.gemini/
+
 
 # ============================================================
 # GENERAL LOGS / CACHE / TEMPORARY FILES
@@ -353,6 +357,10 @@ lerna-debug.log*
 # mobile/mehewara_mobile
 # ============================================================
 
+# Flutter build outputs
+build/
+**/build/
+
 # Dart / Flutter tooling
 .dart_tool/
 **/.dart_tool/
@@ -365,10 +373,17 @@ lerna-debug.log*
 
 # Flutter generated configuration
 .flutter-plugins
+**/.flutter-plugins
 .flutter-plugins-dependencies
+**/.flutter-plugins-dependencies
 .packages
+**/.packages
 
 .widget_preview/
+**/.widget_preview/
+
+# Stitch UI prototype downloads
+**/stitch_*/
 
 # Symbolication / obfuscation outputs
 app.*.symbols

@@ -99,5 +99,10 @@ void main() {
 
     expect(find.textContaining('MEHEWARA'), findsOneWidget);
   });
+
+  testWidgets('MehewaraApp smoke test - verifies resident view', (WidgetTester tester) async {
+    await tester.pumpWidget(const MehewaraApp());
+    expect(find.text('Community Incidents'), findsOneWidget);
+  });
 }
 

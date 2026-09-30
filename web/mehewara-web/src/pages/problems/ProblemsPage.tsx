@@ -9,7 +9,7 @@ import type {
 import { getProblems, getUncertainReports } from '../../services/problemApi';
 import { getRecommendations } from '../../services/dispatchApi';
 import { Header } from '../../components/common';
-import { CoordinatorWelcomeBanner } from './CoordinatorWelcomeBanner';
+import { CoordinatorWelcomeBanner } from '../../components/problems/CoordinatorWelcomeBanner';
 import { ProblemDetailModal } from './ProblemDetailModal';
 import './ProblemsPage.css';
 
@@ -71,7 +71,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 6;
+  const pageSize = 5;
 
   // Real backend data states
   const [problems, setProblems] = useState<ProblemResponse[]>([]);
@@ -90,6 +90,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   useEffect(() => {
     let ignore = false;
     const authToken = token || localStorage.getItem('mehewara_token') || '';
+    if (!authToken) return;
     getUncertainReports(authToken)
       .then((data) => {
         if (!ignore && data) {
@@ -133,7 +134,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
 
     const authToken = token || localStorage.getItem('mehewara_token') || '';
 
-    // 1. Fetch paginated and filtered problems
+    // 1. Fetch paginated and filtered problems ordered by priority
     getProblems(authToken, {
       page: currentPage,
       pageSize,
@@ -141,10 +142,24 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
       priority: selectedPriority !== 'ALL' ? selectedPriority : undefined,
       status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
       search: searchQuery.trim() || undefined,
+      sortBy: 'priority',
+      sortDirection: 'desc',
     })
       .then((res) => {
         if (!ignore) {
-          setProblems(res.items || []);
+          const PRIORITY_ORDER: Record<string, number> = {
+            CRITICAL: 4,
+            HIGH: 3,
+            MEDIUM: 2,
+            LOW: 1,
+          };
+          const sorted = [...(res.items || [])].sort((a, b) => {
+            const pA = PRIORITY_ORDER[(a.priority || '').toUpperCase()] || 0;
+            const pB = PRIORITY_ORDER[(b.priority || '').toUpperCase()] || 0;
+            if (pB !== pA) return pB - pA;
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          });
+          setProblems(sorted);
           setTotalResults(res.totalItems || 0);
           setTotalPages(Math.max(1, res.totalPages || 1));
           setIsLoading(false);
@@ -387,110 +402,116 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
           </div>
         </section>
 
-        {/* 3. Filter / Search Toolbar */}
-        <section className="problems-toolbar" aria-label="Filter and Search Problems">
-          <div className="problems-search-box">
-            <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="text"
-              className="problems-search-input"
-              placeholder="Search problems or addresses..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              aria-label="Search problems or addresses"
-            />
+        {/* 3. Problems Section (Title & Filter / Search Toolbar) */}
+        <div className="problems-search-filter-section">
+          <div className="problems-section-header">
+            <h2 className="problems-section-title">Problems</h2>
           </div>
 
-          <div className="problems-filters-group">
-            {/* Category Dropdown */}
-            <div className="problems-filter-select-wrap">
-              <select
-                className="problems-filter-select"
-                value={selectedCategory}
+          <section className="problems-toolbar" aria-label="Filter and Search Problems">
+            <div className="problems-search-box">
+              <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                className="problems-search-input"
+                placeholder="Search problems or addresses..."
+                value={searchQuery}
                 onChange={(e) => {
-                  setSelectedCategory(e.target.value);
+                  setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                aria-label="Filter by Category"
-              >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat === 'ALL' ? 'Category: All' : cat}
-                  </option>
-                ))}
-              </select>
-              <svg className="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
+                aria-label="Search problems or addresses"
+              />
             </div>
 
-            {/* Priority Dropdown */}
-            <div className="problems-filter-select-wrap">
-              <select
-                className="problems-filter-select"
-                value={selectedPriority}
-                onChange={(e) => {
-                  setSelectedPriority(e.target.value);
-                  setCurrentPage(1);
-                }}
-                aria-label="Filter by Priority"
-              >
-                {PRIORITIES.map((pri) => (
-                  <option key={pri} value={pri}>
-                    {pri === 'ALL' ? 'Priority: All' : pri}
-                  </option>
-                ))}
-              </select>
-              <svg className="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </div>
-
-            {/* Status Dropdown */}
-            <div className="problems-filter-select-wrap">
-              <select
-                className="problems-filter-select"
-                value={selectedStatus}
-                onChange={(e) => {
-                  setSelectedStatus(e.target.value);
-                  setCurrentPage(1);
-                }}
-                aria-label="Filter by Status"
-              >
-                {STATUSES.map((st) => (
-                  <option key={st} value={st}>
-                    {st === 'ALL' ? 'Status: All' : st.replace('_', ' ')}
-                  </option>
-                ))}
-              </select>
-              <svg className="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </div>
-
-            {/* Clear Filters (Visible only when filters/search active) */}
-            {hasActiveFilters && (
-              <button
-                type="button"
-                className="problems-clear-filters-btn"
-                onClick={handleClearFilters}
-                title="Reset all search queries and dropdown filters"
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
+            <div className="problems-filters-group">
+              {/* Category Dropdown */}
+              <div className="problems-filter-select-wrap">
+                <select
+                  className="problems-filter-select"
+                  value={selectedCategory}
+                  onChange={(e) => {
+                    setSelectedCategory(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  aria-label="Filter by Category"
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat === 'ALL' ? 'Category: All' : cat}
+                    </option>
+                  ))}
+                </select>
+                <svg className="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="6 9 12 15 18 9" />
                 </svg>
-                Clear filters
-              </button>
-            )}
-          </div>
-        </section>
+              </div>
+
+              {/* Priority Dropdown */}
+              <div className="problems-filter-select-wrap">
+                <select
+                  className="problems-filter-select"
+                  value={selectedPriority}
+                  onChange={(e) => {
+                    setSelectedPriority(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  aria-label="Filter by Priority"
+                >
+                  {PRIORITIES.map((pri) => (
+                    <option key={pri} value={pri}>
+                      {pri === 'ALL' ? 'Priority: All' : pri}
+                    </option>
+                  ))}
+                </select>
+                <svg className="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+
+              {/* Status Dropdown */}
+              <div className="problems-filter-select-wrap">
+                <select
+                  className="problems-filter-select"
+                  value={selectedStatus}
+                  onChange={(e) => {
+                    setSelectedStatus(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  aria-label="Filter by Status"
+                >
+                  {STATUSES.map((st) => (
+                    <option key={st} value={st}>
+                      {st === 'ALL' ? 'Status: All' : st.replace('_', ' ')}
+                    </option>
+                  ))}
+                </select>
+                <svg className="select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+
+              {/* Clear Filters (Visible only when filters/search active) */}
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  className="problems-clear-filters-btn"
+                  onClick={handleClearFilters}
+                  title="Reset all search queries and dropdown filters"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                  Clear filters
+                </button>
+              )}
+            </div>
+          </section>
+        </div>
 
         {/* 4. Results Header */}
         <div className="problems-results-header">
@@ -557,28 +578,29 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
 
         {/* 5. Problems Grid & Real Backend States */}
 
-        {/* STATE A: Loading Skeleton (6 Cards) */}
+        {/* STATE A: Loading Skeleton (Rectangular Cards) */}
         {isLoading && (
           <div className="problems-grid" aria-busy="true" aria-label="Loading problems from backend">
-            {[1, 2, 3, 4, 5, 6].map((idx) => (
-              <div key={idx} className="problem-card skeleton-card">
-                <div className="problem-card-top-row">
-                  <div className="skeleton-box skeleton-badge" />
-                  <div className="skeleton-box skeleton-category" />
+            {[1, 2, 3, 4, 5].map((idx) => (
+              <div key={idx} className="problem-card problem-card-rectangular skeleton-card">
+                <div className="problem-card-main-col">
+                  <div className="problem-card-top-row">
+                    <div className="problem-badges-wrap">
+                      <div className="skeleton-box skeleton-badge" />
+                      <div className="skeleton-box skeleton-category" />
+                    </div>
+                  </div>
+                  <div className="problem-card-body">
+                    <div className="skeleton-box skeleton-title-1" style={{ width: '60%', height: '18px' }} />
+                    <div className="skeleton-box skeleton-desc-1" style={{ width: '92%', height: '14px' }} />
+                  </div>
+                  <div className="problem-card-meta">
+                    <div className="skeleton-box skeleton-meta-line" style={{ width: '45%', height: '13px' }} />
+                  </div>
                 </div>
-                <div className="problem-card-body">
-                  <div className="skeleton-box skeleton-title-1" />
-                  <div className="skeleton-box skeleton-title-2" />
-                  <div className="skeleton-box skeleton-desc-1" />
-                  <div className="skeleton-box skeleton-desc-2" />
-                </div>
-                <div className="problem-card-meta">
-                  <div className="skeleton-box skeleton-meta-line" />
-                  <div className="skeleton-box skeleton-meta-line" style={{ width: '55%' }} />
-                </div>
-                <div className="problem-card-action">
-                  <div className="skeleton-box skeleton-status" />
-                  <div className="skeleton-box skeleton-action" />
+                <div className="problem-card-action-col">
+                  <div className="skeleton-box skeleton-status" style={{ width: '100px', height: '24px' }} />
+                  <div className="skeleton-box skeleton-action" style={{ width: '110px', height: '32px' }} />
                 </div>
               </div>
             ))}
@@ -666,116 +688,142 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
           </div>
         )}
 
-        {/* STATE E: Real Populated Problems Grid */}
+        {/* STATE E: Real Populated Problems Grid (Full-Width Rectangular Cards) */}
         {!isLoading && !errorMessage && problems.length > 0 && (
           <>
             <div className="problems-grid" role="list">
-              {problems.map((problem) => (
-                <article
-                  key={problem.id}
-                  className="problem-card"
-                  tabIndex={0}
-                  role="button"
-                  onClick={() => handleCardClick(problem.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleCardClick(problem.id);
-                    }
-                  }}
-                  aria-label={`Problem ${problem.title}, priority ${problem.priority}, category ${problem.category}`}
-                >
-                  {/* Top Row: Priority Badge & Category Label */}
-                  <div className="problem-card-top-row">
-                    {renderPriorityBadge(problem.priority)}
-                    <span className="problem-category-label">{problem.category}</span>
-                  </div>
+              {problems.map((problem) => {
+                const priorityKey = (problem.priority || 'LOW').toLowerCase();
+                const priorityClass = `card-priority-${priorityKey}`;
 
-                  {/* Main Content: Title and Truncated Description */}
-                  <div className="problem-card-body">
-                    <h3 className="problem-card-title">{problem.title}</h3>
-                    {problem.description && (
-                      <p className="problem-card-description">{problem.description}</p>
-                    )}
-                  </div>
-
-                  {/* Metadata: Location & Linked Reports */}
-                  <div className="problem-card-meta">
-                    <div className="meta-row" title={`Location: ${problem.address || 'Unspecified'}`}>
-                      <svg className="meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                        <circle cx="12" cy="10" r="3" />
-                      </svg>
-                      <span className="meta-text">{problem.address || 'Location Coordinates Recorded'}</span>
-                    </div>
-
-                    <div className="meta-row">
-                      <svg className="meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                      </svg>
-                      <span>{problem.relatedReportCount} linked {problem.relatedReportCount === 1 ? 'report' : 'reports'}</span>
-                    </div>
-                  </div>
-
-                  {/* Bottom Action: Status & View details -> */}
-                  <div className="problem-card-action">
-                    {renderStatusIndicator(problem.status)}
-                    <button
-                      type="button"
-                      className="view-details-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
+                return (
+                  <article
+                    key={problem.id}
+                    className={`problem-card problem-card-rectangular ${priorityClass}`}
+                    tabIndex={0}
+                    role="button"
+                    onClick={() => handleCardClick(problem.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
                         handleCardClick(problem.id);
-                      }}
-                      tabIndex={-1}
-                      aria-hidden="true"
-                    >
-                      <span>View details</span>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                        <polyline points="12 5 19 12 12 19" />
-                      </svg>
-                    </button>
-                  </div>
-                </article>
-              ))}
+                      }
+                    }}
+                    aria-label={`Problem ${problem.title}, priority ${problem.priority}, category ${problem.category}`}
+                  >
+                    {/* Main Content Column */}
+                    <div className="problem-card-main-col">
+                      {/* Top Row: Priority Badge, Category Badge & Date */}
+                      <div className="problem-card-top-row">
+                        <div className="problem-badges-wrap">
+                          {renderPriorityBadge(problem.priority)}
+                          <span className="problem-category-badge">{problem.category}</span>
+                        </div>
+                        <div className="problem-card-time">
+                          {new Date(problem.createdAt).toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Main Body: Title and Clean Clamped Description */}
+                      <div className="problem-card-body">
+                        <h3 className="problem-card-title" title={problem.title}>{problem.title}</h3>
+                        {problem.description && (
+                          <p className="problem-card-description" title={problem.description}>
+                            {problem.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Metadata: Location & Linked Reports */}
+                      <div className="problem-card-meta">
+                        <div className="meta-row meta-location" title={`Location: ${problem.address || 'Unspecified'}`}>
+                          <svg className="meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                          </svg>
+                          <span className="meta-text">{problem.address || 'Location Coordinates Recorded'}</span>
+                        </div>
+
+                        <span className="meta-divider" aria-hidden="true">•</span>
+
+                        <div className="meta-row meta-reports">
+                          <svg className="meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                          <span>{problem.relatedReportCount} linked {problem.relatedReportCount === 1 ? 'report' : 'reports'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Action Column: Status & View details button */}
+                    <div className="problem-card-action-col">
+                      {renderStatusIndicator(problem.status)}
+                      <button
+                        type="button"
+                        className="view-details-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCardClick(problem.id);
+                        }}
+                        tabIndex={-1}
+                        aria-hidden="true"
+                      >
+                        <span>View details</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                          <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
+            {/* Pagination Controls */}
+            {totalResults > 0 && (
               <nav className="problems-pagination" aria-label="Problems pagination">
-                <button
-                  type="button"
-                  className="pagination-btn"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  aria-label="Previous Page"
-                >
-                  Previous
-                </button>
-
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <div className="pagination-info">
+                  Showing <strong>{(currentPage - 1) * pageSize + 1}</strong>–<strong>{Math.min(currentPage * pageSize, totalResults)}</strong> of <strong>{totalResults}</strong> problems
+                </div>
+                <div className="pagination-controls">
                   <button
-                    key={pageNum}
                     type="button"
-                    className={`pagination-btn ${pageNum === currentPage ? 'active' : ''}`}
-                    onClick={() => setCurrentPage(pageNum)}
-                    aria-current={pageNum === currentPage ? 'page' : undefined}
+                    className="pagination-btn pagination-prev"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    aria-label="Previous Page"
                   >
-                    {pageNum}
+                    Previous
                   </button>
-                ))}
 
-                <button
-                  type="button"
-                  className="pagination-btn"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  aria-label="Next Page"
-                >
-                  Next
-                </button>
+                  {Array.from({ length: Math.max(1, totalPages) }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      className={`pagination-btn ${pageNum === currentPage ? 'active' : ''}`}
+                      onClick={() => setCurrentPage(pageNum)}
+                      aria-current={pageNum === currentPage ? 'page' : undefined}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    className="pagination-btn pagination-next"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    aria-label="Next Page"
+                  >
+                    Next
+                  </button>
+                </div>
               </nav>
             )}
           </>

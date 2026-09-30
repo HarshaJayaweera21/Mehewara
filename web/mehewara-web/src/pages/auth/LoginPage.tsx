@@ -94,38 +94,42 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     const setupGoogleButton = () => {
       if (!window.google?.accounts?.id) return false;
 
-      if (!googleInitializedRef.current) {
-        window.google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: async (response) => {
-            try {
-              setLoading(true);
-              setError(null);
-              const authData = await loginWithGoogle(response.credential);
-              localStorage.setItem('mehewara_token', authData.accessToken);
-              localStorage.setItem('mehewara_user', JSON.stringify(authData.user));
-              setCurrentUser(authData.user);
-              onLoginSuccess?.(authData.user, authData.accessToken);
-            } catch (err: unknown) {
-              setError(err instanceof Error ? err.message : 'Google authentication failed.');
-            } finally {
-              setLoading(false);
-            }
-          },
-        });
-        googleInitializedRef.current = true;
-      }
+      try {
+        if (!googleInitializedRef.current) {
+          window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: async (response) => {
+              try {
+                setLoading(true);
+                setError(null);
+                const authData = await loginWithGoogle(response.credential);
+                localStorage.setItem('mehewara_token', authData.accessToken);
+                localStorage.setItem('mehewara_user', JSON.stringify(authData.user));
+                setCurrentUser(authData.user);
+                onLoginSuccess?.(authData.user, authData.accessToken);
+              } catch (err: unknown) {
+                setError(err instanceof Error ? err.message : 'Google authentication failed.');
+              } finally {
+                setLoading(false);
+              }
+            },
+          });
+          googleInitializedRef.current = true;
+        }
 
-      const btnContainer = document.getElementById('google-btn-rendered');
-      if (btnContainer) {
-        btnContainer.innerHTML = '';
-        window.google.accounts.id.renderButton(btnContainer, {
-          theme: 'outline',
-          size: 'large',
-          width: '350',
-          text: 'signin_with',
-        });
-        return true;
+        const btnContainer = document.getElementById('google-btn-rendered');
+        if (btnContainer) {
+          btnContainer.innerHTML = '';
+          window.google.accounts.id.renderButton(btnContainer, {
+            theme: 'outline',
+            size: 'large',
+            width: '350',
+            text: 'signin_with',
+          });
+          return true;
+        }
+      } catch (err) {
+        console.warn('Google Identity Services button rendering deferred or blocked by browser:', err);
       }
       return false;
     };

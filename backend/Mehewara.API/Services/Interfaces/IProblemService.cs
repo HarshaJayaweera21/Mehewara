@@ -15,4 +15,5 @@ public interface IProblemService
     Task<List<UncertainReportResponse>> GetUncertainReportsAsync();
     Task<ProblemResponse> LinkUncertainReportAsync(LinkUncertainReportRequest request);
     Task<ProblemResponse> CreateProblemFromUncertainReportAsync(CreateProblemFromUncertainReportRequest request);
+    Task CancelUncertainReportAsync(Guid reportId, string? reason = null);
 }

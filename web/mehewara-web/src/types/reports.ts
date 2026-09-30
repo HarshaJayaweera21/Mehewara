@@ -55,6 +55,7 @@ export interface ReportResponse {
   longitude: number;
   address?: string;
   status: string;
+  aiAnalysis?: string;
   photos: ReportPhotoDto[];
   linkedProblems: LinkedProblemDto[];
   createdAt: string;

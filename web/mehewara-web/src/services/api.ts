@@ -1,32 +1,20 @@
 import type { LoginResponse, User, RegisterRequest, UpdateProfileRequest } from '../types/auth';
-export const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+import { API_BASE, getAuthHeaders, handleResponse } from './httpClient';
 
-export class ApiRequestError extends Error {
-  status: number;
-  code: string;
-  constructor(status: number, code: string, message: string) { super(message); this.status = status; this.code = code; }
-}
-
-export async function handleResponse<T>(response: Response, notifyExpired = true): Promise<T> {
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    if (response.status === 401 && notifyExpired) window.dispatchEvent(new Event('mehewara-session-expired'));
-    throw new ApiRequestError(response.status, body?.error?.code || 'REQUEST_FAILED',
-      body?.error?.message || `Request failed (${response.status}).`);
-  }
-  return response.json() as Promise<T>;
-}
+export { API_BASE, ApiRequestError, handleResponse } from './httpClient';
 
 export async function request<T>(path: string, token: string, init?: RequestInit): Promise<T> {
-  return handleResponse<T>(await fetch(`${API_BASE}${path}`, {
-    ...init, headers: { Authorization: `Bearer ${token}`, ...init?.headers },
-  }));
+  const headers = new Headers(getAuthHeaders(token, false));
+  new Headers(init?.headers).forEach((value, key) => headers.set(key, value));
+
+  const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  return handleResponse<T>(response);
 }
 
 export async function loginWithCredentials(email: string, password: string): Promise<LoginResponse> {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(undefined, true),
     body: JSON.stringify({ email, password }),
   });
   return handleResponse<LoginResponse>(res, false);
@@ -35,7 +23,7 @@ export async function loginWithCredentials(email: string, password: string): Pro
 export async function registerResident(data: RegisterRequest): Promise<LoginResponse> {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(undefined, true),
     body: JSON.stringify(data),
   });
   return handleResponse<LoginResponse>(res, false);
@@ -44,7 +32,7 @@ export async function registerResident(data: RegisterRequest): Promise<LoginResp
 export async function loginWithGoogle(idToken: string): Promise<LoginResponse> {
   const res = await fetch(`${API_BASE}/auth/google`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(undefined, true),
     body: JSON.stringify({ idToken }),
   });
   return handleResponse<LoginResponse>(res, false);
@@ -53,9 +41,7 @@ export async function loginWithGoogle(idToken: string): Promise<LoginResponse> {
 export async function getCurrentUser(token: string): Promise<User> {
   const res = await fetch(`${API_BASE}/auth/me`, {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, false),
   });
   return handleResponse<User>(res);
 }
@@ -63,10 +49,7 @@ export async function getCurrentUser(token: string): Promise<User> {
 export async function updateUserProfile(token: string, data: UpdateProfileRequest): Promise<User> {
   const res = await fetch(`${API_BASE}/auth/profile`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, true),
     body: JSON.stringify(data),
   });
   return handleResponse<User>(res);
@@ -78,9 +61,7 @@ export async function uploadProfilePhoto(token: string, file: File): Promise<Use
 
   const res = await fetch(`${API_BASE}/auth/profile/photo`, {
     method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, false), // let browser set boundary for multipart
     body: formData,
   });
   return handleResponse<User>(res);
@@ -89,9 +70,7 @@ export async function uploadProfilePhoto(token: string, file: File): Promise<Use
 export async function removeProfilePhoto(token: string): Promise<User> {
   const res = await fetch(`${API_BASE}/auth/profile/photo`, {
     method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, false),
   });
   return handleResponse<User>(res);
 }
