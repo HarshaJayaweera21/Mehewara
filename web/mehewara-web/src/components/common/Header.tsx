@@ -10,6 +10,7 @@ export interface HeaderProps {
   onBrandClick?: () => void;
   onLoginClick?: () => void;
   roleBadgeText?: string;
+  showName?: boolean;
   className?: string;
 }
 
@@ -20,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   onBrandClick,
   onLoginClick,
   roleBadgeText = 'Municipal Coordinator',
+  showName = false,
   className = '',
 }) => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -88,6 +90,7 @@ export const Header: React.FC<HeaderProps> = ({
               </svg>
             )}
           </div>
+          {showName && <span className="header-profile-name">{currentUser.name}</span>}
           <svg
             className={`header-profile-chevron ${isProfileMenuOpen ? 'rotated' : ''}`}
             width="12"

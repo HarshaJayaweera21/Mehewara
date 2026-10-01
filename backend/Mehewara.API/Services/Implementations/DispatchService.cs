@@ -144,7 +144,8 @@ public partial class DispatchService : IDispatchService
             }
 
             var search = query.Search?.Trim();
-            if (!string.IsNullOrWhiteSpace(search) && !($"{problem?.Title} {problem?.Category ?? payload.RequiredCrewType} {crewName} {payload.ProblemId}".Contains(search, StringComparison.OrdinalIgnoreCase))) continue;
+            if (!string.IsNullOrWhiteSpace(query.Category) && !string.Equals(problem?.Category ?? payload.RequiredCrewType, query.Category, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!string.IsNullOrWhiteSpace(search) && !($"{problem?.Title} {problem?.Address} {problem?.Category ?? payload.RequiredCrewType} {crewName} {payload.ProblemId}".Contains(search, StringComparison.OrdinalIgnoreCase))) continue;
             var item = new RecommendationListItemDto
             {
                 RecommendationId = ev.WorkflowEventId,
@@ -157,6 +158,7 @@ public partial class DispatchService : IDispatchService
                 LatestJob = await LatestReviewJobAsync(ev.WorkflowRunId),
                 ProblemId = payload.ProblemId != Guid.Empty ? payload.ProblemId : (ev.WorkflowRun.ProblemId ?? Guid.Empty),
                 ProblemTitle = problem?.Title ?? string.Empty,
+                Address = problem?.Address,
                 Category = problem?.Category ?? payload.RequiredCrewType,
                 Priority = payload.Priority,
                 PriorityScore = payload.PriorityScore,

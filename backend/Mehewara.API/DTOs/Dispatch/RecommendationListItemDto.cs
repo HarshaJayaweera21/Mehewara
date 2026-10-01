@@ -19,6 +19,7 @@ public class RecommendationListItemDto
     public Guid RecommendationId { get; set; }
     public Guid ProblemId { get; set; }
     public string ProblemTitle { get; set; } = string.Empty;
+    public string? Address { get; set; }
     public string Category { get; set; } = string.Empty;
     public string Priority { get; set; } = string.Empty;
     public int PriorityScore { get; set; }

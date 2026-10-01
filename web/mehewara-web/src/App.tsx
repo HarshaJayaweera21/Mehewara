@@ -308,6 +308,7 @@ function App() {
         onNavigateToProblems={() => setViewMode('problems')}
         onNavigateToCrews={() => setViewMode('crews')}
         onNavigateToReports={() => setViewMode('reports')}
+        onNavigateToOperations={() => setViewMode('operations')}
       />
     );
   }

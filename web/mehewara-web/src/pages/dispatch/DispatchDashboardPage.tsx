@@ -19,6 +19,7 @@ import { RegenerateRecommendationModal } from './components/RegenerateRecommenda
 import { ValidationReviewPanel } from './components/ValidationReviewPanel';
 import './DispatchDashboardPage.css';
 import './ReviewDashboard.css';
+import './RecommendationReview.css';
 
 export interface DispatchDashboardPageProps {
   currentUser?: User | null;
@@ -28,10 +29,12 @@ export interface DispatchDashboardPageProps {
   onNavigateToProblems?: () => void;
   onNavigateToCrews?: () => void;
   onNavigateToReports?: () => void;
+  onNavigateToOperations?: () => void;
   onOpenWorkOrder?: (id: string) => void;
 }
 
 const PRIORITIES: (PriorityLevel | 'ALL')[] = ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+const CATEGORIES = ['ALL', 'ROAD', 'DRAINAGE', 'WASTE', 'ELECTRICAL', 'ENVIRONMENT'] as const;
 const DECISIONS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const;
 const REVIEW_TABS = [ ['READY', 'Ready for Approval'], ['PROCESSING', 'Processing'],
   ['NEEDS_ATTENTION', 'Needs Attention'], ['DECIDED', 'Decided'], ['ALL', 'All / History'] ] as const;
@@ -44,6 +47,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   onNavigateToProblems,
   onNavigateToCrews,
   onNavigateToReports,
+  onNavigateToOperations,
   onOpenWorkOrder,
 }) => {
   const authToken = token || localStorage.getItem('mehewara_token') || '';
@@ -62,6 +66,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [backendSearch, setBackendSearch] = useState('');
   const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedDecision, setSelectedDecision] = useState<string>('ALL');
   const [reviewBucket, setReviewBucket] = useState('READY');
   const [page, setPage] = useState(1);
@@ -104,6 +109,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
       const [recsRes, crewsRes] = await Promise.all([
         getRecommendations(authToken, {
           priority: selectedPriority !== 'ALL' ? selectedPriority : undefined,
+          category: selectedCategory !== 'ALL' ? selectedCategory : undefined,
           page, pageSize: 20, reviewBucket, search: backendSearch || undefined,
           reviewDecision: selectedDecision !== 'ALL' ? selectedDecision : undefined,
         }),
@@ -125,9 +131,9 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
       setRecommendations(sorted);
       setAvailableCrews(crewsRes.items || []);
 
-      // Retain or auto-select first recommendation
+      // Keep an explicitly opened review; the queue itself remains the landing view.
       if (sorted.length > 0 || requestedSelection.current) {
-        setSelectedRecId((prev) => requestedSelection.current || (prev && sorted.some((r) => r.recommendationId === prev) ? prev : sorted[0].recommendationId));
+        setSelectedRecId((prev) => requestedSelection.current || (prev && sorted.some((r) => r.recommendationId === prev) ? prev : null));
       } else {
         setSelectedRecId(null);
         setSelectedDetail(null);
@@ -137,7 +143,16 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
     } finally {
       if (sequence === fetchSequence.current) setIsLoadingList(false);
     }
-  }, [authToken, selectedPriority, selectedDecision, backendSearch, reviewBucket, page]);
+  }, [authToken, selectedPriority, selectedCategory, selectedDecision, backendSearch, reviewBucket, page]);
+
+  useEffect(() => {
+    if (!selectedRecId) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !modalMode) setSelectedRecId(null);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [selectedRecId, modalMode]);
 
   useEffect(() => {
     fetchData();
@@ -242,13 +257,38 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
   return (
     <div className="dispatch-dashboard-container">
+      <aside className="review-sidebar" aria-label="Main navigation">
+        <div className="review-brand"><span className="review-brand-mark">M</span><span><strong>MEHEWARA</strong><small>MUNICIPAL OPS</small></span></div>
+        <div className="review-sidebar-rule" />
+        <nav className="review-side-links">
+          <button type="button" onClick={onNavigateToOperations}><span>⌘</span>Operations</button>
+          <button type="button" onClick={onNavigateToReports}><span>▤</span>Reports</button>
+          <button type="button" onClick={onNavigateToProblems}><span>⚠</span>Problems</button>
+          <button type="button" className="active" aria-current="page"><span>✿</span>Recommendation Review <em>{totalItems}</em></button>
+          <button type="button" onClick={onNavigateToCrews}><span>♙</span>Crews</button>
+          <button type="button" onClick={() => onOpenWorkOrder?.('')}><span>⚒</span>Work Orders</button>
+        </nav>
+        <div className="review-sidebar-user">
+          <div className="review-sidebar-user-name">{currentUser?.name || 'Municipal Coordinator'}</div>
+          <span>Municipal Coordinator</span>
+          <button type="button" onClick={onOpenProfile}>View profile</button>
+        </div>
+      </aside>
+      <div className="review-main-area">
+      <div className="review-topbar">
+        <label className="review-top-search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input type="search" value={searchQuery} onChange={(event) => { setSearchQuery(event.target.value); setPage(1); }} placeholder="Search reference, problem, crew..." aria-label="Search recommendations" />
+        </label>
       {/* 1. Global Navigation Header */}
       <Header
         currentUser={currentUser}
         onLogout={onLogout}
         onOpenProfile={onOpenProfile}
         roleBadgeText="Municipal Coordinator"
+        showName
       />
+      </div>
 
       <main className="dispatch-content-wrap">
         {/* Secondary Navigation Breadcrumbs / Module Switcher */}
@@ -326,7 +366,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
         <section className="dispatch-welcome-banner" aria-label="Dispatch Operations Banner">
           <div className="dispatch-banner-content">
             <span className="banner-agent-badge">AI Agent 3 : Prioritization & Dispatch</span>
-            <h1 className="dispatch-banner-heading">Municipal Dispatch Control Center</h1>
+            <h1 className="dispatch-banner-heading">Recommendation Review</h1>
             <p className="dispatch-banner-sub">
               Human-in-the-loop authorization desk. Inspect multi-factor priority scores, examine real-time crew availability, and authorize municipal work orders.
             </p>
@@ -334,6 +374,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
         </section>
 
         {/* 3. Operational Metrics Strip */}
+        <div className="review-simulation-strip"><span>☷ &nbsp; Recommendation review queue</span><strong>{reviewBucket === 'READY' ? 'Active queue' : reviewBucket.replace(/_/g, ' ')}</strong></div>
         <section className="dispatch-metrics-strip" aria-label="Key Dispatch Metrics">
           <div className="dispatch-metric-cell">
             <div className="metric-label-row">
@@ -373,10 +414,10 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
         <nav className="dispatch-review-tabs" aria-label="Recommendation review views">
           {REVIEW_TABS.map(([value, label]) => <button key={value} type="button"
             aria-pressed={reviewBucket === value} className={reviewBucket === value ? 'active' : ''}
-            onClick={() => { requestedSelection.current = null; setReviewBucket(value); setSelectedDecision('ALL'); setPage(1); setModalMode(null); }}>{label}</button>)}
+            onClick={() => { requestedSelection.current = null; setReviewBucket(value); setSelectedRecId(null); setSelectedDecision('ALL'); setPage(1); setModalMode(null); }}>{label}{reviewBucket === value && <span className="review-tab-count">{totalItems}</span>}</button>)}
         </nav>
         <div className="dispatch-pagination" aria-live="polite">
-          <span>{totalItems} matching recommendations · Page {page} of {totalPages}. Recommendation summaries describe this page; crew availability describes the roster.</span>
+          <span>{totalItems} matching recommendations · Page {page} of {totalPages}</span>
           <button type="button" disabled={page <= 1 || isLoadingList} onClick={() => { requestedSelection.current = null; setPage(p => p - 1); }}>Previous</button>
           <button type="button" disabled={page >= totalPages || isLoadingList} onClick={() => { requestedSelection.current = null; setPage(p => p + 1); }}>Next</button>
         </div>
@@ -429,7 +470,15 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
               </select>
             </div>
 
-            {(searchQuery.trim() !== '' || selectedPriority !== 'ALL' || selectedDecision !== 'ALL') && (
+            <div className="dispatch-filter-wrap">
+              <select className="dispatch-filter-select" value={selectedCategory}
+                onChange={(e) => { requestedSelection.current = null; setSelectedCategory(e.target.value); setPage(1); }}
+                aria-label="Filter by category">
+                {CATEGORIES.map((category) => <option key={category} value={category}>{category === 'ALL' ? 'Category: All' : category.charAt(0) + category.slice(1).toLowerCase()}</option>)}
+              </select>
+            </div>
+
+            {(searchQuery.trim() !== '' || selectedPriority !== 'ALL' || selectedDecision !== 'ALL' || selectedCategory !== 'ALL') && (
               <button
                 type="button"
                 className="dispatch-clear-filters-btn"
@@ -437,6 +486,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                   setSearchQuery('');
                   requestedSelection.current = null;
                   setSelectedPriority('ALL');
+                  setSelectedCategory('ALL');
                   setSelectedDecision('ALL');
                   setPage(1);
                 }}
@@ -495,6 +545,8 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
               <span className="queue-sort-label">Sorted by Priority & Urgency</span>
             </div>
 
+            <div className="review-table-head" aria-hidden="true"><span>Problem reference &amp; title</span><span>Category</span><span>Location</span><span>Priority &amp; score</span><span>Specialty &amp; recommended crew</span><span>Agent 4 validation</span></div>
+
             {isLoadingList && (
               <div className="queue-skeleton-list">
                 {[1, 2, 3, 4].map((i) => (
@@ -534,10 +586,20 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       role="button"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
-                          requestedSelection.current = null; setSelectedRecId(rec.recommendationId);
+                          e.preventDefault(); requestedSelection.current = null; setSelectedRecId(rec.recommendationId);
                         }
                       }}
                     >
+                      <div className="review-table-cell review-problem-cell">
+                        <span className="review-reference" title={rec.problemId}>{rec.problemId.slice(0, 8).toUpperCase()} <span>· {new Date(rec.createdAt).toLocaleDateString()}</span></span>
+                        <strong>{rec.problemTitle}</strong>
+                        <small>{rec.requiredCrewType} · {rec.dispatchStrategy?.replace(/_/g, ' ') || 'Standard dispatch'}</small>
+                      </div>
+                      <div className="review-table-cell"><span className="review-category">{rec.category}</span></div>
+                      <div className="review-table-cell review-location-cell"><strong>{rec.address || 'Location unavailable'}</strong>{rec.distanceKm != null && <small>{rec.distanceKm.toFixed(1)} km from crew</small>}</div>
+                      <div className="review-table-cell review-priority-cell"><span className={`priority-tag ${getPriorityColorClass(rec.priority)}`}>{rec.priority}</span><small>Score {rec.priorityScore}/100</small></div>
+                      <div className="review-table-cell review-crew-cell"><strong>{rec.recommendedCrewName || 'Crew unassigned'}</strong><small className={availableCrews.find(c => c.id === rec.recommendedCrewId)?.status === 'AVAILABLE' ? 'review-crew-available' : ''}>{availableCrews.find(c => c.id === rec.recommendedCrewId)?.status?.replace(/_/g, ' ') || rec.requiredCrewType}</small><small>{rec.requiredCrewType.replace(/_/g, ' ')}</small></div>
+                      <div className="review-table-cell review-validation-cell"><span className={`review-validation ${rec.validation.status.toLowerCase()}`}>{rec.validation.status.replace(/_/g, ' ')}</span><small>{rec.reviewDecision?.replace(/_/g, ' ') || rec.reviewProgress.replace(/_/g, ' ')}</small></div>
                       <div className="queue-item-top">
                         <span className="queue-category-badge">{rec.category}</span>
                         <div className="queue-badges-row">
@@ -606,7 +668,8 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
           </section>
 
           {/* Right Panel: Active Recommendation Detail */}
-          <section className="dispatch-detail-panel" aria-label="Recommendation Detail">
+          <section className={`dispatch-detail-panel ${selectedRecId ? 'open' : ''}`} aria-label="Recommendation Detail" aria-hidden={!selectedRecId}>
+            <button className="review-detail-close" type="button" onClick={() => setSelectedRecId(null)} aria-label="Close recommendation detail">×</button>
             {isLoadingDetail && (
               <div className="detail-loading-state">
                 <div className="dispatch-spinner-pip" />
@@ -915,6 +978,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
           </section>
         </div>
       </main>
+      </div>
 
       {/* Decision Modals */}
       {modalMode === 'approve' && activeListItem && (

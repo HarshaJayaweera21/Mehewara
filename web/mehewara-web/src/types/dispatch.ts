@@ -38,6 +38,7 @@ export interface RecommendationListItem {
   latestJob: ReviewJob | null;
   problemId: string;
   problemTitle: string;
+  address?: string | null;
   category: string;
   priority: PriorityLevel;
   priorityScore: number;
@@ -81,6 +82,7 @@ export interface RecommendationQueryParams {
   page?: number;
   pageSize?: number;
   priority?: string;
+  category?: string;
   reviewDecision?: string;
   reviewBucket?: string;
   status?: string;
