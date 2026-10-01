@@ -8,6 +8,7 @@ import { CrewListPage } from './pages/crews';
 import { LandingPage } from './pages/landing';
 import type { User } from './types/auth';
 import { WorkOrdersPage } from './pages/workOrders/WorkOrdersPage';
+import { OperationsDashboardPage } from './pages/operations/OperationsDashboardPage';
 import { homeView, isCrewLeader } from './types/access';
 import { request, ApiRequestError } from './services/api';
 
@@ -51,7 +52,7 @@ function App() {
   const [workOrderId, setWorkOrderId] = useState<string>();
   const [sessionMessage, setSessionMessage] = useState('');
   const [viewMode, setViewMode] = useState<
-    'landing' | 'reports' | 'problems' | 'uncertain-reports' | 'dispatch' | 'crews' | 'profile' | 'login' | 'work-orders' | 'my-jobs'
+    'landing' | 'operations' | 'reports' | 'problems' | 'uncertain-reports' | 'dispatch' | 'crews' | 'profile' | 'login' | 'work-orders' | 'my-jobs'
   >(() => {
     try {
       const savedToken = localStorage.getItem('mehewara_token');
@@ -211,7 +212,7 @@ function App() {
               gap: '0.5rem',
             }}
           >
-            ← Back to {returnDestination === 'problems' ? 'Problems Dashboard' : returnDestination === 'my-jobs' ? 'My Jobs' : 'Reports Portal'}
+            ← Back to {returnDestination === 'operations' ? 'Operations' : returnDestination === 'my-jobs' ? 'My Jobs' : 'Reports Portal'}
           </button>
           <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
             Logged in as: <strong style={{ color: '#f8fafc' }}>{currentUser.name}</strong> ({currentUser.role})
@@ -248,7 +249,22 @@ function App() {
     return <ReportsPage currentUser={currentUser} token={token} onLogout={handleLogout} onOpenProfile={() => setViewMode('profile')} />;
   }
 
-  // 4. Authenticated Problems Dashboard View (specifically redirected for ADMIN)
+  if (viewMode === 'operations') {
+    return <OperationsDashboardPage
+      currentUser={currentUser}
+      token={token}
+      onLogout={handleLogout}
+      onOpenProfile={() => setViewMode('profile')}
+      onNavigateToReports={() => setViewMode('reports')}
+      onNavigateToProblems={() => setViewMode('problems')}
+      onNavigateToUncertainReports={() => setViewMode('uncertain-reports')}
+      onNavigateToDispatch={() => setViewMode('dispatch')}
+      onNavigateToCrews={() => setViewMode('crews')}
+      onNavigateToWorkOrders={() => { setWorkOrderId(undefined); setViewMode('work-orders'); }}
+    />;
+  }
+
+  // 4. Authenticated Problems Dashboard View
   if (viewMode === 'problems') {
     return (
       <ProblemsPage
