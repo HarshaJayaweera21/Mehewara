@@ -74,7 +74,7 @@ class WorkOrderModel {
       problemTitle: json['problemTitle'] ?? json['title'] ?? '',
       problemDescription: json['problemDescription'] ?? json['description'],
       problemCategory: json['problemCategory'],
-      problemAddress: json['problemAddress'],
+      problemAddress: json['problemAddress'] ?? json['address'],
       latitude: json['latitude'] is num
           ? (json['latitude'] as num).toDouble()
           : double.tryParse(json['latitude']?.toString() ?? '0') ?? 0.0,
