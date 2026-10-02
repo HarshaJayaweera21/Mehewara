@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:flutter/services.dart';
 import 'package:mehewara_mobile/core/network/api_client.dart';
 import 'package:mehewara_mobile/main.dart';
 import 'package:mehewara_mobile/services/auth/auth_service.dart';
@@ -21,6 +22,22 @@ Map<String, dynamic> job(String status) => {
 http.Response ok(Object data) => http.Response(jsonEncode(data), 200, headers: {'content-type': 'application/json'});
 
 void main() {
+  setUpAll(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('flutter.baseflow.com/geolocator'),
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'isLocationServiceEnabled') {
+          return true;
+        }
+        if (methodCall.method == 'checkPermission') {
+          return 3; // LocationPermission.always
+        }
+        return null;
+      },
+    );
+  });
+
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
   test('start has no body; completion notes are optional; bearer token is sent', () async {
