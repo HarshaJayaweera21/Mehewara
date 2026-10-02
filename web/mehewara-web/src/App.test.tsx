@@ -14,8 +14,12 @@ afterEach(() => vi.unstubAllGlobals());
 for (const role of crewRoles) {
   it(`${role} restores into My Jobs and returns there from profile`, async () => {
     const user = { id: 'leader', name: 'Leader', role, email: 'crew@example.com' };
-    localStorage.setItem('mehewara_user', JSON.stringify(user)); localStorage.setItem('mehewara_token', 'token');
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith('/Auth/me') ? user : { items: [], totalItems: 0, totalPages: 0, page: 1, pageSize: 20 }))));
+    const token = `header.${btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }))}.signature`;
+    localStorage.setItem('mehewara_user', JSON.stringify(user)); localStorage.setItem('mehewara_token', token);
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(
+      JSON.stringify(url.endsWith('/Auth/me') ? user : { items: [], totalItems: 0, totalPages: 0, page: 1, pageSize: 20 }),
+      { headers: { 'Content-Type': 'application/json' } },
+    )));
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'My Jobs' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'My profile' }));

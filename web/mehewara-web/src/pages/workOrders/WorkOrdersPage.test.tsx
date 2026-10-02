@@ -12,7 +12,10 @@ const job: WorkOrder = { id: 'job-1', problemId: 'problem-1', crewId: 'crew-1', 
   assignedAt: '2026-09-27T10:00:00Z', startedAt: null, completedAt: null, completionNotes: null,
   createdAt: '2026-09-27T10:00:00Z', updatedAt: '2026-09-27T10:00:00Z', history: [] };
 const props = { user: { id: 'leader', name: 'Crew leader', email: 'crew@example.com', role: 'CREW_LEADER_ROAD' }, token: 'token', onLogout: vi.fn(), onProfile: vi.fn(), onCoordinator: vi.fn() };
-const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status });
+const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
+  status,
+  headers: { 'Content-Type': 'application/json' },
+});
 beforeEach(() => { localStorage.clear(); });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -35,7 +38,7 @@ describe('WorkOrder screens and contracts', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Complete Job' }));
     expect(await screen.findByText('WORK ORDER COMPLETED')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Complete Job' })).not.toBeInTheDocument();
-    expect(fetcher.mock.calls.every(([, init]) => (init?.headers as Record<string, string>).Authorization === 'Bearer token')).toBe(true);
+    expect(fetcher.mock.calls.every(([, init]) => new Headers(init?.headers).get('Authorization') === 'Bearer token')).toBe(true);
   });
 
   it('reloads a stale job on 409 and retains typed notes', async () => {
@@ -77,12 +80,12 @@ describe('WorkOrder screens and contracts', () => {
 
   it('uses the real approval/edit contracts and blank completion body', async () => {
     const fetcher = vi.fn(async () => reply({ workOrder: { id: 'created-job' } })); vi.stubGlobal('fetch', fetcher);
-    expect((await approveRecommendation('token', 'rec', { reason: 'Reviewed' })).workOrder.id).toBe('created-job');
-    await editRecommendation('token', 'rec', { priority: 'HIGH', editReason: 'Site visit' });
+    expect((await approveRecommendation('token', 'rec', { reason: 'Reviewed', expectedRevision: 1 })).workOrder.id).toBe('created-job');
+    await editRecommendation('token', 'rec', { priority: 'HIGH', editReason: 'Site visit', expectedRevision: 1 });
     await startWorkOrder('token', job.id); await completeWorkOrder('token', job.id, ' ');
     const calls = fetcher.mock.calls as unknown as [string, RequestInit][];
-    expect(JSON.parse(calls[0][1].body as string)).toEqual({ reason: 'Reviewed' });
-    expect(JSON.parse(calls[1][1].body as string)).toEqual({ priority: 'HIGH', editReason: 'Site visit' });
+    expect(JSON.parse(calls[0][1].body as string)).toEqual({ reason: 'Reviewed', expectedRevision: 1 });
+    expect(JSON.parse(calls[1][1].body as string)).toEqual({ priority: 'HIGH', editReason: 'Site visit', expectedRevision: 1 });
     expect(calls[2][1].body).toBeUndefined(); expect(calls[3][1].body).toBe('{}');
   });
 });
