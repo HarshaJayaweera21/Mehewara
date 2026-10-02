@@ -19,11 +19,12 @@ export function ValidationReviewPanel({ detail, token, onChange }: {
   const [job, setJob] = useState<ReviewJob | null>(detail.latestJob);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const requestId = useRef<string | null>(null);
   const callback = useRef(onChange);
-  callback.current = onChange;
+  useEffect(() => { callback.current = onChange; });
 
-  useEffect(() => { setJob(detail.latestJob); }, [detail.latestJob]);
+  useEffect(() => { setJob(detail.latestJob); setNow(Date.now()); }, [detail.latestJob]);
   useEffect(() => { requestId.current = null; }, [detail.recommendationId, detail.revision]);
   const jobId = job?.id;
   const running = job?.status === 'QUEUED' || job?.status === 'RUNNING';
@@ -91,7 +92,7 @@ export function ValidationReviewPanel({ detail, token, onChange }: {
       {job.recommendationId !== detail.recommendationId && <p>This workflow job targets another recommendation: {job.recommendationId}.</p>}
       <p>Requested reason: {job.reason}</p>
       <p>Execution attempts: {job.attempts} / 3 · Automatic corrections: {job.correctionCount ?? 'Unknown'} / 2 · Evidence revalidations: {job.evidenceRetryCount ?? 'Unknown'} / 2</p>
-      {job.status === 'QUEUED' && job.nextAttemptAt && new Date(job.nextAttemptAt).getTime() > Date.now() &&
+      {job.status === 'QUEUED' && job.nextAttemptAt && new Date(job.nextAttemptAt).getTime() > now &&
         <p>Scheduled retry: {new Date(job.nextAttemptAt).toLocaleString()}</p>}
       {job.error && <p role="alert">{job.error}</p>}
     </div>}
