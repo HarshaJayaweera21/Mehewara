@@ -44,7 +44,7 @@ class ApiClient {
       headers['Accept'] = 'application/json';
     }
 
-    final storedToken = token ?? await TokenStorage.getToken();
+    final storedToken = authenticated ? (token ?? await TokenStorage.getToken()) : null;
     if (authenticated && storedToken != null && storedToken.isNotEmpty) {
       headers['Authorization'] = 'Bearer $storedToken';
     }

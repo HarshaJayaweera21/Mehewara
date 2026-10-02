@@ -157,6 +157,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   useEffect(() => {
     fetchData();
     return () => { fetchSequence.current++; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchData, refreshTrigger]);
 
   // 2. Fetch single detailed recommendation when selection changes

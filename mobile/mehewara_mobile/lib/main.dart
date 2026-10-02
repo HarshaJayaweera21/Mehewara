@@ -25,10 +25,7 @@ void main() async {
 class MehewaraMobileApp extends StatelessWidget {
   final String initialRoute;
 
-  const MehewaraMobileApp({
-    super.key,
-    this.initialRoute = AppRoutes.initial,
-  });
+  const MehewaraMobileApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {

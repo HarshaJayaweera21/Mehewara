@@ -9,7 +9,7 @@ import { Header } from '../../components/common';
 import './WorkOrdersPage.css';
 
 const date = (value: string | null) => value ? new Date(value).toLocaleString() : '—';
-const label = (value: string) => value.replaceAll('_', ' ');
+const label = (value?: string) => value ? value.replaceAll('_', ' ') : '';
 const errorText = (error: unknown) => error instanceof Error ? error.message : 'Connection failed. Please retry.';
 
 export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, onCoordinator, onNavigateToProblems, onNavigateToDispatch, onNavigateToCrews }: {
@@ -58,8 +58,8 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
     } finally { if (version === detailVersion.current) setDetailLoading(false); }
   }, [token, selectedId]);
 
-  useEffect(() => { void loadList(); return () => { listVersion.current++; }; }, [loadList]);
-  useEffect(() => { void loadDetail(); return () => { detailVersion.current++; }; }, [loadDetail]);
+  useEffect(() => { void loadList(); return () => { listVersion.current++; }; }, [loadList]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void loadDetail(); return () => { detailVersion.current++; }; }, [loadDetail]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const refresh = () => { if (!document.hidden && !submitting.current) { void loadList(); void loadDetail(); } };
     window.addEventListener('focus', refresh);
@@ -168,9 +168,9 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
       <div className="jobs-grid"><section aria-label="Job list" aria-busy={loading}>
         <div className="jobs-section-heading"><h2>{admin ? 'Municipal jobs' : 'Your crew’s jobs'}</h2><span>{page?.totalItems ?? 0} jobs</span></div>
         {loading && <p role="status">Loading jobs…</p>}
-        {!loading && page?.items.length === 0 && <div className="jobs-empty">No jobs match these filters.</div>}
-        {page?.items.map(item => <button className={`job-card ${item.id === selectedId ? 'selected' : ''}`} key={item.id} disabled={busy} onClick={() => { if (item.id === selectedId) return; setJob(null); setNotes(''); setMessage(''); setSelectedId(item.id); }}>
-          <div className="job-tags"><span className={`job-priority priority-${item.priority.toLowerCase()}`}>{item.priority}</span><span>{label(item.status)}</span></div>
+        {!loading && (!page?.items || page.items.length === 0) && <div className="jobs-empty">No jobs match these filters.</div>}
+        {page?.items?.map(item => <button className={`job-card ${item.id === selectedId ? 'selected' : ''}`} key={item.id} disabled={busy} onClick={() => { if (item.id === selectedId) return; setJob(null); setNotes(''); setMessage(''); setSelectedId(item.id); }}>
+          <div className="job-tags"><span className={`job-priority priority-${item.priority?.toLowerCase()}`}>{item.priority}</span><span>{label(item.status)}</span></div>
           <h3>{item.title}</h3><p>{item.address || item.problemTitle}</p><footer><span>{item.crewName}</span><span>{date(item.assignedAt)}</span></footer>
         </button>)}
         <div className="jobs-pagination"><button disabled={loading || (filters.page || 1) <= 1} onClick={() => setFilters(f => ({ ...f, page: (f.page || 1) - 1 }))}>Previous</button><span>Page {filters.page} of {Math.max(1, page?.totalPages || 1)}</span><button disabled={loading || !page || (filters.page || 1) >= page.totalPages} onClick={() => setFilters(f => ({ ...f, page: (f.page || 1) + 1 }))}>Next</button></div>
@@ -179,14 +179,14 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
         {detailError && <div className="jobs-error" role="alert">{detailError} <button onClick={() => void loadDetail()}>Reload job</button></div>}
         {message && <div className="jobs-notice" role="status">{message}</div>}
         {!selectedId && <div className="jobs-empty"><h2>Select a job</h2><p>View its location, instructions, and progress here.</p></div>}
-        {job && <><div className="job-tags"><span className={`job-priority priority-${job.priority.toLowerCase()}`}>{job.priority}</span><span>{label(job.status)}</span></div><h2>{job.title}</h2><p>{job.crewName}</p>
+        {job && <><div className="job-tags"><span className={`job-priority priority-${job.priority?.toLowerCase()}`}>{job.priority}</span><span>{label(job.status)}</span></div><h2>{job.title}</h2><p>{job.crewName}</p>
           <h3>Location</h3><p>{job.address || 'Address unavailable'}<br /><small>{job.latitude}, {job.longitude}</small></p><a href={`https://www.google.com/maps/search/?api=1&query=${job.latitude},${job.longitude}`} target="_blank" rel="noreferrer">Open in Maps ↗</a>
           <h3>Instructions</h3><p className="job-notes">{job.instructions || 'No additional instructions.'}</p>
           <dl className="job-times"><dt>Assigned</dt><dd>{date(job.assignedAt)}</dd><dt>Started</dt><dd>{date(job.startedAt)}</dd><dt>Completed</dt><dd>{date(job.completedAt)}</dd></dl>
           {job.completionNotes && <><h3>Completion notes</h3><p className="job-notes">{job.completionNotes}</p></>}
           {!admin && job.status === 'ASSIGNED' && <button className="jobs-primary job-action" disabled={busy || detailLoading} onClick={() => void transition(false)}>{busy ? 'Starting…' : 'Start Job'}</button>}
           {!admin && job.status === 'IN_PROGRESS' && <form onSubmit={e => { e.preventDefault(); void transition(true); }}><label>Completion notes (optional)<textarea value={notes} maxLength={4000} rows={4} onChange={e => setNotes(e.target.value)} disabled={busy} placeholder="Describe the work completed…" /></label><small>{notes.length}/4000</small><button className="jobs-primary job-action" disabled={busy || detailLoading}>{busy ? 'Completing…' : 'Complete Job'}</button></form>}
-          <h3>Activity history</h3>{job.history.length === 0 ? <p>No execution events recorded yet.</p> : <ol className="job-history">{job.history.map(a => <li key={a.id}><strong>{label(a.action)}</strong><time>{date(a.createdAt)}</time>{a.note && <p className="job-notes">{a.note}</p>}</li>)}</ol>}
+          <h3>Activity history</h3>{(!job.history || job.history.length === 0) ? <p>No execution events recorded yet.</p> : <ol className="job-history">{job.history.map(a => <li key={a.id}><strong>{label(a.action)}</strong><time>{date(a.createdAt)}</time>{a.note && <p className="job-notes">{a.note}</p>}</li>)}</ol>}
           <small className="job-id">Job ID: {job.id}<br />Problem ID: {job.problemId}</small>
         </>}
       </section></div>
