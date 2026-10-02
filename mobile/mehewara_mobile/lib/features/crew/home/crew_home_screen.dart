@@ -61,13 +61,9 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
       WorkOrderModel? inProgress;
       List<WorkOrderModel> queued = [];
 
-      try {
-        final orders = await widget.crewService.getCrewWorkOrders();
-        inProgress = orders.where((o) => o.isInProgress).firstOrNull;
-        queued = orders.where((o) => o.isQueued).toList();
-      } catch (_) {
-        // Work orders fetch optional
-      }
+      final orders = await widget.crewService.getCrewWorkOrders();
+      inProgress = orders.where((o) => o.isInProgress).firstOrNull;
+      queued = orders.where((o) => o.isQueued).toList();
 
       if (mounted) {
         setState(() {

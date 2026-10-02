@@ -82,6 +82,7 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
 
   useEffect(() => {
     loadUncertainReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   // Handle Toast Auto-Dismiss

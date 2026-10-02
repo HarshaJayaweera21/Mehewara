@@ -160,6 +160,7 @@ export const MapPicker: React.FC<MapPickerProps> = ({
       mapInstanceRef.current = null;
       markerRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle GPS Locate Me

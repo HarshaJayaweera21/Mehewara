@@ -8,6 +8,12 @@ public class WorkflowEvent
     public string Stage { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string? InputData { get; set; }
+    public int Revision { get; set; } = 1;
+    public Guid? PreviousRecommendationId { get; set; }
+    public string? OriginalOutputData { get; set; }
+    public int? ValidatedRevision { get; set; }
+    public string? EvidenceHash { get; set; }
+    public string? EvidenceRequest { get; set; }
     public string? OutputData { get; set; }
     public string? ValidationResult { get; set; }
     public string? ToolResults { get; set; }

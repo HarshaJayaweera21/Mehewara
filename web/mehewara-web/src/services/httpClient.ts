@@ -1,18 +1,24 @@
 import type { ApiError } from '../types/common';
 
-export const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5194/api';
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5194/api').replace(/\/$/, '');
+
+export class ApiRequestError extends Error {
+  status: number;
+  code: string;
+
+  constructor(status: number, code: string, message: string) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.status = status;
+    this.code = code;
+  }
+}
 
 /**
  * Handles HTTP response parsing and uniform error/401 handling
  */
-export async function handleResponse<T>(res: Response): Promise<T> {
+export async function handleResponse<T>(res: Response, notifyExpired = true): Promise<T> {
   if (!res.ok) {
-    if (res.status === 401) {
-      localStorage.removeItem('mehewara_token');
-      localStorage.removeItem('mehewara_user');
-      window.dispatchEvent(new Event('auth:unauthorized'));
-    }
-
     let errorData: ApiError | null = null;
     try {
       errorData = await res.json();
@@ -20,13 +26,21 @@ export async function handleResponse<T>(res: Response): Promise<T> {
       // Response wasn't JSON
     }
 
+    const code = errorData?.error?.code || (res.status === 401 ? 'UNAUTHORIZED' : 'REQUEST_FAILED');
     const message =
       errorData?.error?.message ||
       (res.status === 401
         ? 'Session expired. Please log in again.'
         : `Request failed with status ${res.status}`);
 
-    throw new Error(message);
+    if (res.status === 401 && notifyExpired) {
+      localStorage.removeItem('mehewara_token');
+      localStorage.removeItem('mehewara_user');
+      window.dispatchEvent(new Event('auth:unauthorized'));
+      window.dispatchEvent(new Event('mehewara-session-expired'));
+    }
+
+    throw new ApiRequestError(res.status, code, message);
   }
 
   // Handle empty responses (204 No Content)

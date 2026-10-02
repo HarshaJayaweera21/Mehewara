@@ -1,0 +1,15 @@
+{
+  "database": "mehewara_deploy_test_694fd67504394bfdae9564c9cac7336b",
+  "target": "20260926084022_AddActivityHistory",
+  "relations": [],
+  "applied": [],
+  "pending": [
+    "20260916150458_InitialCreate",
+    "20260918043408_UpdateAppDbContext",
+    "20260918112155_UpdateReportProblemToOneToMany",
+    "20260926050014_LinkApprovalHistoryToRecommendation",
+    "20260926054657_LinkWorkOrderToRecommendation",
+    "20260926075934_ProtectDispatchConcurrency",
+    "20260926084022_AddActivityHistory"
+  ]
+}

@@ -1,4 +1,5 @@
 import type {
+  ReviewJob,
   RecommendationListItem,
   RecommendationDetail,
   RecommendationQueryParams,
@@ -48,18 +49,19 @@ export async function getRecommendationById(
 /**
  * Human-in-the-Loop Override: Edit priority, score, recommended crew, or notes
  */
+// Backend EditRecommendationAsync returns a full RecommendationDetailDto
 export async function editRecommendation(
   token: string,
   recommendationId: string,
   data: EditRecommendationRequest
-): Promise<RecommendationListItem> {
+): Promise<RecommendationDetail> {
   const res = await fetch(`${API_BASE}/dispatch/recommendations/${recommendationId}`, {
     method: 'PATCH',
     headers: getAuthHeaders(token, true),
     body: JSON.stringify(data),
   });
 
-  return handleResponse<RecommendationListItem>(res);
+  return handleResponse<RecommendationDetail>(res);
 }
 
 /**
@@ -97,7 +99,7 @@ export async function rejectRecommendation(
 }
 
 /**
- * Request regeneration: Resets status and triggers AI workflow regeneration
+ * Queue a durable Agent 3 + Agent 4 regeneration job
  */
 export async function regenerateRecommendation(
   token: string,
@@ -111,4 +113,16 @@ export async function regenerateRecommendation(
   });
 
   return handleResponse<RegenerateRecommendationResponse>(res);
+}
+
+export async function validateRecommendation(token: string, id: string, data: RegenerateRecommendationRequest): Promise<RegenerateRecommendationResponse> {
+  const res = await fetch(`${API_BASE}/dispatch/recommendations/${id}/validate`, {
+    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse<RegenerateRecommendationResponse>(res);
+}
+export async function getReviewJob(token: string, id: string): Promise<ReviewJob> {
+  const res = await fetch(`${API_BASE}/dispatch/review-jobs/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+  return handleResponse<ReviewJob>(res);
 }
