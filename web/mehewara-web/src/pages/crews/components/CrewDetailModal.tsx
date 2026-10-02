@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { CrewDetail, CrewType } from '../../../types/crew';
 import { getCrewById } from '../../../services/crewApi';
+import '../../dispatch/DispatchDashboardPage.css';
 
 const CREW_EQUIPMENT_SPECS: Record<
   CrewType,
@@ -72,12 +73,14 @@ interface CrewDetailModalProps {
   crewId: string | null;
   token: string;
   onClose: () => void;
+  onNavigateToWorkOrder?: (workOrderId?: string) => void;
 }
 
 export const CrewDetailModal: React.FC<CrewDetailModalProps> = ({
   crewId,
   token,
   onClose,
+  onNavigateToWorkOrder,
 }) => {
   const [crew, setCrew] = useState<CrewDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -259,6 +262,21 @@ export const CrewDetailModal: React.FC<CrewDetailModalProps> = ({
         </div>
 
         <div className="dispatch-modal-actions">
+          {crew?.activeWorkOrderId && onNavigateToWorkOrder && (
+            <button
+              type="button"
+              className="dispatch-btn-primary"
+              onClick={() => {
+                onClose();
+                onNavigateToWorkOrder(crew.activeWorkOrderId!);
+              }}
+            >
+              <span>View Active Work Order</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          )}
           <button type="button" className="dispatch-btn-secondary" onClick={onClose}>
             Close Profile
           </button>

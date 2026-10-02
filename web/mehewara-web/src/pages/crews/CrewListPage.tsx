@@ -14,7 +14,7 @@ export interface CrewListPageProps {
   onNavigateToProblems?: () => void;
   onNavigateToDispatch?: () => void;
   onNavigateToReports?: () => void;
-  onNavigateToWorkOrders?: () => void;
+  onNavigateToWorkOrders?: (workOrderId?: string) => void;
 }
 
 const CREW_TYPES: (CrewType | 'ALL')[] = [
@@ -142,7 +142,7 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
             <button
               type="button"
               className="nav-strip-btn"
-              onClick={onNavigateToWorkOrders}
+              onClick={() => onNavigateToWorkOrders?.()}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -499,6 +499,7 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
           crewId={selectedCrewId}
           token={authToken}
           onClose={() => setSelectedCrewId(null)}
+          onNavigateToWorkOrder={onNavigateToWorkOrders}
         />
       )}
     </div>

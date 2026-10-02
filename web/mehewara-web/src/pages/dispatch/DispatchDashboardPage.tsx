@@ -731,6 +731,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
                   {/* Actions Header Strip */}
                   <div className="detail-action-buttons">
+                    {/* ─── MEMBER 3 SCOPE: Human Override — Edit Priority / Crew ─────── */}
                     <button
                       type="button"
                       className="dispatch-action-btn edit-btn"
@@ -745,6 +746,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       <span>Edit</span>
                     </button>
 
+                    {/* ─── MEMBER 3 SCOPE: Dispatch Optimization — Regenerate Recommendation ─────── */}
                     <button
                       type="button"
                       className="dispatch-action-btn regen-btn"
@@ -760,6 +762,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       <span>Regenerate</span>
                     </button>
 
+                    {/* ─── MEMBER 4 SCOPE: Safety Gate — Rejection Authorization ──────── */}
                     <button
                       type="button"
                       className="dispatch-action-btn reject-btn"
@@ -774,6 +777,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       <span>Reject</span>
                     </button>
 
+                    {/* ─── MEMBER 4 SCOPE: Safety Gate — Approval Authorization ──────── */}
                     <button
                       type="button"
                       className="dispatch-action-btn approve-btn"
@@ -879,6 +883,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                   </div>
                 </div>
 
+                {/* ─── MEMBER 4 SCOPE: Agent 4 Validation Review Panel ───────────── */}
                 <ValidationReviewPanel key={selectedDetail.recommendationId} detail={selectedDetail} token={authToken}
                   onChange={(id, bucket) => { if (id) { requestedSelection.current = id; setReviewBucket('ALL'); setPage(1); setSelectedRecId(id); }
                     if (bucket) { requestedSelection.current = null; setReviewBucket(bucket); setPage(1); } setRefreshTrigger(v => v + 1); }} />

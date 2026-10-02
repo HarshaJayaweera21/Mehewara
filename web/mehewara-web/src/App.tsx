@@ -324,7 +324,7 @@ function App() {
         onNavigateToProblems={() => setViewMode('problems')}
         onNavigateToDispatch={() => setViewMode('dispatch')}
         onNavigateToReports={() => setViewMode('reports')}
-        onNavigateToWorkOrders={() => { setWorkOrderId(undefined); setViewMode('work-orders'); }}
+        onNavigateToWorkOrders={(id?: string) => { setWorkOrderId(id || undefined); setViewMode('work-orders'); }}
       />
     );
   }
