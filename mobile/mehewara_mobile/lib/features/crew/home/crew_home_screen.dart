@@ -28,11 +28,22 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
   CrewModel? _crew;
   WorkOrderModel? _inProgressOrder;
   List<WorkOrderModel> _queuedOrders = [];
+  List<WorkOrderModel> _completedOrders = [];
   bool _isLoading = true;
   bool _isTogglingStatus = false;
   String? _errorMessage;
   CrewLocation _crewLocation = CrewLocation.defaultDepot;
   bool _isRefreshingLocation = false;
+
+  String _formatRelativeTime(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inDays > 365) return '${(diff.inDays / 365).floor()}y ago';
+    if (diff.inDays > 30) return '${(diff.inDays / 30).floor()}mo ago';
+    if (diff.inDays > 0) return '${diff.inDays}d ago';
+    if (diff.inHours > 0) return '${diff.inHours}h ago';
+    if (diff.inMinutes > 0) return '${diff.inMinutes} mins ago';
+    return 'Just now';
+  }
 
   @override
   void initState() {
@@ -87,12 +98,16 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
       final orders = await widget.crewService.getCrewWorkOrders();
       inProgress = orders.where((o) => o.isInProgress).firstOrNull;
       queued = orders.where((o) => o.isQueued).toList();
+      final completed = orders.where((o) => o.isCompleted).toList()
+        ..sort((a, b) => (b.completedAt ?? b.createdAt).compareTo(a.completedAt ?? a.createdAt));
+      final recentCompleted = completed.take(3).toList();
 
       if (mounted) {
         setState(() {
           _crew = crew;
           _inProgressOrder = inProgress;
           _queuedOrders = queued;
+          _completedOrders = recentCompleted;
           _isLoading = false;
         });
         _fetchLocation();
@@ -491,6 +506,84 @@ class _CrewHomeScreenState extends State<CrewHomeScreen> {
               onRefreshGps: _fetchLocation,
               isRefreshingGps: _isRefreshingLocation,
             ),
+
+            if (_completedOrders.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              const Text(
+                'RECENT SQUAD COMPLETIONS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ..._completedOrders.map((order) => Card(
+                    elevation: 0,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: const BorderSide(color: AppColors.borderDefault),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => _openProblemDetails(order),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: AppColors.statusAvailableBg,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.check,
+                                color: AppColors.statusAvailableText,
+                                size: 14,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    order.problemTitle.isNotEmpty ? order.problemTitle : order.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    order.completedAt != null
+                                        ? 'Completed ${_formatRelativeTime(order.completedAt!)}'
+                                        : 'Completed recently',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: AppColors.textMuted,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )),
+            ],
           ],
         ),
       ),

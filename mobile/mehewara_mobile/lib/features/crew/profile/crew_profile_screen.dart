@@ -22,6 +22,8 @@ class CrewProfileScreen extends StatefulWidget {
 class _CrewProfileScreenState extends State<CrewProfileScreen> {
   CrewModel? _crew;
   String? _userEmail;
+  int _completedCount = 0;
+  int _activeCount = 0;
   bool _isLoading = true;
 
   @override
@@ -34,10 +36,20 @@ class _CrewProfileScreenState extends State<CrewProfileScreen> {
     try {
       final crew = await widget.crewService.getCrewProfile();
       final email = await TokenStorage.getEmail();
+      int completed = 0;
+      int active = 0;
+      try {
+        final orders = await widget.crewService.getCrewWorkOrders();
+        completed = orders.where((o) => o.isCompleted).length;
+        active = orders.where((o) => o.isActive).length;
+      } catch (_) {}
+
       if (mounted) {
         setState(() {
           _crew = crew;
           _userEmail = email;
+          _completedCount = completed;
+          _activeCount = active;
           _isLoading = false;
         });
       }
@@ -355,6 +367,52 @@ class _CrewProfileScreenState extends State<CrewProfileScreen> {
                 ),
               ),
             ),
+
+          const SizedBox(height: 16),
+
+          // Squad Performance & Deployment Metrics
+          const Text(
+            'SQUAD PERFORMANCE & DEPLOYMENT METRICS',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textSecondary,
+              letterSpacing: 0.6,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildProfileRow(
+                    icon: Icons.check_circle_outline,
+                    label: 'Total Completed Missions',
+                    value: '$_completedCount work orders resolved',
+                  ),
+                  const Divider(height: 18),
+                  _buildProfileRow(
+                    icon: Icons.pending_actions_outlined,
+                    label: 'Active Dispatched Work Orders',
+                    value: '$_activeCount active tasks assigned',
+                  ),
+                  const Divider(height: 18),
+                  _buildProfileRow(
+                    icon: Icons.radio_button_checked,
+                    label: 'Current Operational Status',
+                    value: crew?.isAvailable == true
+                        ? 'Standby at Depot (Available for Dispatch)'
+                        : (crew?.isBusy == true
+                            ? 'Deployed on Field Remediation Mission'
+                            : 'Off-Duty / Maintenance Standby'),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
           const SizedBox(height: 16),
 
