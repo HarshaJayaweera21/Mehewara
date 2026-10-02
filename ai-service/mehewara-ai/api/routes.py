@@ -3,14 +3,15 @@ Mehewara AI Service — API Routes
 
 Defines the FastAPI router with:
 - GET  /internal/ai/health     → service healthcheck
-- POST /internal/ai/workflows  → workflow trigger endpoint (executes Agent 1)
+- POST /internal/ai/workflows  → generation endpoint (Agents 1–3)
 """
 
 from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from app.internal_auth import require_internal_key
 
 from api.models import (
     HealthResponse,
@@ -26,7 +27,7 @@ from workflow.mehewara_workflow import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/internal/ai", tags=["AI Workflows"])
+router = APIRouter(prefix="/internal/ai", tags=["AI Workflows"], dependencies=[Depends(require_internal_key)])
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -61,10 +62,11 @@ async def get_workflow_diagram() -> dict[str, str]:
 async def trigger_workflow(request: WorkflowTriggerRequest) -> WorkflowTriggerResponse:
     """
     Receive a workflow trigger from the ASP.NET Core backend and execute
-    the unified LangGraph multi-agent pipeline (Agent 1 -> Agent 2 -> END).
+    the generation pipeline (Agent 1 -> Agent 2 -> Agent 3 -> END).
 
     Stage 1 (Agent 1): Extracts evidence-grounded facts, maps municipal assets, checks omissions.
     Stage 2 (Agent 2): Clusters incoming report into existing Problems or generates a new Problem.
+    Stage 3 (Agent 3): Recommends priority and crew. ASP.NET persists and queues Agent 4.
     """
     logger.info(
         "Executing unified Mehewara multi-agent workflow %s (Report %s, Reported Category: %s)",
@@ -100,8 +102,9 @@ async def trigger_workflow(request: WorkflowTriggerRequest) -> WorkflowTriggerRe
 
         return WorkflowTriggerResponse(
             workflow_id=request.workflow_id,
-            status="completed",
-            message=f"Unified multi-agent workflow completed for report {request.report.id}",
+            status=result.get("status", "failed"),
+            safety_validation=result.get("safety_validation"),
+            message=f"Generation returned for report {request.report.id}; Agent 4 has not run in this request.",
             report_analysis=report_analysis,
             problem_analysis=problem_analysis,
             priority_analysis=priority_analysis,
@@ -115,3 +118,10 @@ async def trigger_workflow(request: WorkflowTriggerRequest) -> WorkflowTriggerRe
             status_code=500,
             detail=f"Unified multi-agent workflow processing failed: {ex}",
         )
+
+
+@router.post("/recommendation-review")
+async def review_recommendation(payload: dict) -> dict:
+    """Backend-owned jobs reuse Agents 3 and 4; validation jobs execute only Agent 4."""
+    from workflow.review_workflow import run_review
+    return await run_review(payload)

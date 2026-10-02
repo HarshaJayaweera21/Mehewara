@@ -24,6 +24,7 @@ export interface ProblemsPageProps {
   onNavigateToUncertainReports?: () => void;
   onNavigateToDispatch?: () => void;
   onNavigateToCrews?: () => void;
+  onNavigateToWorkOrders?: () => void;
 }
 
 const CATEGORIES: (ProblemCategory | 'ALL')[] = [
@@ -62,6 +63,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   onNavigateToUncertainReports,
   onNavigateToDispatch,
   onNavigateToCrews,
+  onNavigateToWorkOrders,
 }) => {
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -610,6 +612,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
                 )}
               </button>
             )}
+            {onNavigateToWorkOrders && <button className="problems-crews-nav-btn" onClick={onNavigateToWorkOrders}>Work Orders</button>}
             {onNavigateToCrews && (
               <button
                 type="button"

@@ -14,11 +14,11 @@
 --   4. reports
 --   5. report_photos
 --   6. problems
---   7. report_problems
---   8. work_orders
---   9. approval_history
---  10. workflow_runs
---  11. workflow_events
+--   7. work_orders
+--   8. approval_history
+--   9. workflow_runs
+--  10. workflow_events
+--  11. activity_history
 --
 -- Important:
 --   PostgreSQL is the authoritative data store.
@@ -184,6 +184,9 @@ CREATE TABLE reports (
     report_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     resident_id UUID NOT NULL,
+
+    -- Current EF Core relationship: each Report links to zero or one Problem.
+    problem_id UUID,
 
     description TEXT NOT NULL,
 
@@ -374,57 +377,23 @@ CREATE TABLE problems (
 
 
 -- ============================================================
--- 7. REPORT_PROBLEMS
+-- Report -> Problem relationship (one-to-many)
 -- ============================================================
--- Many-to-many relationship:
+-- One report can link to zero or one problem. A problem can link to many
+-- reports. This matches the current EF Core Report.ProblemId mapping.
 --
---       REPORTS N:M PROBLEMS
---
--- via this bridge table.
---
--- IMPORTANT:
---   There is NO confidence column.
---
--- AI confidence/evidence belongs in workflow event data.
+-- The Problem table is declared after Reports, so add the foreign key here.
 -- ============================================================
 
-CREATE TABLE report_problems (
-    report_problem_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    report_id UUID NOT NULL,
-
-    problem_id UUID NOT NULL,
-
-    link_type VARCHAR(30) NOT NULL,
-
-    linked_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_report_problems_report
-        FOREIGN KEY (report_id)
-        REFERENCES reports(report_id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_report_problems_problem
-        FOREIGN KEY (problem_id)
-        REFERENCES problems(problem_id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT uq_report_problem
-        UNIQUE (report_id, problem_id),
-
-    CONSTRAINT chk_report_problems_link_type
-        CHECK (
-            link_type IN (
-                'DUPLICATE',
-                'RELATED',
-                'PRIMARY'
-            )
-        )
-);
+ALTER TABLE reports
+    ADD CONSTRAINT fk_reports_problem
+    FOREIGN KEY (problem_id)
+    REFERENCES problems(problem_id)
+    ON DELETE SET NULL;
 
 
 -- ============================================================
--- 8. WORK_ORDERS
+-- 7. WORK_ORDERS
 -- ============================================================
 -- Represents actual authorized work.
 --
@@ -456,6 +425,8 @@ CREATE TABLE work_orders (
     problem_id UUID NOT NULL,
 
     crew_id UUID NOT NULL,
+
+    recommendation_id UUID,
 
     priority VARCHAR(20) NOT NULL,
 
@@ -512,7 +483,7 @@ CREATE TABLE work_orders (
 
 
 -- ============================================================
--- 9. APPROVAL_HISTORY
+-- 8. APPROVAL_HISTORY
 -- ============================================================
 -- Records human approval/rejection/revision decisions.
 --
@@ -523,7 +494,8 @@ CREATE TABLE work_orders (
 CREATE TABLE approval_history (
     approval_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    work_order_id UUID NOT NULL,
+    work_order_id UUID,
+    recommendation_id UUID,
 
     decided_by UUID NOT NULL,
 
@@ -555,7 +527,7 @@ CREATE TABLE approval_history (
 
 
 -- ============================================================
--- 10. WORKFLOW_RUNS
+-- 9. WORKFLOW_RUNS
 -- ============================================================
 -- Represents one complete execution of the Agentic AI workflow.
 --
@@ -624,7 +596,7 @@ CREATE TABLE workflow_runs (
 
 
 -- ============================================================
--- 11. WORKFLOW_EVENTS
+-- 10. WORKFLOW_EVENTS
 -- ============================================================
 -- Stores individual agent/stage execution records.
 --
@@ -695,6 +667,54 @@ CREATE TABLE workflow_events (
         )
 );
 
+ALTER TABLE approval_history
+    ADD CONSTRAINT fk_approval_history_recommendation
+    FOREIGN KEY (recommendation_id)
+    REFERENCES workflow_events(workflow_event_id)
+    ON DELETE RESTRICT;
+
+ALTER TABLE work_orders
+    ADD CONSTRAINT "FK_work_orders_workflow_events_recommendation_id"
+    FOREIGN KEY (recommendation_id)
+    REFERENCES workflow_events(workflow_event_id)
+    ON DELETE RESTRICT;
+
+
+-- ============================================================
+-- 11. ACTIVITY_HISTORY
+-- Human recommendation edits and crew job actions only.
+-- Approval decisions remain in approval_history.
+-- ============================================================
+
+CREATE TABLE activity_history (
+    activity_id UUID NOT NULL DEFAULT gen_random_uuid(),
+    actor_user_id UUID NOT NULL,
+    action VARCHAR(40) NOT NULL,
+    recommendation_id UUID,
+    work_order_id UUID,
+    before_data JSONB NOT NULL,
+    after_data JSONB NOT NULL,
+    note TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PK_activity_history" PRIMARY KEY (activity_id),
+    CONSTRAINT "FK_activity_history_users_actor_user_id"
+        FOREIGN KEY (actor_user_id) REFERENCES users(user_id) ON DELETE RESTRICT,
+    CONSTRAINT "FK_activity_history_workflow_events_recommendation_id"
+        FOREIGN KEY (recommendation_id) REFERENCES workflow_events(workflow_event_id) ON DELETE RESTRICT,
+    CONSTRAINT "FK_activity_history_work_orders_work_order_id"
+        FOREIGN KEY (work_order_id) REFERENCES work_orders(work_order_id) ON DELETE RESTRICT,
+    CONSTRAINT chk_activity_history_action
+        CHECK (action IN ('RECOMMENDATION_EDITED', 'WORK_ORDER_STARTED', 'WORK_ORDER_COMPLETED')),
+    CONSTRAINT chk_activity_history_target
+        CHECK (
+            (action = 'RECOMMENDATION_EDITED' AND recommendation_id IS NOT NULL AND work_order_id IS NULL)
+            OR (action IN ('WORK_ORDER_STARTED', 'WORK_ORDER_COMPLETED') AND work_order_id IS NOT NULL AND recommendation_id IS NULL)
+        ),
+    CONSTRAINT chk_activity_history_edit_reason
+        CHECK (action <> 'RECOMMENDATION_EDITED' OR NULLIF(BTRIM(note), '') IS NOT NULL)
+);
+
 
 -- ============================================================
 -- INDEXES
@@ -738,6 +758,10 @@ CREATE INDEX idx_reports_status
     ON reports(status);
 
 
+CREATE INDEX idx_reports_problem_id
+    ON reports(problem_id);
+
+
 CREATE INDEX idx_reports_category
     ON reports(category);
 
@@ -778,16 +802,6 @@ CREATE INDEX idx_problems_location
     ON problems(latitude, longitude);
 
 
--- Report/problem relationships
-
-CREATE INDEX idx_report_problems_report_id
-    ON report_problems(report_id);
-
-
-CREATE INDEX idx_report_problems_problem_id
-    ON report_problems(problem_id);
-
-
 -- Work orders
 
 CREATE INDEX idx_work_orders_problem_id
@@ -796,6 +810,18 @@ CREATE INDEX idx_work_orders_problem_id
 
 CREATE INDEX idx_work_orders_crew_id
     ON work_orders(crew_id);
+
+CREATE UNIQUE INDEX idx_work_orders_recommendation_id
+    ON work_orders(recommendation_id)
+    WHERE recommendation_id IS NOT NULL;
+
+CREATE UNIQUE INDEX ux_work_orders_active_crew
+    ON work_orders(crew_id)
+    WHERE status IN ('ASSIGNED', 'IN_PROGRESS');
+
+CREATE UNIQUE INDEX ux_work_orders_active_problem
+    ON work_orders(problem_id)
+    WHERE status IN ('ASSIGNED', 'IN_PROGRESS');
 
 
 CREATE INDEX idx_work_orders_status
@@ -814,6 +840,13 @@ CREATE INDEX idx_work_orders_created_at
 
 CREATE INDEX idx_approval_history_work_order_id
     ON approval_history(work_order_id);
+
+CREATE INDEX idx_approval_history_recommendation_id
+    ON approval_history(recommendation_id);
+
+CREATE UNIQUE INDEX ux_approval_history_terminal_recommendation
+    ON approval_history(recommendation_id)
+    WHERE recommendation_id IS NOT NULL AND decision IN ('APPROVED', 'REJECTED');
 
 
 CREATE INDEX idx_approval_history_decided_by
@@ -866,6 +899,15 @@ CREATE INDEX idx_workflow_events_status
 
 CREATE INDEX idx_workflow_events_started_at
     ON workflow_events(started_at);
+
+CREATE INDEX idx_activity_history_recommendation_time
+    ON activity_history(recommendation_id, created_at);
+
+CREATE INDEX idx_activity_history_work_order_time
+    ON activity_history(work_order_id, created_at);
+
+CREATE INDEX idx_activity_history_actor_time
+    ON activity_history(actor_user_id, created_at);
 
 
 -- ============================================================

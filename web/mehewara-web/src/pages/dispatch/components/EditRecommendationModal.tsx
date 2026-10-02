@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { RecommendationListItem, PriorityLevel } from '../../../types/dispatch';
+import type { RecommendationDetail, RecommendationListItem, PriorityLevel } from '../../../types/dispatch';
 import type { CrewListItem } from '../../../types/crew';
 import { editRecommendation } from '../../../services/dispatchApi';
 import { getCrews } from '../../../services/crewApi';
@@ -8,7 +8,7 @@ interface EditRecommendationModalProps {
   recommendation: RecommendationListItem;
   token: string;
   onClose: () => void;
-  onSuccess: (updated: RecommendationListItem) => void;
+  onSuccess: (updated: RecommendationDetail) => void;
 }
 
 const PRIORITIES: PriorityLevel[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
@@ -22,8 +22,10 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
   const [priority, setPriority] = useState<PriorityLevel>(recommendation.priority);
   const [priorityScore, setPriorityScore] = useState<number>(recommendation.priorityScore);
   const [selectedCrewId, setSelectedCrewId] = useState<string>(recommendation.recommendedCrewId || '');
-  const [reason, setReason] = useState<string>(recommendation.recommendationReason);
-  const [notes, setNotes] = useState<string>('');
+  const [requiredCrewType, setRequiredCrewType] = useState(recommendation.requiredCrewType);
+  const [priorityReasons, setPriorityReasons] = useState(recommendation.priorityReasons.join('\n'));
+  const [recommendationReason, setRecommendationReason] = useState(recommendation.recommendationReason);
+  const [reason, setReason] = useState<string>('');
   const [availableCrews, setAvailableCrews] = useState<CrewListItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingCrews, setIsLoadingCrews] = useState(true);
@@ -58,11 +60,14 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
 
     try {
       const updated = await editRecommendation(token, recommendation.recommendationId, {
+        expectedRevision: recommendation.revision,
+        requiredCrewType,
+        priorityReasons: priorityReasons.split('\n').map(r => r.trim()).filter(Boolean),
+        recommendationReason,
         priority,
         priorityScore,
         recommendedCrewId: selectedCrewId || undefined,
-        recommendationReason: reason.trim(),
-        notes: notes.trim() || undefined,
+        editReason: reason.trim(),
       });
       onSuccess(updated);
     } catch (err) {
@@ -77,7 +82,7 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
       <div className="dispatch-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="dispatch-modal-header">
           <div className="dispatch-modal-title-wrap">
-            <span className="dispatch-modal-tag">Human-in-the-Loop Override</span>
+            <span className="dispatch-modal-tag">Coordinator revision</span>
             <h3 className="dispatch-modal-title">Edit Recommendation & Reassign</h3>
           </div>
           <button type="button" className="dispatch-modal-close" onClick={onClose} aria-label="Close">
@@ -97,6 +102,20 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
             </div>
           )}
 
+          <div className="dispatch-form-group">
+            <label className="dispatch-form-label">Required specialty
+              <select value={requiredCrewType} onChange={e => setRequiredCrewType(e.target.value)}>
+                {['ROAD', 'DRAINAGE', 'WASTE', 'ELECTRICAL', 'ENVIRONMENT'].map(c => <option key={c}>{c}</option>)}
+              </select>
+            </label>
+            <label className="dispatch-form-label">Priority reasons (one per line)
+              <textarea required value={priorityReasons} onChange={e => setPriorityReasons(e.target.value)} />
+            </label>
+            <label className="dispatch-form-label">Crew recommendation reason
+              <textarea required value={recommendationReason} onChange={e => setRecommendationReason(e.target.value)} />
+            </label>
+            <p>Saving changes requires validation before approval.</p>
+          </div>
           <div className="dispatch-form-group">
             <label className="dispatch-form-label">Priority Tier</label>
             <div className="priority-pill-selector">
@@ -143,7 +162,7 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
               onChange={(e) => setSelectedCrewId(e.target.value)}
               disabled={isLoadingCrews}
             >
-              <option value="">-- No Crew Selected (Deferred) --</option>
+              <option value="" disabled>Choose a crew</option>
               {availableCrews.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} ({c.crewType}) — [{c.status}]
@@ -151,13 +170,13 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
               ))}
             </select>
             <span className="dispatch-form-hint">
-              Assigning a BUSY crew will be flagged by the 10-point deterministic validation engine.
+              Crew availability is checked by the server at approval.
             </span>
           </div>
 
           <div className="dispatch-form-group">
             <label htmlFor="reason" className="dispatch-form-label">
-              Reasoning / Justification <span className="required-star">*</span>
+              Reason for this edit <span className="required-star">*</span>
             </label>
             <textarea
               id="reason"
@@ -167,20 +186,6 @@ export const EditRecommendationModal: React.FC<EditRecommendationModalProps> = (
               onChange={(e) => setReason(e.target.value)}
               placeholder="State the justification for this priority adjustment or reassignment..."
               required
-            />
-          </div>
-
-          <div className="dispatch-form-group">
-            <label htmlFor="editNotes" className="dispatch-form-label">
-              Coordinator Audit Log Notes (Optional)
-            </label>
-            <input
-              id="editNotes"
-              type="text"
-              className="dispatch-form-input"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g., Coordinator manual override following site inspection"
             />
           </div>
 

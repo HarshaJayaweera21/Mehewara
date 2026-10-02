@@ -99,33 +99,6 @@ public class CrewProfileController : ControllerBase
         return Ok(updated);
     }
 
-    [HttpGet("work-orders")]
-    [ProducesResponseType(typeof(List<CrewWorkOrderItemDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetMyCrewWorkOrders()
-    {
-        var userId = GetCurrentUserId();
-        var crew = await _crewService.GetCrewByLeaderUserIdAsync(userId);
-
-        if (crew == null && User.IsInRole("ADMIN"))
-        {
-            var allCrews = await _crewService.GetCrewsAsync(new CrewQueryParams { Page = 1, PageSize = 1 });
-            if (allCrews.Items.Count > 0)
-            {
-                crew = await _crewService.GetCrewByIdAsync(allCrews.Items[0].Id);
-            }
-        }
-
-        if (crew == null)
-        {
-            throw new NotFoundException("No municipal crew is assigned to this user.", "CREW_NOT_FOUND");
-        }
-
-        var workOrders = await _crewService.GetCrewWorkOrdersAsync(crew.Id);
-        return Ok(workOrders);
-    }
-
     [HttpPost("heartbeat")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
