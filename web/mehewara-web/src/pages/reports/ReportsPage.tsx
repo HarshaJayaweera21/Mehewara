@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { User } from '../../types/auth';
 import type { ReportSummaryResponse } from '../../types/reports';
 import { getResidentReports, getAllReports } from '../../services/reportApi';
 import { ReportCard } from '../../components/reports/ReportCard';
 import { CreateReportModal } from '../../components/reports/CreateReportModal';
 import { ReportDetailModal } from '../../components/reports/ReportDetailModal';
+import { ROUTES } from '../../routes/paths';
 import './ReportsPage.css';
 
 interface ReportsPageProps {
   currentUser: User;
   token: string;
-  onLogout: () => void;
-  onOpenProfile: () => void;
+  onLogout?: () => void;
+  onOpenProfile?: () => void;
   onNavigateToProblems?: () => void;
 }
 
@@ -24,9 +26,49 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
   onOpenProfile,
   onNavigateToProblems,
 }) => {
+  let navigate: (to: string) => void = () => {};
+  let searchParams = new URLSearchParams();
+  let setSearchParams: (params: Record<string, string>) => void = () => {};
+  try {
+    navigate = useNavigate();
+    const [sp, setSp] = useSearchParams();
+    searchParams = sp;
+    setSearchParams = setSp;
+  } catch {
+    // outside router
+  }
+
+  const handleLogout = onLogout || (() => navigate(ROUTES.LOGIN));
+  const handleOpenProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
+  const handleNavigateToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
+
   const isAdmin = currentUser.role === 'ADMIN';
 
-  const [activeTab, setActiveTab] = useState<'my-reports' | 'coordinator-reports'>('my-reports');
+  const tabParam = searchParams.get('tab');
+  const initialTab = tabParam === 'coordinator-reports' && isAdmin ? 'coordinator-reports' : 'my-reports';
+  const [activeTab, setActiveTab] = useState<'my-reports' | 'coordinator-reports'>(initialTab);
+
+  useEffect(() => {
+    const p = searchParams.get('tab');
+    if (p === 'coordinator-reports' && isAdmin) {
+      setActiveTab('coordinator-reports');
+    } else if (p === 'my-reports') {
+      setActiveTab('my-reports');
+    }
+  }, [searchParams, isAdmin]);
+
+  const handleTabChange = (tab: 'my-reports' | 'coordinator-reports') => {
+    setActiveTab(tab);
+    setPage(1);
+    try {
+      const next = new URLSearchParams(searchParams);
+      next.set('tab', tab);
+      setSearchParams(Object.fromEntries(next.entries()));
+    } catch {
+      // outside router
+    }
+  };
+
   const [reports, setReports] = useState<ReportSummaryResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +83,37 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
 
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedDetailId, setSelectedDetailId] = useState<string | null>(null);
+  const reportIdParam = searchParams.get('reportId');
+  const [selectedDetailId, setSelectedDetailId] = useState<string | null>(reportIdParam);
+
+  useEffect(() => {
+    const p = searchParams.get('reportId');
+    if (p !== selectedDetailId) {
+      setSelectedDetailId(p);
+    }
+  }, [searchParams]);
+
+  const handleOpenDetail = (id: string) => {
+    setSelectedDetailId(id);
+    try {
+      const next = new URLSearchParams(searchParams);
+      next.set('reportId', id);
+      setSearchParams(Object.fromEntries(next.entries()));
+    } catch {
+      // outside router
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedDetailId(null);
+    try {
+      const next = new URLSearchParams(searchParams);
+      next.delete('reportId');
+      setSearchParams(Object.fromEntries(next.entries()));
+    } catch {
+      // outside router
+    }
+  };
 
   const fetchReports = useCallback(async () => {
     try {
@@ -94,7 +166,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
     <div className="reports-page-container">
       {/* Top Navbar */}
       <header className="reports-navbar">
-        <div className="navbar-brand">
+        <div className="navbar-brand" onClick={() => navigate(isAdmin ? ROUTES.OPERATIONS : ROUTES.HOME)} style={{ cursor: 'pointer' }}>
           <div className="brand-icon">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
@@ -112,34 +184,26 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
               <button
                 type="button"
                 className={`nav-tab-btn ${activeTab === 'my-reports' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('my-reports');
-                  setPage(1);
-                }}
+                onClick={() => handleTabChange('my-reports')}
               >
                 📋 My Reports
               </button>
               <button
                 type="button"
                 className={`nav-tab-btn ${activeTab === 'coordinator-reports' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('coordinator-reports');
-                  setPage(1);
-                }}
+                onClick={() => handleTabChange('coordinator-reports')}
               >
                 🏢 Coordinator All Reports
               </button>
-              {onNavigateToProblems && (
-                <button
-                  type="button"
-                  className="nav-tab-btn"
-                  onClick={onNavigateToProblems}
-                  style={{ borderColor: '#123C32', color: '#123C32', fontWeight: 600 }}
-                  title="Switch to Municipal Problems Dashboard"
-                >
-                  ⚡ Problems Dashboard
-                </button>
-              )}
+              <button
+                type="button"
+                className="nav-tab-btn"
+                onClick={handleNavigateToProblems}
+                style={{ borderColor: '#123C32', color: '#123C32', fontWeight: 600 }}
+                title="Switch to Municipal Problems Dashboard"
+              >
+                ⚡ Problems Dashboard
+              </button>
             </div>
           )}
 
@@ -158,7 +222,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
           </button>
 
           {/* User Profile Pill */}
-          <div className="user-profile-pill" onClick={onOpenProfile} style={{ cursor: 'pointer' }} title="View Profile">
+          <div className="user-profile-pill" onClick={handleOpenProfile} style={{ cursor: 'pointer' }} title="View Profile">
             <div className="user-avatar-small">
               {currentUser.profileImageUrl ? (
                 <img src={currentUser.profileImageUrl} alt={currentUser.name} />
@@ -170,7 +234,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
             <span className="role-badge-small">{currentUser.role}</span>
           </div>
 
-          <button type="button" className="signout-btn" onClick={onLogout} title="Sign Out">
+          <button type="button" className="signout-btn" onClick={handleLogout} title="Sign Out">
             Sign Out
           </button>
         </div>
@@ -289,7 +353,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
                 <ReportCard
                   key={report.id}
                   report={report}
-                  onViewDetails={(id) => setSelectedDetailId(id)}
+                  onViewDetails={(id) => handleOpenDetail(id)}
                 />
               ))}
             </div>
@@ -357,7 +421,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
         <ReportDetailModal
           token={token}
           reportId={selectedDetailId}
-          onClose={() => setSelectedDetailId(null)}
+          onClose={handleCloseDetail}
         />
       )}
     </div>

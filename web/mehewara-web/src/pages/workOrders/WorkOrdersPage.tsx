@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { User } from '../../types/auth';
 import type { WorkOrder, WorkOrderQuery } from '../../types/workOrders';
 import type { PagedResult } from '../../types/problems';
 import { ApiRequestError } from '../../services/api';
 import { getWorkOrders, getWorkOrder, startWorkOrder, completeWorkOrder } from '../../services/workOrdersApi';
 import { Header } from '../../components/common';
+import { ROUTES } from '../../routes/paths';
 import './WorkOrdersPage.css';
 
 const date = (value: string | null) => value ? new Date(value).toLocaleString() : '—';
@@ -19,11 +21,54 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
   onNavigateToDispatch?: () => void;
   onNavigateToCrews?: () => void;
 }) {
+  let navigate: (to: string) => void = () => {};
+  let searchParams: URLSearchParams = new URLSearchParams();
+  let setSearchParams: (params: Record<string, string>) => void = () => {};
+  try {
+    navigate = useNavigate();
+    const [sp, setSp] = useSearchParams();
+    searchParams = sp;
+    setSearchParams = setSp;
+  } catch {
+    // Tests outside router
+  }
+
+  const goToProblems = onNavigateToProblems || onCoordinator || (() => navigate(ROUTES.PROBLEMS));
+  const goToDispatch = onNavigateToDispatch || (() => navigate(ROUTES.DISPATCH));
+  const goToCrews = onNavigateToCrews || (() => navigate(ROUTES.CREWS));
+  const goToProfile = onProfile || (() => navigate(ROUTES.PROFILE));
+
   const admin = user.role === 'ADMIN';
-  const [filters, setFilters] = useState<WorkOrderQuery>({ page: 1, pageSize: 20 });
+  const urlId = searchParams.get('id') || initialId;
+  const urlCrewId = searchParams.get('crewId') || '';
+
+  const [filters, setFilters] = useState<WorkOrderQuery>({ page: 1, pageSize: 20, crewId: urlCrewId || undefined });
   const [page, setPage] = useState<PagedResult<WorkOrder> | null>(null);
-  const [selectedId, setSelectedId] = useState<string | undefined>(initialId);
+  const [selectedId, setSelectedId] = useState<string | undefined>(urlId);
   const [job, setJob] = useState<WorkOrder | null>(null);
+
+  useEffect(() => {
+    const idFromParam = searchParams.get('id');
+    if (idFromParam && idFromParam !== selectedId) {
+      setSelectedId(idFromParam);
+    }
+  }, [searchParams]);
+
+  const handleSelectJob = (id: string) => {
+    if (id === selectedId) return;
+    setJob(null);
+    setNotes('');
+    setMessage('');
+    setSelectedId(id);
+    try {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.set('id', id);
+      setSearchParams(Object.fromEntries(nextParams.entries()));
+    } catch {
+      // outside router fallback
+    }
+  };
+
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState('');
@@ -101,19 +146,20 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
     <Header
       currentUser={user}
       onLogout={onLogout}
-      onOpenProfile={onProfile}
+      onOpenProfile={goToProfile}
+      onBrandClick={goToProblems}
       roleBadgeText={admin ? "Municipal Coordinator" : "Crew Leader"}
     />
     <main className="jobs-main">
       {!admin && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-0.5rem' }}>
-          <button type="button" onClick={onProfile} style={{ fontSize: '0.85rem' }}>My profile</button>
+          <button type="button" onClick={goToProfile} style={{ fontSize: '0.85rem' }}>My profile</button>
         </div>
       )}
       {admin && (
         <nav className="operations-nav-strip" aria-label="Operations Navigation">
           <div className="nav-strip-left">
-            <button type="button" className="nav-strip-btn" onClick={onNavigateToProblems || onCoordinator}>
+            <button type="button" className="nav-strip-btn" onClick={goToProblems}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="12" />
@@ -122,7 +168,7 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
               <span>Problems Board</span>
             </button>
             <span className="nav-strip-divider">/</span>
-            <button type="button" className="nav-strip-btn" onClick={onNavigateToDispatch}>
+            <button type="button" className="nav-strip-btn" onClick={goToDispatch}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polygon points="12 2 2 7 12 12 22 7 12 2" />
                 <polyline points="2 17 12 22 22 17" />
@@ -131,7 +177,7 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
               <span>Dispatch Queue (Agent 3)</span>
             </button>
             <span className="nav-strip-divider">/</span>
-            <button type="button" className="nav-strip-btn" onClick={onNavigateToCrews}>
+            <button type="button" className="nav-strip-btn" onClick={goToCrews}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
@@ -169,7 +215,7 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
         <div className="jobs-section-heading"><h2>{admin ? 'Municipal jobs' : 'Your crew’s jobs'}</h2><span>{page?.totalItems ?? 0} jobs</span></div>
         {loading && <p role="status">Loading jobs…</p>}
         {!loading && (!page?.items || page.items.length === 0) && <div className="jobs-empty">No jobs match these filters.</div>}
-        {page?.items?.map(item => <button className={`job-card ${item.id === selectedId ? 'selected' : ''}`} key={item.id} disabled={busy} onClick={() => { if (item.id === selectedId) return; setJob(null); setNotes(''); setMessage(''); setSelectedId(item.id); }}>
+        {page?.items?.map(item => <button className={`job-card ${item.id === selectedId ? 'selected' : ''}`} key={item.id} disabled={busy} onClick={() => handleSelectJob(item.id)}>
           <div className="job-tags"><span className={`job-priority priority-${item.priority?.toLowerCase()}`}>{item.priority}</span><span>{label(item.status)}</span></div>
           <h3>{item.title}</h3><p>{item.address || item.problemTitle}</p><footer><span>{item.crewName}</span><span>{date(item.assignedAt)}</span></footer>
         </button>)}

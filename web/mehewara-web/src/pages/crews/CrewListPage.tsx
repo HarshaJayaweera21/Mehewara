@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { User } from '../../types/auth';
 import type { CrewListItem, CrewType, CrewStatus } from '../../types/crew';
 import { getCrews } from '../../services/crewApi';
 import { Header } from '../../components/common';
 import { CrewDetailModal } from './components/CrewDetailModal';
+import { ROUTES } from '../../routes/paths';
 import './CrewListPage.css';
 
 export interface CrewListPageProps {
@@ -38,6 +40,19 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
   onNavigateToReports,
   onNavigateToWorkOrders,
 }) => {
+  let navigate: (to: string) => void = () => {};
+  try {
+    navigate = useNavigate();
+  } catch {
+    // Tests outside router
+  }
+
+  const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
+  const goToDispatch = onNavigateToDispatch || (() => navigate(ROUTES.DISPATCH));
+  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
+  const goToProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
+  const handleWorkOrders = onNavigateToWorkOrders || ((id?: string) => navigate(id ? `${ROUTES.WORK_ORDERS}?id=${id}` : ROUTES.WORK_ORDERS));
+
   const authToken = token || localStorage.getItem('mehewara_token') || '';
 
   const [crews, setCrews] = useState<CrewListItem[]>([]);
@@ -91,7 +106,8 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
       <Header
         currentUser={currentUser}
         onLogout={onLogout}
-        onOpenProfile={onOpenProfile}
+        onOpenProfile={goToProfile}
+        onBrandClick={goToProblems}
         roleBadgeText="Municipal Coordinator"
       />
 
@@ -102,7 +118,7 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
             <button
               type="button"
               className="nav-strip-btn"
-              onClick={onNavigateToProblems}
+              onClick={goToProblems}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
@@ -115,7 +131,7 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
             <button
               type="button"
               className="nav-strip-btn"
-              onClick={onNavigateToDispatch}
+              onClick={goToDispatch}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polygon points="12 2 2 7 12 12 22 7 12 2" />
@@ -142,7 +158,7 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
             <button
               type="button"
               className="nav-strip-btn"
-              onClick={() => onNavigateToWorkOrders?.()}
+              onClick={() => handleWorkOrders()}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -154,17 +170,15 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
               <span>Work Orders</span>
             </button>
           </div>
-          {onNavigateToReports && (
-            <div className="nav-strip-right">
-              <button
-                type="button"
-                className="nav-strip-subtle-link"
-                onClick={onNavigateToReports}
-              >
-                Resident Reports Portal →
-              </button>
-            </div>
-          )}
+          <div className="nav-strip-right">
+            <button
+              type="button"
+              className="nav-strip-subtle-link"
+              onClick={goToReports}
+            >
+              Resident Reports Portal →
+            </button>
+          </div>
         </nav>
 
         {/* 2. Operations Welcome Banner */}

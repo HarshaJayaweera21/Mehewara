@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { User } from '../../types/auth';
 import type {
   RecommendationListItem,
@@ -17,6 +18,7 @@ import { EditRecommendationModal } from './components/EditRecommendationModal';
 import { RejectRecommendationModal } from './components/RejectRecommendationModal';
 import { RegenerateRecommendationModal } from './components/RegenerateRecommendationModal';
 import { ValidationReviewPanel } from './components/ValidationReviewPanel';
+import { ROUTES } from '../../routes/paths';
 import './DispatchDashboardPage.css';
 import './ReviewDashboard.css';
 import './RecommendationReview.css';
@@ -50,11 +52,30 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   onNavigateToOperations,
   onOpenWorkOrder,
 }) => {
+  let navigate: (to: string) => void = () => {};
+  let searchParams: URLSearchParams = new URLSearchParams();
+  let setSearchParams: (params: Record<string, string>) => void = () => {};
+  try {
+    navigate = useNavigate();
+    const [sp, setSp] = useSearchParams();
+    searchParams = sp;
+    setSearchParams = setSp;
+  } catch {
+    // Tests outside router
+  }
+
+  const goToOperations = onNavigateToOperations || (() => navigate(ROUTES.OPERATIONS));
+  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
+  const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
+  const goToCrews = onNavigateToCrews || (() => navigate(ROUTES.CREWS));
+  const goToProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
+  const handleOpenWorkOrder = onOpenWorkOrder || ((id?: string) => navigate(id ? `${ROUTES.WORK_ORDERS}?id=${id}` : ROUTES.WORK_ORDERS));
+
   const authToken = token || localStorage.getItem('mehewara_token') || '';
 
   // Data states
   const [recommendations, setRecommendations] = useState<RecommendationListItem[]>([]);
-  const [selectedRecId, setSelectedRecId] = useState<string | null>(null);
+  const [selectedRecId, setSelectedRecId] = useState<string | null>(() => searchParams.get('recId') || null);
   const [selectedDetail, setSelectedDetail] = useState<RecommendationDetail | null>(null);
   const [availableCrews, setAvailableCrews] = useState<CrewAvailabilityItem[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
@@ -68,13 +89,20 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedDecision, setSelectedDecision] = useState<string>('ALL');
-  const [reviewBucket, setReviewBucket] = useState('READY');
+  const [reviewBucket, setReviewBucket] = useState<string>(() => searchParams.get('bucket') || 'READY');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const fetchSequence = useRef(0);
   const requestedSelection = useRef<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useEffect(() => {
+    const bucketParam = searchParams.get('bucket');
+    if (bucketParam && bucketParam !== reviewBucket) {
+      setReviewBucket(bucketParam);
+    }
+  }, [searchParams]);
 
   // Modal states
   const [modalMode, setModalMode] = useState<'approve' | 'edit' | 'reject' | 'regenerate' | null>(null);
@@ -262,17 +290,17 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
         <div className="review-brand"><span className="review-brand-mark">M</span><span><strong>MEHEWARA</strong><small>MUNICIPAL OPS</small></span></div>
         <div className="review-sidebar-rule" />
         <nav className="review-side-links">
-          <button type="button" onClick={onNavigateToOperations}><span>⌘</span>Operations</button>
-          <button type="button" onClick={onNavigateToReports}><span>▤</span>Reports</button>
-          <button type="button" onClick={onNavigateToProblems}><span>⚠</span>Problems</button>
+          <button type="button" onClick={goToOperations}><span>⌘</span>Operations</button>
+          <button type="button" onClick={goToReports}><span>▤</span>Reports</button>
+          <button type="button" onClick={goToProblems}><span>⚠</span>Problems</button>
           <button type="button" className="active" aria-current="page"><span>✿</span>Recommendation Review <em>{totalItems}</em></button>
-          <button type="button" onClick={onNavigateToCrews}><span>♙</span>Crews</button>
-          <button type="button" onClick={() => onOpenWorkOrder?.('')}><span>⚒</span>Work Orders</button>
+          <button type="button" onClick={goToCrews}><span>♙</span>Crews</button>
+          <button type="button" onClick={() => handleOpenWorkOrder('')}><span>⚒</span>Work Orders</button>
         </nav>
         <div className="review-sidebar-user">
           <div className="review-sidebar-user-name">{currentUser?.name || 'Municipal Coordinator'}</div>
           <span>Municipal Coordinator</span>
-          <button type="button" onClick={onOpenProfile}>View profile</button>
+          <button type="button" onClick={goToProfile}>View profile</button>
         </div>
       </aside>
       <div className="review-main-area">

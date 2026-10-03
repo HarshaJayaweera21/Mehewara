@@ -1,24 +1,49 @@
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icon, mehewaraAssets } from '../../design-system/mehewara';
+import { ROUTES } from '../../routes/paths';
 import './AuthShell.css';
 
 interface AuthShellProps {
   mode: 'signin' | 'signup';
-  onBack: () => void;
-  onSwitch: () => void;
+  onBack?: () => void;
+  onSwitch?: () => void;
   children: ReactNode;
 }
 
 export function AuthShell({ mode, onBack, onSwitch, children }: AuthShellProps) {
   const isSignIn = mode === 'signin';
 
+  let navigate: (to: string) => void = () => {};
+  try {
+    navigate = useNavigate();
+  } catch {
+    // Fallback if rendered outside Router in tests
+  }
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      navigate(ROUTES.HOME);
+    }
+  };
+
+  const handleSwitch = () => {
+    if (onSwitch) {
+      onSwitch();
+    } else {
+      navigate(isSignIn ? ROUTES.REGISTER : ROUTES.LOGIN);
+    }
+  };
+
   return (
     <main className="auth-shell">
       <header className="auth-shell-header">
-        <button type="button" className="auth-shell-logo" onClick={onBack} aria-label="Back to Mehewara home">
+        <button type="button" className="auth-shell-logo" onClick={handleBack} aria-label="Back to Mehewara home">
           <img src={mehewaraAssets.mehewaraLogoCompact} alt="Mehewara" width="520" height="144" />
         </button>
-        <button type="button" className="auth-back-button" onClick={onBack}>
+        <button type="button" className="auth-back-button" onClick={handleBack}>
           Back to site <Icon name="arrow-right" size={16} />
         </button>
       </header>
@@ -30,7 +55,7 @@ export function AuthShell({ mode, onBack, onSwitch, children }: AuthShellProps) 
         <div className="auth-shell-form">{children}</div>
         <div className="auth-switch-copy">
           {isSignIn ? 'New to Mehewara?' : 'Already have an account?'}
-          <button type="button" onClick={onSwitch}>{isSignIn ? 'Create an account' : 'Log in'}</button>
+          <button type="button" onClick={handleSwitch}>{isSignIn ? 'Create an account' : 'Log in'}</button>
         </div>
       </section>
 

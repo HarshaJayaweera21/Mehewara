@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { User } from '../../types/auth';
+import { ROUTES } from '../../routes/paths';
 import mehewaraLogo from '../../assets/mehewara-logo.png';
 import './Header.css';
 
@@ -27,6 +29,47 @@ export const Header: React.FC<HeaderProps> = ({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
+  let navigate: (to: string) => void = () => {};
+  try {
+    navigate = useNavigate();
+  } catch {
+    // Graceful fallback if rendered outside Router context in tests
+  }
+
+  const handleBrandClick = () => {
+    if (onBrandClick) {
+      onBrandClick();
+    } else {
+      navigate(ROUTES.HOME);
+    }
+  };
+
+  const handleOpenProfile = () => {
+    if (onOpenProfile) {
+      onOpenProfile();
+    } else {
+      navigate(ROUTES.PROFILE);
+    }
+  };
+
+  const handleLoginClick = () => {
+    if (onLoginClick) {
+      onLoginClick();
+    } else {
+      navigate(ROUTES.LOGIN);
+    }
+  };
+
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      localStorage.removeItem('mehewara_token');
+      localStorage.removeItem('mehewara_user');
+      navigate(ROUTES.LOGIN);
+    }
+  };
+
   // Close profile dropdown when clicking outside or pressing Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -53,16 +96,17 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className={`app-header ${className}`.trim()}>
       {/* Brand Identity: Logo Image + Sinhala Title */}
-      <div 
-        className="header-brand" 
-        onClick={onBrandClick} 
-        role={onBrandClick ? 'button' : undefined}
-        tabIndex={onBrandClick ? 0 : undefined}
+      <div
+        className="header-brand"
+        onClick={handleBrandClick}
+        role="button"
+        tabIndex={0}
+        style={{ cursor: 'pointer' }}
       >
-        <img 
-          src={mehewaraLogo} 
-          alt="Mehewara Logo" 
-          className="header-brand-logo" 
+        <img
+          src={mehewaraLogo}
+          alt="Mehewara Logo"
+          className="header-brand-logo"
         />
         <div>
           <div className="header-brand-name">මෙහෙවර</div>
@@ -80,50 +124,49 @@ export const Header: React.FC<HeaderProps> = ({
             aria-expanded={isProfileMenuOpen}
             title="User Account Menu"
           >
-          <div className="header-profile-avatar">
-            {currentUser?.profileImageUrl ? (
-              <img src={currentUser.profileImageUrl} alt="" className="header-avatar-img" />
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            )}
-          </div>
-          {showName && <span className="header-profile-name">{currentUser.name}</span>}
-          <svg
-            className={`header-profile-chevron ${isProfileMenuOpen ? 'rotated' : ''}`}
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-
-        {isProfileMenuOpen && (
-          <div className="header-profile-dropdown" role="menu">
-            <div className="profile-dropdown-header">
-              <div className="dropdown-user-name">{currentUser?.name || 'Municipal Coordinator'}</div>
-              <div className="dropdown-user-role-badge">{roleBadgeText}</div>
-              {currentUser?.email && (
-                <div className="dropdown-user-email">{currentUser.email}</div>
+            <div className="header-profile-avatar">
+              {currentUser?.profileImageUrl ? (
+                <img src={currentUser.profileImageUrl} alt="" className="header-avatar-img" />
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
               )}
             </div>
+            {showName && <span className="header-profile-name">{currentUser.name}</span>}
+            <svg
+              className={`header-profile-chevron ${isProfileMenuOpen ? 'rotated' : ''}`}
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
 
-            <div className="profile-dropdown-divider" />
+          {isProfileMenuOpen && (
+            <div className="header-profile-dropdown" role="menu">
+              <div className="profile-dropdown-header">
+                <div className="dropdown-user-name">{currentUser?.name || 'Municipal Coordinator'}</div>
+                <div className="dropdown-user-role-badge">{roleBadgeText}</div>
+                {currentUser?.email && (
+                  <div className="dropdown-user-email">{currentUser.email}</div>
+                )}
+              </div>
 
-            <div className="profile-dropdown-actions">
-              {onOpenProfile && (
+              <div className="profile-dropdown-divider" />
+
+              <div className="profile-dropdown-actions">
                 <button
                   type="button"
                   className="profile-dropdown-item"
                   onClick={() => {
                     setIsProfileMenuOpen(false);
-                    onOpenProfile();
+                    handleOpenProfile();
                   }}
                   role="menuitem"
                 >
@@ -133,15 +176,13 @@ export const Header: React.FC<HeaderProps> = ({
                   </svg>
                   <span>View Profile</span>
                 </button>
-              )}
 
-              {onLogout && (
                 <button
                   type="button"
                   className="profile-dropdown-item logout-item"
                   onClick={() => {
                     setIsProfileMenuOpen(false);
-                    onLogout();
+                    handleLogout();
                   }}
                   role="menuitem"
                 >
@@ -152,17 +193,16 @@ export const Header: React.FC<HeaderProps> = ({
                   </svg>
                   <span>Logout</span>
                 </button>
-              )}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       ) : (
         <div className="header-auth-wrap">
           <button
             type="button"
             className="header-auth-btn"
-            onClick={onLoginClick}
+            onClick={handleLoginClick}
             title="Sign in or create a resident account"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

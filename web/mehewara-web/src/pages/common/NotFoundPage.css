@@ -1,0 +1,81 @@
+.not-found-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top, #14352d 0%, #091e19 100%);
+  color: #f7faf9;
+  padding: 2rem;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.not-found-card {
+  background: rgba(18, 60, 50, 0.55);
+  border: 1px solid rgba(110, 231, 183, 0.25);
+  border-radius: 16px;
+  padding: 3rem 2.5rem;
+  max-width: 480px;
+  text-align: center;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+}
+
+.not-found-code {
+  font-size: 5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #6ee7b7;
+  letter-spacing: -2px;
+}
+
+.not-found-card h1 {
+  margin: 1rem 0 0.5rem;
+  font-size: 1.75rem;
+  color: #ffffff;
+}
+
+.not-found-card p {
+  color: #a7f3d0;
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.not-found-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.btn-primary {
+  background: #10b981;
+  color: #06281e;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #34d399;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f7faf9;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
