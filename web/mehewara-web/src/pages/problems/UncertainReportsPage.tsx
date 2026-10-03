@@ -13,7 +13,8 @@ import {
   cancelUncertainReport,
 } from '../../services/problemApi';
 import { useNavigate } from 'react-router-dom';
-import { Header } from '../../components/common';
+import { Header, HeroBanner } from '../../components/common';
+import { OpsNavStrip } from '../../components/common/OpsNavStrip';
 import { ProblemDetailModal } from './ProblemDetailModal';
 import { ROUTES } from '../../routes/paths';
 import './UncertainReportsPage.css';
@@ -243,26 +244,25 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
           onOpenProfile={goToProfile}
         />
 
+        <OpsNavStrip
+          activePage="problems"
+          onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
+          onNavigateToProblems={goToProblems}
+          onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
+          onNavigateToCrews={() => navigate(ROUTES.CREWS)}
+          onNavigateToWorkOrders={() => navigate(ROUTES.WORK_ORDERS)}
+          onNavigateToReports={goToReports}
+        />
+
+        {/* Hero Welcome Banner */}
+        <HeroBanner
+          badge="AI AGENT 2 : HUMAN-IN-THE-LOOP"
+          title="Uncertain Reports Triage"
+          subtitle="Consolidation desk for borderline or ambiguous citizen defect submissions. Verify photo evidence, merge into existing problems, or spawn new problem records."
+          ariaLabel="Uncertain Reports Triage Banner"
+        />
+
         <main className="urp-main">
-          {/* Page Header */}
-          <div className="urp-header-strip">
-            <div className="urp-header-left">
-              <div className="urp-title-row">
-                <button
-                  type="button"
-                  className="urp-back-btn"
-                  onClick={goToProblems}
-                  aria-label="Back to Problems Dashboard"
-                  title="Back to Problems Dashboard"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polyline points="15 18 9 12 15 6" />
-                  </svg>
-                </button>
-                <h1 className="urp-page-title">Uncertain Reports Triage</h1>
-              </div>
-            </div>
-          </div>
 
         {/* Toast Notifications */}
         {successToast && (

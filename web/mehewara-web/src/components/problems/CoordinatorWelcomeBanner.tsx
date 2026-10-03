@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { HeroBanner } from '../common/HeroBanner';
 
 export interface CoordinatorWelcomeBannerProps {
   roleName?: string;
@@ -7,6 +8,7 @@ export interface CoordinatorWelcomeBannerProps {
 
 export const CoordinatorWelcomeBanner: React.FC<CoordinatorWelcomeBannerProps> = ({
   roleName = 'Coordinator',
+  activeProblemsCount,
 }) => {
   // Determine appropriate greeting based on actual local time of day
   const timeGreeting = useMemo(() => {
@@ -21,14 +23,13 @@ export const CoordinatorWelcomeBanner: React.FC<CoordinatorWelcomeBannerProps> =
   }, []);
 
   return (
-    <section aria-label="Coordinator Welcome Workspace" className="problems-welcome-banner">
-      {/* Strongly Centered Welcome Content Stack */}
-      <div className="welcome-banner-center-content">
-        {/* Main Heading */}
-        <h1 className="welcome-banner-heading">
-          {timeGreeting}, {roleName} !
-        </h1>
-      </div>
-    </section>
+    <HeroBanner
+      badge="AI Agent 2 : Consolidation & Geo-Clustering"
+      title={`${timeGreeting}, ${roleName} — Municipal Problems Board`}
+      subtitle={`Consolidated public infrastructure problems, spatial clustering, priority assessment, and automated dispatch triage.${
+        activeProblemsCount != null ? ` Currently tracking ${activeProblemsCount} active problems across wards.` : ''
+      }`}
+      ariaLabel="Coordinator Welcome Workspace"
+    />
   );
 };

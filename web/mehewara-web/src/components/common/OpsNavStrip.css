@@ -1,0 +1,112 @@
+/* ==========================================================================
+   Mehewara Operations Horizontal Nav Strip
+   Consistent navigation bar across municipal operational tools
+   ========================================================================== */
+
+.operations-nav-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  background: var(--mw-surface, #FFFFFF);
+  border: 1px solid var(--mw-line, #DDE2DE);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  box-shadow: var(--mw-shadow-sm);
+  margin-bottom: 1.25rem;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.nav-strip-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.nav-strip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: transparent;
+  border: none;
+  color: var(--mw-muted, #68736E);
+  font-family: var(--mw-font);
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  transition: all 140ms ease;
+  user-select: none;
+  text-decoration: none;
+}
+
+.nav-strip-btn:hover {
+  background: var(--mw-sage, #E5F6EE);
+  color: var(--mw-forest, #123C32);
+}
+
+.nav-strip-btn.active {
+  background: var(--mw-sage, #E5F6EE);
+  color: var(--mw-forest, #123C32);
+  font-weight: 650;
+}
+
+.nav-strip-btn svg {
+  flex-shrink: 0;
+}
+
+.nav-strip-divider {
+  color: #B5BFBA;
+  user-select: none;
+  font-size: 0.8rem;
+}
+
+.nav-strip-counter-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1rem 0.45rem;
+  background-color: var(--mw-mint, #4FD1A1);
+  color: var(--mw-forest, #123C32);
+  font-size: 0.7rem;
+  font-weight: 800;
+  border-radius: 9999px;
+  line-height: 1;
+}
+
+.nav-strip-right {
+  display: flex;
+  align-items: center;
+}
+
+.nav-strip-subtle-link {
+  background: none;
+  border: none;
+  color: var(--mw-forest, #123C32);
+  font-family: var(--mw-font);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 140ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.nav-strip-subtle-link:hover {
+  color: var(--mw-forest-hover, #0D3028);
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .operations-nav-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+}

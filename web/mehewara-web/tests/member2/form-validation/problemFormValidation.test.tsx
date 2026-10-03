@@ -5,9 +5,13 @@ import { UncertainReportsPage } from '../../../src/pages/problems/UncertainRepor
 import * as problemApi from '../../../src/services/problemApi';
 import type { UncertainReportResponse, ProblemResponse } from '../../../src/types/problems';
 
-vi.mock('../../../src/components/common', () => ({
-  Header: () => <div data-testid="mock-header">Header</div>,
-}));
+vi.mock('../../../src/components/common', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    Header: () => <div data-testid="mock-header">Header</div>,
+  };
+});
 
 describe('Problem Form Validation Tests (Member 2)', () => {
   const mockUncertainReports: UncertainReportResponse[] = [

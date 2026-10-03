@@ -6,9 +6,13 @@ import { ProblemsPage } from '../../../src/pages/problems/ProblemsPage';
 import * as problemApi from '../../../src/services/problemApi';
 
 // Mock Header and other child components if needed
-vi.mock('../../../src/components/common', () => ({
-  Header: () => <div data-testid="mock-header">Header</div>,
-}));
+vi.mock('../../../src/components/common', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    Header: () => <div data-testid="mock-header">Header</div>,
+  };
+});
 
 describe('Problem Error States Tests (Member 2)', () => {
   const originalFetch = globalThis.fetch;
