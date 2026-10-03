@@ -7,6 +7,8 @@ public class WorkflowRun
     public Guid? ProblemId { get; set; }
     public string CurrentStage { get; set; } = string.Empty;
     public string Status { get; set; } = "RUNNING";
+    public string? InputData { get; set; }
+    public Guid? CurrentRecommendationId { get; set; }
     public string? StateData { get; set; }
     public DateTime StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }

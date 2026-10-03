@@ -1,0 +1,59 @@
+# Apply dispatch concurrency indexes manually
+
+The user's Docker database has the review and WorkOrder recommendation-link schema, but the latest inspection found no EF migration-history table. This guide is for that schema. The application code uses row locks and a transaction; the unique indexes below provide the database-side guarantee. Do not use `dotnet ef database update` on a database without valid EF history.
+
+Back up the database before changing it. From the repository root, run this read-only preflight in PowerShell:
+
+```powershell
+$preflightSql = @'
+SELECT current_database(), to_regclass('public.work_orders'),
+       to_regclass('public.approval_history'),
+       to_regclass('public."__EFMigrationsHistory"');
+SELECT indexname, indexdef FROM pg_indexes
+WHERE schemaname = 'public' AND indexname IN
+  ('idx_work_orders_recommendation_id', 'ux_work_orders_active_crew',
+   'ux_work_orders_active_problem', 'ux_approval_history_terminal_recommendation')
+ORDER BY indexname;
+SELECT 'work_order_recommendation' AS conflict_type, recommendation_id::text AS id, COUNT(*) AS copies
+FROM work_orders WHERE recommendation_id IS NOT NULL
+GROUP BY recommendation_id HAVING COUNT(*) > 1
+UNION ALL
+SELECT 'active_crew', crew_id::text, COUNT(*)
+FROM work_orders WHERE status IN ('ASSIGNED', 'IN_PROGRESS')
+GROUP BY crew_id HAVING COUNT(*) > 1
+UNION ALL
+SELECT 'active_problem', problem_id::text, COUNT(*)
+FROM work_orders WHERE status IN ('ASSIGNED', 'IN_PROGRESS')
+GROUP BY problem_id HAVING COUNT(*) > 1
+UNION ALL
+SELECT 'terminal_recommendation', recommendation_id::text, COUNT(*)
+FROM approval_history
+WHERE recommendation_id IS NOT NULL AND decision IN ('APPROVED', 'REJECTED')
+GROUP BY recommendation_id HAVING COUNT(*) > 1;
+'@
+$preflightSql | docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Proceed only if this is the intended database, both application tables exist, EF history is absent, the four unique indexes are not already present, and the final duplicate query returns no rows. The existing `idx_work_orders_recommendation_id` should be a non-unique index from the prior change. If any duplicate rows appear, investigate them without deleting or rewriting records automatically. If the indexes already exist or the schema differs, stop and inspect rather than applying this script.
+
+Apply the schema-only script:
+
+```powershell
+Get-Content -Raw -LiteralPath 'database/migrations/20260926075934_ProtectDispatchConcurrency.sql' |
+    docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Successful output ends with `COMMIT`. An error before `COMMIT` rolls back this script. Verify that the four indexes are unique and have the expected predicates:
+
+```powershell
+$verifySql = @'
+SELECT indexname, indexdef FROM pg_indexes
+WHERE schemaname = 'public' AND indexname IN
+  ('idx_work_orders_recommendation_id', 'ux_work_orders_active_crew',
+   'ux_work_orders_active_problem', 'ux_approval_history_terminal_recommendation')
+ORDER BY indexname;
+'@
+$verifySql | docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+This script does not add EF migration history. Do not run it if a fresh database was already created from the latest EF model by `EnsureCreated()`, because that schema already contains the indexes. The EF Core migration `20260926075934_ProtectDispatchConcurrency` and `20260926075934_ProtectDispatchConcurrency_EF.sql` are available for databases with a complete, consistent migration history; neither is the apply path for the database described above.

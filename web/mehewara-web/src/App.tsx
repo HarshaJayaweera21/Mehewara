@@ -7,6 +7,10 @@ import { DispatchDashboardPage } from './pages/dispatch';
 import { CrewListPage } from './pages/crews';
 import { LandingPage } from './pages/landing';
 import type { User } from './types/auth';
+import { WorkOrdersPage } from './pages/workOrders/WorkOrdersPage';
+import { OperationsDashboardPage } from './pages/operations/OperationsDashboardPage';
+import { homeView, isCrewLeader } from './types/access';
+import { request, ApiRequestError } from './services/api';
 
 function isTokenExpired(token: string | null): boolean {
   if (!token) return true;
@@ -45,8 +49,10 @@ function App() {
     }
   });
 
+  const [workOrderId, setWorkOrderId] = useState<string>();
+  const [sessionMessage, setSessionMessage] = useState('');
   const [viewMode, setViewMode] = useState<
-    'landing' | 'reports' | 'problems' | 'uncertain-reports' | 'dispatch' | 'crews' | 'profile' | 'login'
+    'landing' | 'operations' | 'reports' | 'problems' | 'uncertain-reports' | 'dispatch' | 'crews' | 'profile' | 'login' | 'work-orders' | 'my-jobs'
   >(() => {
     try {
       const savedToken = localStorage.getItem('mehewara_token');
@@ -56,10 +62,7 @@ function App() {
       const saved = localStorage.getItem('mehewara_user');
       const user: User | null = saved ? JSON.parse(saved) : null;
       if (user && savedToken) {
-        if (user.role === 'ADMIN') {
-          return 'problems';
-        }
-        return 'reports';
+        return homeView(user.role);
       }
     } catch {
       // fallback to landing
@@ -83,9 +86,7 @@ function App() {
       setCurrentUser(user);
       setToken(savedToken);
       if (user && savedToken) {
-        if (user.role === 'ADMIN') {
-          setViewMode('problems');
-        }
+        setViewMode(homeView(user.role));
       } else {
         setViewMode('landing');
       }
@@ -116,12 +117,31 @@ function App() {
   const handleLoginSuccess = (user: User, accessToken: string) => {
     setCurrentUser(user);
     setToken(accessToken);
-    if (user.role === 'ADMIN') {
-      setViewMode('problems');
-    } else {
-      setViewMode('reports');
-    }
+    setSessionMessage('');
+    setViewMode(homeView(user.role));
   };
+
+  useEffect(() => {
+    const expire = () => {
+      localStorage.removeItem('mehewara_token'); localStorage.removeItem('mehewara_user');
+      setCurrentUser(null); setToken(null); setViewMode('login');
+      setSessionMessage('Your session expired. Please sign in again.');
+    };
+    window.addEventListener('mehewara-session-expired', expire);
+    return () => window.removeEventListener('mehewara-session-expired', expire);
+  }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    request<User>('/Auth/me', token).then(user => {
+      if (active) { setCurrentUser(user); localStorage.setItem('mehewara_user', JSON.stringify(user)); }
+    }).catch(error => {
+      if (active && !(error instanceof ApiRequestError && error.status === 401))
+        setSessionMessage('Unable to verify your session. Check your connection and refresh.');
+    });
+    return () => { active = false; };
+  }, [token]);
 
   // 1. Landing Page View (Public Entrance for All Visitors)
   if (viewMode === 'landing') {
@@ -133,7 +153,7 @@ function App() {
         onNavigateToLogin={() => setViewMode('login')}
         onNavigateToReports={() => {
           if (currentUser && token) {
-            setViewMode('reports');
+            setViewMode(homeView(currentUser.role));
           } else {
             setViewMode('login');
           }
@@ -152,17 +172,17 @@ function App() {
   // 2. Login & Registration Portal
   if (viewMode === 'login' || (!currentUser || !token)) {
     return (
-      <LoginPage
+      <> {sessionMessage && <p role="alert">{sessionMessage}</p>}<LoginPage
         onLoginSuccess={handleLoginSuccess}
         onNavigateToLanding={() => setViewMode('landing')}
         onNavigateToReports={() => setViewMode('reports')}
-      />
+      /></>
     );
   }
 
   // 3. Authenticated Profile View -> Manage Profile & Photo
   if (viewMode === 'profile') {
-    const returnDestination = currentUser.role === 'ADMIN' ? 'problems' : 'reports';
+    const returnDestination = homeView(currentUser.role);
     return (
       <div style={{ minHeight: '100vh', background: '#0f172a' }}>
         <div
@@ -192,7 +212,7 @@ function App() {
               gap: '0.5rem',
             }}
           >
-            ← Back to {returnDestination === 'problems' ? 'Problems Dashboard' : 'Reports Portal'}
+            ← Back to {returnDestination === 'operations' ? 'Operations' : returnDestination === 'my-jobs' ? 'My Jobs' : 'Reports Portal'}
           </button>
           <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
             Logged in as: <strong style={{ color: '#f8fafc' }}>{currentUser.name}</strong> ({currentUser.role})
@@ -207,7 +227,44 @@ function App() {
     );
   }
 
-  // 4. Authenticated Problems Dashboard View (specifically redirected for ADMIN)
+  if (isCrewLeader(currentUser.role)) {
+    return <WorkOrdersPage user={currentUser} token={token} onLogout={handleLogout} onProfile={() => setViewMode('profile')} onCoordinator={() => setViewMode('my-jobs')} />;
+  }
+  if (currentUser.role === 'ADMIN' && viewMode === 'work-orders') {
+    return (
+      <WorkOrdersPage
+        user={currentUser}
+        token={token}
+        initialId={workOrderId}
+        onLogout={handleLogout}
+        onProfile={() => setViewMode('profile')}
+        onCoordinator={() => setViewMode('problems')}
+        onNavigateToProblems={() => setViewMode('problems')}
+        onNavigateToDispatch={() => setViewMode('dispatch')}
+        onNavigateToCrews={() => setViewMode('crews')}
+      />
+    );
+  }
+  if (currentUser.role !== 'ADMIN') {
+    return <ReportsPage currentUser={currentUser} token={token} onLogout={handleLogout} onOpenProfile={() => setViewMode('profile')} />;
+  }
+
+  if (viewMode === 'operations') {
+    return <OperationsDashboardPage
+      currentUser={currentUser}
+      token={token}
+      onLogout={handleLogout}
+      onOpenProfile={() => setViewMode('profile')}
+      onNavigateToReports={() => setViewMode('reports')}
+      onNavigateToProblems={() => setViewMode('problems')}
+      onNavigateToUncertainReports={() => setViewMode('uncertain-reports')}
+      onNavigateToDispatch={() => setViewMode('dispatch')}
+      onNavigateToCrews={() => setViewMode('crews')}
+      onNavigateToWorkOrders={() => { setWorkOrderId(undefined); setViewMode('work-orders'); }}
+    />;
+  }
+
+  // 4. Authenticated Problems Dashboard View
   if (viewMode === 'problems') {
     return (
       <ProblemsPage
@@ -218,6 +275,7 @@ function App() {
         onNavigateToLanding={() => setViewMode('landing')}
         onOpenProfile={() => setViewMode('profile')}
         onNavigateToUncertainReports={() => setViewMode('uncertain-reports')}
+        onNavigateToWorkOrders={() => { setWorkOrderId(undefined); setViewMode('work-orders'); }}
         onNavigateToDispatch={() => setViewMode('dispatch')}
         onNavigateToCrews={() => setViewMode('crews')}
       />
@@ -242,6 +300,7 @@ function App() {
   if (viewMode === 'dispatch') {
     return (
       <DispatchDashboardPage
+        onOpenWorkOrder={id => { setWorkOrderId(id || undefined); setViewMode('work-orders'); }}
         currentUser={currentUser}
         token={token}
         onLogout={handleLogout}
@@ -249,6 +308,7 @@ function App() {
         onNavigateToProblems={() => setViewMode('problems')}
         onNavigateToCrews={() => setViewMode('crews')}
         onNavigateToReports={() => setViewMode('reports')}
+        onNavigateToOperations={() => setViewMode('operations')}
       />
     );
   }
@@ -264,6 +324,7 @@ function App() {
         onNavigateToProblems={() => setViewMode('problems')}
         onNavigateToDispatch={() => setViewMode('dispatch')}
         onNavigateToReports={() => setViewMode('reports')}
+        onNavigateToWorkOrders={() => { setWorkOrderId(undefined); setViewMode('work-orders'); }}
       />
     );
   }

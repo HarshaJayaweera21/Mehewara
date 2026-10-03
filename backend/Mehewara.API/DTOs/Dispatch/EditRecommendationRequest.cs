@@ -12,6 +12,11 @@ public class EditRecommendationRequest
 
     public Guid? RecommendedCrewId { get; set; }
 
+    [Range(1, int.MaxValue)] public int ExpectedRevision { get; set; }
+    public string? RequiredCrewType { get; set; }
+    public List<string>? PriorityReasons { get; set; }
+    public string? RecommendationReason { get; set; }
+
     [Required(ErrorMessage = "editReason is required.")]
     public string EditReason { get; set; } = string.Empty;
 }

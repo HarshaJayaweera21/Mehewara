@@ -1,0 +1,50 @@
+# Apply the WorkOrder-to-recommendation schema change
+
+The previously inspected Docker `mehewara_db` had the approval-history schema already present but no `__EFMigrationsHistory` table. The SQL below is for that database state. It adds a nullable `work_orders.recommendation_id` column, an index, and a foreign key to `workflow_events`. Existing WorkOrders retain NULL; future approvals set the recommendation ID. It does not create EF migration history.
+
+Back up the database first. From the repository root, check the current database before applying:
+
+```powershell
+$preflightSql = @'
+SELECT current_database(), to_regclass('public.work_orders'),
+       to_regclass('public.workflow_events'),
+       to_regclass('public."__EFMigrationsHistory"');
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'work_orders'
+  AND column_name = 'recommendation_id';
+'@
+$preflightSql | docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Proceed only if the first row identifies the expected database and both application tables, the EF history value is empty, and the second query returns no column. If the column already exists or EF history appears, stop and inspect the schema/history rather than reapplying this script.
+
+To apply this schema-only migration manually:
+
+```powershell
+Get-Content -Raw -LiteralPath 'database/migrations/20260926054657_LinkWorkOrderToRecommendation.sql' |
+    docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Expected output includes `BEGIN`, `ALTER TABLE`, `CREATE INDEX`, `DO`, and `COMMIT`. If an error occurs, stop and inspect it before retrying.
+
+Verify the result:
+
+```powershell
+$verifySql = @'
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'work_orders'
+  AND column_name = 'recommendation_id';
+SELECT conname, pg_get_constraintdef(oid)
+FROM pg_constraint
+WHERE conrelid = 'public.work_orders'::regclass
+  AND conname = 'FK_work_orders_workflow_events_recommendation_id';
+SELECT indexname FROM pg_indexes
+WHERE schemaname = 'public' AND tablename = 'work_orders'
+  AND indexname = 'idx_work_orders_recommendation_id';
+'@
+$verifySql | docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Expect `recommendation_id|uuid|YES`, the foreign key, and the index. Do not run `dotnet ef database update` against this database while EF migration history is absent: EF would attempt to replay earlier migrations over existing tables. Reconcile its schema and history before future EF-managed deployments. The repository also includes an EF Core migration for databases with a valid prior migration history, but this manual SQL is the path for the database state described above.

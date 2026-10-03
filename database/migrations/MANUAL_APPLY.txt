@@ -1,0 +1,46 @@
+# Apply the recommendation review migration manually
+
+This change makes `approval_history.work_order_id` nullable and adds a nullable `recommendation_id` foreign key to `workflow_events.workflow_event_id`. New approvals store both IDs; new rejections store the recommendation ID and no WorkOrder ID. Existing history is preserved. Its recommendation ID remains null where a reliable match cannot be established.
+
+The Docker database is not changed by committing these files. Inspect its migration history and schema before choosing one of the two paths below. Back up the database before applying either path.
+
+From the repository root, with the database available:
+
+```powershell
+$schemaCheckSql = @'
+SELECT
+    EXISTS (SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = '__EFMigrationsHistory') AS ef_history_exists,
+    to_regclass('public.approval_history') AS approval_history,
+    to_regclass('public.workflow_events') AS workflow_events;
+'@
+$schemaCheckSql | docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+The output has three values separated by `|`: EF history (`t` or `f`), approval history table, and workflow events table. For example, `f|approval_history|workflow_events` means the application tables exist but the EF history table does not. The earlier `to_regclass('public.__EFMigrationsHistory')` check was unreliable because PostgreSQL folds unquoted names to lowercase.
+
+If `ef_history_exists` is `t`, inspect the applied rows. Use the EF path only when the latest applied migration is `20260918112155_UpdateReportProblemToOneToMany` and the database matches it. This EF-generated SQL records the new migration in `__EFMigrationsHistory`:
+
+```powershell
+'SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY "MigrationId";' | docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+Get-Content -Raw -LiteralPath 'database/migrations/20260926050014_LinkApprovalHistoryToRecommendation_EF.sql' | docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+If `ef_history_exists` is `f` but both application tables exist (the likely `EnsureCreated` case), inspect the schema before considering the one-time SQL below.
+
+If `recommendation_id` and `work_order_id` are both nullable and the `FK_approval_history_workflow_events_recommendation_id` foreign key and `idx_approval_history_recommendation_id` index exist, do not run either script. A fresh database initialized by the API's `EnsureCreated()` can have the new schema without EF migration history. Do not add a fabricated history entry; investigate any earlier migration-history results that conflict with the current database before planning later EF migrations. Otherwise, inspect the missing pieces carefully before applying the one-time SQL:
+
+```powershell
+docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT table_name, column_name, is_nullable FROM information_schema.columns WHERE table_schema = ''public'' AND table_name IN (''approval_history'', ''workflow_events'') AND column_name IN (''work_order_id'', ''recommendation_id'', ''workflow_event_id'') ORDER BY table_name, column_name;"'
+Get-Content -Raw -LiteralPath 'database/migrations/20260926050014_LinkApprovalHistoryToRecommendation.sql' | docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Verify the resulting columns and foreign key:
+
+```powershell
+'SELECT column_name, is_nullable FROM information_schema.columns WHERE table_schema = ''public'' AND table_name = ''approval_history'' AND column_name IN (''work_order_id'', ''recommendation_id'') ORDER BY column_name;' | docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+'SELECT conname FROM pg_constraint WHERE conrelid = ''approval_history''::regclass AND conname = ''FK_approval_history_workflow_events_recommendation_id'';' | docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+'SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY "MigrationId" DESC LIMIT 1;' | docker compose --env-file docker/.env -f docker/compose.yml exec -T postgres-db sh -c 'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Do not run both paths on the same database. The manual SQL path does not create EF migration history; before using `dotnet ef database update` for later migrations, reconcile the existing schema and migration history. Startup still calls `EnsureCreated`, which does not update an existing database.

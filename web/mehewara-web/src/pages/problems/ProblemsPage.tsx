@@ -9,7 +9,7 @@ import type {
 import { getProblems, getUncertainReports } from '../../services/problemApi';
 import { getRecommendations } from '../../services/dispatchApi';
 import { Header } from '../../components/common';
-import { CoordinatorWelcomeBanner } from './CoordinatorWelcomeBanner';
+import { CoordinatorWelcomeBanner } from '../../components/problems/CoordinatorWelcomeBanner';
 import { ProblemDetailModal } from './ProblemDetailModal';
 import './ProblemsPage.css';
 
@@ -24,6 +24,7 @@ export interface ProblemsPageProps {
   onNavigateToUncertainReports?: () => void;
   onNavigateToDispatch?: () => void;
   onNavigateToCrews?: () => void;
+  onNavigateToWorkOrders?: () => void;
 }
 
 const CATEGORIES: (ProblemCategory | 'ALL')[] = [
@@ -62,6 +63,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   onNavigateToUncertainReports,
   onNavigateToDispatch,
   onNavigateToCrews,
+  onNavigateToWorkOrders,
 }) => {
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -549,6 +551,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
                 )}
               </button>
             )}
+            {onNavigateToWorkOrders && <button className="problems-crews-nav-btn" onClick={onNavigateToWorkOrders}>Work Orders</button>}
             {onNavigateToCrews && (
               <button
                 type="button"
