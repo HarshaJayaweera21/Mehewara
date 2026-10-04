@@ -498,6 +498,10 @@ compose.override.yml
 local-data/
 **/local-data/
 
+# Deployment test artifacts
+database/deployment-artifacts/*
+!database/deployment-artifacts/.gitkeep
+
 
 # ============================================================
 # UPLOADS / GENERATED USER MEDIA
