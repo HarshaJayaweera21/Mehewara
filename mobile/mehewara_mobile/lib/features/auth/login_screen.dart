@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
+
 import '../../core/routes/app_routes.dart';
-import '../../services/crew_service.dart';
+import '../../core/theme/app_theme.dart';
+import 'auth_view_model.dart';
+import 'auth_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,247 +13,160 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(text: 'crew.drainage@mehewara.gov.lk');
-  final _passwordController = TextEditingController(text: 'Crew@123');
-  final _crewService = CrewService();
-
-  bool _isLoading = false;
-  String? _errorMessage;
+  final _formKey = GlobalKey<FormState>();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  final _viewModel = AuthViewModel();
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _email.dispose();
+    _password.dispose();
+    _viewModel.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogin({String? email, String? password}) async {
-    final loginEmail = email ?? _emailController.text.trim();
-    final loginPass = password ?? _passwordController.text;
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+    if (!_formKey.currentState!.validate()) return;
+    final role = await _viewModel.signIn(_email.text, _password.text);
+    if (!mounted || role == null) return;
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      role.toUpperCase() == 'RESIDENT' ? AppRoutes.residentHome : AppRoutes.crewShell,
+      (_) => false,
+    );
+  }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await _crewService.login(loginEmail, loginPass);
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed(AppRoutes.crewShell);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
-        });
-      }
-    }
+  void _selectStaffPreset(String email) {
+    _email.text = email;
+    _password.text = 'Crew@123';
+    _submit();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: CivicColors.alabaster,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: LayoutBuilder(
+          builder: (context, constraints) => Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // App Branding
-                  Center(
-                    child: Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryForest,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primaryForest.withValues(alpha: 0.2),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'ම',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 34,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'මෙහෙවර • MEHEWARA',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primaryForest,
-                      letterSpacing: -0.4,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Municipal Crew Dispatch Mobile Workspace',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  if (_errorMessage != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.statusUnavailableBg,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.statusUnavailableBorder),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline, size: 18, color: AppColors.priorityCritical),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _errorMessage!,
-                              style: const TextStyle(fontSize: 12, color: AppColors.priorityCritical),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Manual Login Form
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Text(
-                            'Sign In with Government Credentials',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 14),
-                          TextField(
-                            controller: _emailController,
-                            decoration: const InputDecoration(
-                              labelText: 'Official Email',
-                              prefixIcon: Icon(Icons.email_outlined, size: 18),
-                            ),
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _passwordController,
-                            decoration: const InputDecoration(
-                              labelText: 'Password',
-                              prefixIcon: Icon(Icons.lock_outline, size: 18),
-                            ),
-                            obscureText: true,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _isLoading ? null : () => _handleLogin(),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                  )
-                                : const Text('Sign In as Crew Leader'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Quick One-Tap Presets for Evaluation
-                  Row(
-                    children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          'EVALUATION PRESETS (ONE-TAP)',
-                          style: TextStyle(
-                            fontSize: 10,
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+                  children: [
+                    const AuthBrand(),
+                    const SizedBox(height: 28),
+                    Text(
+                      'Welcome back',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textMuted,
-                            letterSpacing: 0.5,
+                            color: CivicColors.charcoal,
                           ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Sign in to report local issues and follow their progress.',
+                      style: TextStyle(color: CivicColors.slateGreen, height: 1.45),
+                    ),
+                    const SizedBox(height: 24),
+                    AnimatedBuilder(
+                      animation: _viewModel,
+                      builder: (context, _) => _viewModel.error == null
+                          ? const SizedBox.shrink()
+                          : Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: AuthInlineMessage(text: _viewModel.error!, isError: true),
+                            ),
+                    ),
+                    TextFormField(
+                      controller: _email,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.username, AutofillHints.email],
+                      decoration: const InputDecoration(
+                        labelText: 'Email address',
+                        prefixIcon: Icon(Icons.mail_outline_rounded),
+                      ),
+                      validator: (value) =>
+                          value == null || !value.contains('@') ? 'Enter a valid email address.' : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _password,
+                      obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      autofillHints: const [AutofillHints.password],
+                      onFieldSubmitted: (_) => _submit(),
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: const Icon(Icons.lock_outline_rounded),
+                        suffixIcon: IconButton(
+                          tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                         ),
                       ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  _buildPresetButton(
-                    title: '💧 Drainage Alpha (Sunil) — BUSY',
-                    subtitle: 'Culvert & Stormwater • Has Active Mission',
-                    email: 'crew.drainage@mehewara.gov.lk',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildPresetButton(
-                    title: '🛣️ Road Bravo (Nimal) — AVAILABLE',
-                    subtitle: 'Pavement & Asphalt Restoration • Standby',
-                    email: 'crew.road@mehewara.gov.lk',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildPresetButton(
-                    title: '🌿 Environment Echo (Kumara) — AVAILABLE',
-                    subtitle: 'Arboricultural & Tree Clearance • Standby',
-                    email: 'crew.environment@mehewara.gov.lk',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildPresetButton(
-                    title: '⚡ Electrical Delta (Priya) — BUSY',
-                    subtitle: 'Streetlight & Grid Maintenance • Busy',
-                    email: 'crew.electrical@mehewara.gov.lk',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildPresetButton(
-                    title: '🗑️ Waste Charlie (Amara) — AVAILABLE',
-                    subtitle: 'Solid Waste & Heavy Clearing • Standby',
-                    email: 'crew.waste@mehewara.gov.lk',
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Switch to Resident Mode (Member 1)
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pushNamed(AppRoutes.residentHome);
-                      },
-                      icon: const Icon(Icons.person_pin_outlined, size: 16),
-                      label: const Text('Switch to Resident Mode (Member 1)'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primaryForest,
-                        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      validator: (value) => value == null || value.isEmpty ? 'Enter your password.' : null,
+                    ),
+                    const SizedBox(height: 20),
+                    AnimatedBuilder(
+                      animation: _viewModel,
+                      builder: (context, _) => SizedBox(
+                        height: 52,
+                        child: FilledButton(
+                          onPressed: _viewModel.isBusy ? null : _submit,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: CivicColors.forest,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: _viewModel.isBusy
+                              ? const SizedBox.square(
+                                  dimension: 21,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Text('Sign in', style: TextStyle(fontWeight: FontWeight.w700)),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 18),
+                    const AuthInlineMessage(
+                      text: 'Google sign-in is not connected in this app yet.',
+                      isError: false,
+                    ),
+                    const SizedBox(height: 18),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        const Text('New to Mehewara? ', style: TextStyle(color: CivicColors.slateGreen)),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pushNamed(AppRoutes.register),
+                          child: const Text(
+                            'Create an account',
+                            style: TextStyle(color: CivicColors.forest, fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    _StaffAccess(onPresetSelected: _selectStaffPreset),
+                    if (constraints.maxHeight > 760) const SizedBox(height: 22),
+                    const Text(
+                      'MEHEWARA • COMMUNITY WORKS',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: CivicColors.subdued,
+                        fontSize: 11,
+                        letterSpacing: 1.1,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -259,48 +174,47 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+}
 
-  Widget _buildPresetButton({
-    required String title,
-    required String subtitle,
-    required String email,
-  }) {
-    return InkWell(
-      onTap: _isLoading ? null : () => _handleLogin(email: email, password: 'Crew@123'),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.borderDefault),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                  ),
-                ],
-              ),
+class _StaffAccess extends StatelessWidget {
+  const _StaffAccess({required this.onPresetSelected});
+
+  final ValueChanged<String> onPresetSelected;
+
+  static const _presets = <(String, String, String)>[
+    ('Drainage crew', 'Culvert & stormwater response', 'crew.drainage@mehewara.gov.lk'),
+    ('Road crew', 'Pavement & asphalt restoration', 'crew.road@mehewara.gov.lk'),
+    ('Environment crew', 'Tree and pathway maintenance', 'crew.environment@mehewara.gov.lk'),
+    ('Electrical crew', 'Streetlight & grid maintenance', 'crew.electrical@mehewara.gov.lk'),
+    ('Waste crew', 'Solid waste response', 'crew.waste@mehewara.gov.lk'),
+  ];
+
+  @override
+  Widget build(BuildContext context) => ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+        childrenPadding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+        leading: const Icon(Icons.badge_outlined, color: CivicColors.slateGreen),
+        title: const Text('Municipal staff sign-in',
+            style: TextStyle(fontWeight: FontWeight.w700, color: CivicColors.charcoal)),
+        subtitle: const Text('Crew workspace and evaluation accounts',
+            style: TextStyle(fontSize: 12, color: CivicColors.slateGreen)),
+        children: [
+          for (final preset in _presets)
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.engineering_outlined, color: CivicColors.forest),
+              title: Text(preset.$1),
+              subtitle: Text(preset.$2),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+              onTap: () => onPresetSelected(preset.$3),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.textMuted),
-          ],
-        ),
-      ),
-    );
-  }
+          const Padding(
+            padding: EdgeInsets.all(8),
+            child: Text(
+              'Evaluation shortcuts use the crew demo password. Use Sign in above for other accounts.',
+              style: TextStyle(fontSize: 11, color: CivicColors.slateGreen),
+            ),
+          ),
+        ],
+      );
 }
