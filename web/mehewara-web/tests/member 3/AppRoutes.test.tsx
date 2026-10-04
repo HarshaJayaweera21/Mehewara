@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from '../../src/context/AuthContext';
 import { AppRoutes } from '../../src/routes/AppRoutes';

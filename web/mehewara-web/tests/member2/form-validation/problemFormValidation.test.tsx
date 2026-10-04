@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { UncertainReportsPage } from '../../../src/pages/problems/UncertainReportsPage';
 import * as problemApi from '../../../src/services/problemApi';

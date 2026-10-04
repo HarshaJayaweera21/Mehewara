@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { WorkOrdersPage } from '../../src/pages/workOrders/WorkOrdersPage';
 import type { WorkOrder } from '../../src/types/workOrders';

@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import App from '../../src/App';
 import { crewRoles } from '../../src/types/access';
 vi.mock('../../src/pages/auth/LoginPage', () => ({ LoginPage: ({ onNavigateToReports }: { onNavigateToReports: () => void }) => <button onClick={onNavigateToReports}>Return from profile</button> }));
