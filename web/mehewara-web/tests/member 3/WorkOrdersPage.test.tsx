@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { WorkOrdersPage } from './WorkOrdersPage';
-import type { WorkOrder } from '../../types/workOrders';
-import { completeWorkOrder, startWorkOrder } from '../../services/workOrdersApi';
-import { handleResponse } from '../../services/api';
-import { approveRecommendation, editRecommendation } from '../../services/dispatchApi';
+import { WorkOrdersPage } from '../../src/pages/workOrders/WorkOrdersPage';
+import type { WorkOrder } from '../../src/types/workOrders';
+import { completeWorkOrder, startWorkOrder } from '../../src/services/workOrdersApi';
+import { handleResponse } from '../../src/services/api';
+import { approveRecommendation, editRecommendation } from '../../src/services/dispatchApi';
 
 const job: WorkOrder = { id: 'job-1', problemId: 'problem-1', crewId: 'crew-1', recommendationId: null,
   crewName: 'Road Crew', problemTitle: 'Drain blockage', title: 'Clear main drain', instructions: 'Work safely.',

@@ -1,48 +1,48 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { AuthProvider } from '../context/AuthContext';
-import { AppRoutes } from './AppRoutes';
-import { ROUTES } from './paths';
+import { AuthProvider } from '../../src/context/AuthContext';
+import { AppRoutes } from '../../src/routes/AppRoutes';
+import { ROUTES } from '../../src/routes/paths';
 
 // Mock child pages to keep route integration tests lightweight and focused on routing behavior
-vi.mock('../pages/landing/LandingPage', () => ({
+vi.mock('../../src/pages/landing/LandingPage', () => ({
   LandingPage: () => <div data-testid="landing-page">Landing Page</div>,
 }));
 
-vi.mock('../pages/auth/LoginPage', () => ({
+vi.mock('../../src/pages/auth/LoginPage', () => ({
   LoginPage: () => <div data-testid="login-page">Login Page</div>,
 }));
 
-vi.mock('../pages/auth/ProfilePage', () => ({
+vi.mock('../../src/pages/auth/ProfilePage', () => ({
   ProfilePage: () => <div data-testid="profile-page">Profile Page</div>,
 }));
 
-vi.mock('../pages/operations/OperationsDashboardPage', () => ({
+vi.mock('../../src/pages/operations/OperationsDashboardPage', () => ({
   OperationsDashboardPage: () => <div data-testid="operations-page">Operations Dashboard</div>,
 }));
 
-vi.mock('../pages/reports/ReportsPage', () => ({
+vi.mock('../../src/pages/reports/ReportsPage', () => ({
   ReportsPage: () => <div data-testid="reports-page">Reports Portal</div>,
 }));
 
-vi.mock('../pages/problems/ProblemsPage', () => ({
+vi.mock('../../src/pages/problems/ProblemsPage', () => ({
   ProblemsPage: () => <div data-testid="problems-page">Problems Dashboard</div>,
 }));
 
-vi.mock('../pages/problems/UncertainReportsPage', () => ({
+vi.mock('../../src/pages/problems/UncertainReportsPage', () => ({
   UncertainReportsPage: () => <div data-testid="uncertain-page">Uncertain Reports</div>,
 }));
 
-vi.mock('../pages/dispatch/DispatchDashboardPage', () => ({
+vi.mock('../../src/pages/dispatch/DispatchDashboardPage', () => ({
   DispatchDashboardPage: () => <div data-testid="dispatch-page">Dispatch Dashboard</div>,
 }));
 
-vi.mock('../pages/crews/CrewListPage', () => ({
+vi.mock('../../src/pages/crews/CrewListPage', () => ({
   CrewListPage: () => <div data-testid="crews-page">Crew Management</div>,
 }));
 
-vi.mock('../pages/workOrders/WorkOrdersPage', () => ({
+vi.mock('../../src/pages/workOrders/WorkOrdersPage', () => ({
   WorkOrdersPage: ({ user }: { user: { role: string } }) => (
     <div data-testid="work-orders-page">Work Orders for {user.role}</div>
   ),
