@@ -548,7 +548,27 @@ graphify-out/
 .graphify_analysis.json
 .graphify_labels.json
 .graphify_root
+.graphifyignore
+**/.graphifyignore
 graph.html
 GRAPH_TREE.html
 GRAPH_REPORT.md
 
+
+# ============================================================
+# DOCUMENTATION BACKUPS
+# ============================================================
+.documentation-backup-20260926
+**/.documentation-backup-20260926
+
+
+# ============================================================
+# CODEX (AI Tooling & Session Artifacts)
+# ============================================================
+.codex/
+**/.codex/
+.codex
+.codex*
+codex/
+**/codex/
+*.codex
