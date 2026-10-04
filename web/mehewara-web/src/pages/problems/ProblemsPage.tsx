@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { User } from '../../types/auth';
 import type {
   ProblemResponse,
@@ -8,9 +9,11 @@ import type {
 } from '../../types/problems';
 import { getProblems, getUncertainReports } from '../../services/problemApi';
 import { getRecommendations } from '../../services/dispatchApi';
-import { Header } from '../../components/common';
+import { Header, MetricsStrip } from '../../components/common';
+import { OpsNavStrip } from '../../components/common/OpsNavStrip';
 import { CoordinatorWelcomeBanner } from '../../components/problems/CoordinatorWelcomeBanner';
 import { ProblemDetailModal } from './ProblemDetailModal';
+import { ROUTES } from '../../routes/paths';
 import './ProblemsPage.css';
 
 export interface ProblemsPageProps {
@@ -65,6 +68,17 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   onNavigateToCrews,
   onNavigateToWorkOrders,
 }) => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
+  const goToLanding = onNavigateToLanding || (() => navigate(ROUTES.HOME));
+  const goToUncertainReports = onNavigateToUncertainReports || (() => navigate(ROUTES.UNCERTAIN_REPORTS));
+  const goToDispatch = onNavigateToDispatch || (() => navigate(ROUTES.DISPATCH));
+  const goToCrews = onNavigateToCrews || (() => navigate(ROUTES.CREWS));
+  const goToWorkOrders = onNavigateToWorkOrders || (() => navigate(ROUTES.WORK_ORDERS));
+  const goToProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
+
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -84,7 +98,16 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeToast, setActiveToast] = useState<string | null>(null);
   const [retryTrigger, setRetryTrigger] = useState(0);
-  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
+  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(() => {
+    return searchParams.get('problemId') || null;
+  });
+
+  useEffect(() => {
+    const idFromParam = searchParams.get('problemId');
+    if (idFromParam !== selectedProblemId) {
+      setSelectedProblemId(idFromParam || null);
+    }
+  }, [searchParams, selectedProblemId]);
 
   // Fetch count of uncertain reports requiring coordinator review
   useEffect(() => {
@@ -258,6 +281,11 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
 
   const handleCardClick = (problemId: string) => {
     setSelectedProblemId(problemId);
+    if (searchParams.get('problemId') !== problemId) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.set('problemId', problemId);
+      setSearchParams(nextParams);
+    }
     if (onSelectProblem) {
       onSelectProblem(problemId);
     }
@@ -314,18 +342,30 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
         <Header
           currentUser={currentUser}
           onLogout={onLogout}
-          onOpenProfile={onOpenProfile}
-          onBrandClick={onNavigateToLanding}
+          onOpenProfile={goToProfile}
+          onBrandClick={goToLanding}
+        />
+
+        {/* Operations Navigation Strip */}
+        <OpsNavStrip
+          activePage="problems"
+          pendingDispatchCount={pendingDispatchCount}
+          onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
+          onNavigateToProblems={() => {}}
+          onNavigateToDispatch={goToDispatch}
+          onNavigateToCrews={goToCrews}
+          onNavigateToWorkOrders={goToWorkOrders}
+          onNavigateToReports={goToReports}
         />
 
         {/* 1. Coordinator Welcome Banner (Stitch Generated with Real Time Greeting) */}
         <CoordinatorWelcomeBanner roleName="Coordinator" activeProblemsCount={metrics.totalActive} />
 
         {/* 1.5. Coordinator Triage Alert Banner (Agent 2 HITL Queue) */}
-        {uncertainCount > 0 && onNavigateToUncertainReports && (
+        {uncertainCount > 0 && (
           <div
             className="problems-uncertain-alert-banner"
-            onClick={onNavigateToUncertainReports}
+            onClick={goToUncertainReports}
             role="button"
             tabIndex={0}
           >
@@ -354,7 +394,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
               className="uncertain-alert-cta-btn"
               onClick={(e) => {
                 e.stopPropagation();
-                onNavigateToUncertainReports();
+                goToUncertainReports();
               }}
             >
               <span>Review Uncertain Reports</span>
@@ -366,41 +406,37 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
           </div>
         )}
 
-        {/* 2. Top Metrics Strip (Unified White Surface with Dividers) */}
-        <section className="problems-metrics-strip" aria-label="Key Operational Metrics">
-          <div className="problems-metric-cell">
-            <div className="metric-label-row">
-              <span className="metric-label">Active Problems</span>
-              <span className="metric-mint-pip" aria-hidden="true" title="Operational Priority Indicator" />
-            </div>
-            <div className="metric-value">{metrics.totalActive}</div>
-            <div className="metric-descriptor">Across municipal wards</div>
-          </div>
-
-          <div className="problems-metric-cell">
-            <div className="metric-label-row">
-              <span className="metric-label">High / Critical</span>
-            </div>
-            <div className="metric-value">{metrics.highCritical}</div>
-            <div className="metric-descriptor">Requiring urgent crew dispatch</div>
-          </div>
-
-          <div className="problems-metric-cell">
-            <div className="metric-label-row">
-              <span className="metric-label">In Progress</span>
-            </div>
-            <div className="metric-value">{metrics.inProgress}</div>
-            <div className="metric-descriptor">Active site remediation</div>
-          </div>
-
-          <div className="problems-metric-cell">
-            <div className="metric-label-row">
-              <span className="metric-label">Linked Reports</span>
-            </div>
-            <div className="metric-value">{metrics.linkedReports}</div>
-            <div className="metric-descriptor">Consolidated resident submissions</div>
-          </div>
-        </section>
+        {/* 2. Top Metrics Strip (Unified Component) */}
+        <MetricsStrip
+          items={[
+            {
+              id: 'active',
+              label: 'Active Problems',
+              value: metrics.totalActive,
+              descriptor: 'Across municipal wards',
+              hasPip: true,
+            },
+            {
+              id: 'high-critical',
+              label: 'High / Critical',
+              value: metrics.highCritical,
+              descriptor: 'Requiring urgent crew dispatch',
+            },
+            {
+              id: 'in-progress',
+              label: 'In Progress',
+              value: metrics.inProgress,
+              descriptor: 'Active site remediation',
+            },
+            {
+              id: 'linked-reports',
+              label: 'Linked Reports',
+              value: metrics.linkedReports,
+              descriptor: 'Consolidated resident submissions',
+            },
+          ]}
+          ariaLabel="Key Operational Metrics"
+        />
 
         {/* 3. Problems Section (Title & Filter / Search Toolbar) */}
         <div className="problems-search-filter-section">
@@ -519,53 +555,47 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
             <span>Problems</span>
           </h2>
           <div className="problems-results-header-actions">
-            {onNavigateToUncertainReports && (
-              <button
-                type="button"
-                className="problems-uncertain-nav-btn"
-                onClick={onNavigateToUncertainReports}
-                title="Review citizen reports flagged by Agent 2 as uncertain"
-              >
-                <span className="uncertain-nav-dot" />
-                <span>Uncertain Reports</span>
-                {uncertainCount > 0 && (
-                  <span className="uncertain-nav-badge">{uncertainCount}</span>
-                )}
-              </button>
-            )}
-            {onNavigateToDispatch && (
-              <button
-                type="button"
-                className="problems-dispatch-nav-btn"
-                onClick={onNavigateToDispatch}
-                title="Open Agent 3 Dispatch Queue & Recommendation Authorizations"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                  <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                  <polyline points="2 17 12 22 22 17" />
-                  <polyline points="2 12 12 17 22 12" />
-                </svg>
-                <span>Dispatch Queue</span>
-                {pendingDispatchCount > 0 && (
-                  <span className="dispatch-nav-badge">{pendingDispatchCount}</span>
-                )}
-              </button>
-            )}
-            {onNavigateToWorkOrders && <button className="problems-crews-nav-btn" onClick={onNavigateToWorkOrders}>Work Orders</button>}
-            {onNavigateToCrews && (
-              <button
-                type="button"
-                className="problems-crews-nav-btn"
-                onClick={onNavigateToCrews}
-                title="Open Municipal Response Crews Directory"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                </svg>
-                <span>Crews</span>
-              </button>
-            )}
+            <button
+              type="button"
+              className="problems-uncertain-nav-btn"
+              onClick={goToUncertainReports}
+              title="Review citizen reports flagged by Agent 2 as uncertain"
+            >
+              <span className="uncertain-nav-dot" />
+              <span>Uncertain Reports</span>
+              {uncertainCount > 0 && (
+                <span className="uncertain-nav-badge">{uncertainCount}</span>
+              )}
+            </button>
+            <button
+              type="button"
+              className="problems-dispatch-nav-btn"
+              onClick={goToDispatch}
+              title="Open Agent 3 Dispatch Queue & Recommendation Authorizations"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                <polyline points="2 17 12 22 22 17" />
+                <polyline points="2 12 12 17 22 12" />
+              </svg>
+              <span>Dispatch Queue</span>
+              {pendingDispatchCount > 0 && (
+                <span className="dispatch-nav-badge">{pendingDispatchCount}</span>
+              )}
+            </button>
+            <button type="button" className="problems-crews-nav-btn" onClick={goToWorkOrders}>Work Orders</button>
+            <button
+              type="button"
+              className="problems-crews-nav-btn"
+              onClick={goToCrews}
+              title="Open Municipal Response Crews Directory"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+              </svg>
+              <span>Crews</span>
+            </button>
             <div className="results-count-pill">
               {isLoading
                 ? 'Loading...'
@@ -844,7 +874,12 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
         <ProblemDetailModal
           token={token || localStorage.getItem('mehewara_token') || ''}
           problemId={selectedProblemId}
-          onClose={() => setSelectedProblemId(null)}
+          onClose={() => {
+            setSelectedProblemId(null);
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.delete('problemId');
+            setSearchParams(nextParams);
+          }}
         />
       )}
     </div>

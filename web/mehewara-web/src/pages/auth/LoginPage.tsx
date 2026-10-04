@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   loginWithCredentials,
   registerResident,
@@ -9,6 +10,7 @@ import {
 } from '../../services/api';
 import type { User } from '../../types/auth';
 import { isCrewLeader } from '../../types/access';
+import { ROUTES } from '../../routes/paths';
 import { LandingPage } from '../landing/LandingPage';
 import { AuthShell } from '../landing/AuthShell';
 import './LoginPage.css';
@@ -50,8 +52,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   onNavigateToReports,
   onNavigateToLanding,
 }) => {
-  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
-  const [publicView, setPublicView] = useState<'landing' | 'auth'>('landing');
+  const location = useLocation();
+  const locationPath = location.pathname;
+  const navigate = useNavigate();
+
+  const isRegisterRoute = locationPath === ROUTES.REGISTER;
+  const isAuthRoute = locationPath === ROUTES.LOGIN || locationPath === ROUTES.REGISTER;
+
+  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>(isRegisterRoute ? 'signup' : 'signin');
+  const [publicView, setPublicView] = useState<'landing' | 'auth'>(isAuthRoute ? 'auth' : 'landing');
+
+  useEffect(() => {
+    if (locationPath === ROUTES.REGISTER) {
+      setActiveTab('signup');
+      setPublicView('auth');
+    } else if (locationPath === ROUTES.LOGIN) {
+      setActiveTab('signin');
+      setPublicView('auth');
+    }
+  }, [locationPath]);
 
   // Sign In state
   const [email, setEmail] = useState('');
@@ -336,6 +355,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             onClick={() => {
               setActiveTab('signin');
               setError(null);
+              if (locationPath === ROUTES.REGISTER) {
+                navigate(ROUTES.LOGIN);
+              }
             }}
           >
             Sign in
@@ -347,6 +369,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             onClick={() => {
               setActiveTab('signup');
               setError(null);
+              if (locationPath === ROUTES.LOGIN) {
+                navigate(ROUTES.REGISTER);
+              }
             }}
           >
             Create account
@@ -439,11 +464,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         mode={activeTab}
         onBack={() => {
           setError(null);
-          setPublicView('landing');
+          if (onNavigateToLanding) {
+            onNavigateToLanding();
+          } else {
+            navigate(ROUTES.HOME);
+          }
         }}
         onSwitch={() => {
           setError(null);
-          setActiveTab((tab) => tab === 'signin' ? 'signup' : 'signin');
+          const nextTab = activeTab === 'signin' ? 'signup' : 'signin';
+          setActiveTab(nextTab);
+          if (locationPath === ROUTES.LOGIN || locationPath === ROUTES.REGISTER) {
+            navigate(nextTab === 'signin' ? ROUTES.LOGIN : ROUTES.REGISTER);
+          }
         }}
       >
         {authPanel}

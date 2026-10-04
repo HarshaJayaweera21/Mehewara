@@ -8,7 +8,7 @@
   min-height: 100vh;
   background-color: var(--mw-page-bg, #F7F7F2);
   color: var(--mw-text-primary, #18211E);
-  font-family: var(--mw-font-family, 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif);
+  font-family: var(--mw-font);
   padding: 2.25rem 2.5rem 4rem;
   box-sizing: border-box;
 }
@@ -21,38 +21,7 @@
   gap: 1.5rem;
 }
 
-/* Welcome Banner */
-.jobs-welcome-banner {
-  background-color: #F6FAF7;
-  background-image: url('../../assets/bg.png');
-  background-position: center bottom;
-  background-size: 100% auto;
-  background-repeat: no-repeat;
-  border: 1px solid var(--mw-border, #DDE2DE);
-  border-radius: 10px;
-  min-height: 140px;
-  padding: 1.75rem 2rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.04);
-}
-
-.jobs-banner-heading {
-  font-size: 1.65rem;
-  font-weight: 700;
-  color: var(--mw-primary-forest, #123C32);
-  margin: 0 0 0.4rem;
-  letter-spacing: -0.02em;
-}
-
-.jobs-banner-sub {
-  font-size: 0.95rem;
-  color: var(--mw-text-secondary, #68736E);
-  margin: 0;
-  max-width: 720px;
-  line-height: 1.45;
-}
+/* Filter Bar */
 
 /* Filter Bar */
 .jobs-filters {

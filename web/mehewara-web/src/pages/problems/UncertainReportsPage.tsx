@@ -12,14 +12,17 @@ import {
   createProblemFromUncertainReport,
   cancelUncertainReport,
 } from '../../services/problemApi';
-import { Header } from '../../components/common';
+import { useNavigate } from 'react-router-dom';
+import { Header, HeroBanner } from '../../components/common';
+import { OpsNavStrip } from '../../components/common/OpsNavStrip';
 import { ProblemDetailModal } from './ProblemDetailModal';
+import { ROUTES } from '../../routes/paths';
 import './UncertainReportsPage.css';
 
 export interface UncertainReportsPageProps {
   currentUser?: User | null;
   token?: string | null;
-  onNavigateToProblems: () => void;
+  onNavigateToProblems?: () => void;
   onNavigateToReports?: () => void;
   onLogout?: () => void;
   onOpenProfile?: () => void;
@@ -33,9 +36,15 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
   currentUser,
   token,
   onNavigateToProblems,
+  onNavigateToReports,
   onLogout,
   onOpenProfile,
 }) => {
+  const navigate = useNavigate();
+
+  const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
+  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
+  const goToProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
   const [reports, setReports] = useState<UncertainReportResponse[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -225,31 +234,30 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
       <div className="problems-content-wrap">
         <Header
           currentUser={currentUser}
-          onBrandClick={onNavigateToProblems}
+          onBrandClick={goToProblems}
           onLogout={onLogout}
-          onOpenProfile={onOpenProfile}
+          onOpenProfile={goToProfile}
+        />
+
+        <OpsNavStrip
+          activePage="problems"
+          onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
+          onNavigateToProblems={goToProblems}
+          onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
+          onNavigateToCrews={() => navigate(ROUTES.CREWS)}
+          onNavigateToWorkOrders={() => navigate(ROUTES.WORK_ORDERS)}
+          onNavigateToReports={goToReports}
+        />
+
+        {/* Hero Welcome Banner */}
+        <HeroBanner
+          badge="AI AGENT 2 : HUMAN-IN-THE-LOOP"
+          title="Uncertain Reports Triage"
+          subtitle="Consolidation desk for borderline or ambiguous citizen defect submissions. Verify photo evidence, merge into existing problems, or spawn new problem records."
+          ariaLabel="Uncertain Reports Triage Banner"
         />
 
         <main className="urp-main">
-          {/* Page Header */}
-          <div className="urp-header-strip">
-            <div className="urp-header-left">
-              <div className="urp-title-row">
-                <button
-                  type="button"
-                  className="urp-back-btn"
-                  onClick={onNavigateToProblems}
-                  aria-label="Back to Problems Dashboard"
-                  title="Back to Problems Dashboard"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polyline points="15 18 9 12 15 6" />
-                  </svg>
-                </button>
-                <h1 className="urp-page-title">Uncertain Reports Triage</h1>
-              </div>
-            </div>
-          </div>
 
         {/* Toast Notifications */}
         {successToast && (
@@ -288,7 +296,7 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
             </div>
             <h2>All Reports Consolidated</h2>
             <p>No uncertain reports awaiting coordinator triage. AI Agent 2 has autonomously clustered all clear reports into municipal problems.</p>
-            <button className="urp-empty-btn" onClick={onNavigateToProblems}>
+            <button className="urp-empty-btn" onClick={goToProblems}>
               Return to Problems Dashboard
             </button>
           </div>

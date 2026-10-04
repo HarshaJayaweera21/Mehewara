@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { User } from '../../types/auth';
 import type {
   RecommendationListItem,
@@ -11,12 +12,14 @@ import {
   getRecommendationById,
 } from '../../services/dispatchApi';
 import { getCrewAvailability } from '../../services/crewApi';
-import { Header } from '../../components/common';
+import { Header, HeroBanner, MetricsStrip } from '../../components/common';
+import { OpsNavStrip } from '../../components/common/OpsNavStrip';
 import { ApproveRecommendationModal } from './components/ApproveRecommendationModal';
 import { EditRecommendationModal } from './components/EditRecommendationModal';
 import { RejectRecommendationModal } from './components/RejectRecommendationModal';
 import { RegenerateRecommendationModal } from './components/RegenerateRecommendationModal';
 import { ValidationReviewPanel } from './components/ValidationReviewPanel';
+import { ROUTES } from '../../routes/paths';
 import './DispatchDashboardPage.css';
 import './ReviewDashboard.css';
 import './RecommendationReview.css';
@@ -50,11 +53,21 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   onNavigateToOperations,
   onOpenWorkOrder,
 }) => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const goToOperations = onNavigateToOperations || (() => navigate(ROUTES.OPERATIONS));
+  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
+  const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
+  const goToCrews = onNavigateToCrews || (() => navigate(ROUTES.CREWS));
+  const goToProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
+  const handleOpenWorkOrder = onOpenWorkOrder || ((id?: string) => navigate(id ? `${ROUTES.WORK_ORDERS}?id=${id}` : ROUTES.WORK_ORDERS));
+
   const authToken = token || localStorage.getItem('mehewara_token') || '';
 
   // Data states
   const [recommendations, setRecommendations] = useState<RecommendationListItem[]>([]);
-  const [selectedRecId, setSelectedRecId] = useState<string | null>(null);
+  const [selectedRecId, setSelectedRecId] = useState<string | null>(() => searchParams.get('recId') || null);
   const [selectedDetail, setSelectedDetail] = useState<RecommendationDetail | null>(null);
   const [availableCrews, setAvailableCrews] = useState<CrewAvailabilityItem[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
@@ -68,13 +81,20 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedDecision, setSelectedDecision] = useState<string>('ALL');
-  const [reviewBucket, setReviewBucket] = useState('READY');
+  const [reviewBucket, setReviewBucket] = useState<string>(() => searchParams.get('bucket') || 'READY');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const fetchSequence = useRef(0);
   const requestedSelection = useRef<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useEffect(() => {
+    const bucketParam = searchParams.get('bucket');
+    if (bucketParam && bucketParam !== reviewBucket) {
+      setReviewBucket(bucketParam);
+    }
+  }, [searchParams, reviewBucket]);
 
   // Modal states
   const [modalMode, setModalMode] = useState<'approve' | 'edit' | 'reject' | 'regenerate' | null>(null);
@@ -156,8 +176,8 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
   useEffect(() => {
     fetchData();
-    return () => { fetchSequence.current++; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const seq = fetchSequence;
+    return () => { seq.current++; };
   }, [fetchData, refreshTrigger]);
 
   // 2. Fetch single detailed recommendation when selection changes
@@ -258,158 +278,68 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
   return (
     <div className="dispatch-dashboard-container">
-      <aside className="review-sidebar" aria-label="Main navigation">
-        <div className="review-brand"><span className="review-brand-mark">M</span><span><strong>MEHEWARA</strong><small>MUNICIPAL OPS</small></span></div>
-        <div className="review-sidebar-rule" />
-        <nav className="review-side-links">
-          <button type="button" onClick={onNavigateToOperations}><span>⌘</span>Operations</button>
-          <button type="button" onClick={onNavigateToReports}><span>▤</span>Reports</button>
-          <button type="button" onClick={onNavigateToProblems}><span>⚠</span>Problems</button>
-          <button type="button" className="active" aria-current="page"><span>✿</span>Recommendation Review <em>{totalItems}</em></button>
-          <button type="button" onClick={onNavigateToCrews}><span>♙</span>Crews</button>
-          <button type="button" onClick={() => onOpenWorkOrder?.('')}><span>⚒</span>Work Orders</button>
-        </nav>
-        <div className="review-sidebar-user">
-          <div className="review-sidebar-user-name">{currentUser?.name || 'Municipal Coordinator'}</div>
-          <span>Municipal Coordinator</span>
-          <button type="button" onClick={onOpenProfile}>View profile</button>
-        </div>
-      </aside>
-      <div className="review-main-area">
-      <div className="review-topbar">
-        <label className="review-top-search">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-          <input type="search" value={searchQuery} onChange={(event) => { setSearchQuery(event.target.value); setPage(1); }} placeholder="Search reference, problem, crew..." aria-label="Search recommendations" />
-        </label>
       {/* 1. Global Navigation Header */}
       <Header
         currentUser={currentUser}
         onLogout={onLogout}
-        onOpenProfile={onOpenProfile}
+        onOpenProfile={goToProfile}
+        onBrandClick={goToOperations}
         roleBadgeText="Municipal Coordinator"
         showName
       />
-      </div>
 
       <main className="dispatch-content-wrap">
         {/* Secondary Navigation Breadcrumbs / Module Switcher */}
-        <nav className="operations-nav-strip" aria-label="Operations Navigation">
-          <div className="nav-strip-left">
-            <button
-              type="button"
-              className="nav-strip-btn"
-              onClick={onNavigateToProblems}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              <span>Problems Board</span>
-            </button>
-            <span className="nav-strip-divider">/</span>
-            <button
-              type="button"
-              className="nav-strip-btn active"
-              aria-current="page"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                <polyline points="2 17 12 22 22 17" />
-                <polyline points="2 12 12 17 22 12" />
-              </svg>
-              <span>Dispatch Queue (Agent 3)</span>
-            </button>
-            <span className="nav-strip-divider">/</span>
-            <button
-              type="button"
-              className="nav-strip-btn"
-              onClick={onNavigateToCrews}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-              <span>Municipal Crews</span>
-            </button>
-            <span className="nav-strip-divider">/</span>
-            <button
-              type="button"
-              className="nav-strip-btn"
-              onClick={() => onOpenWorkOrder?.('')}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
-              </svg>
-              <span>Work Orders</span>
-            </button>
-          </div>
-          {onNavigateToReports && (
-            <div className="nav-strip-right">
-              <button
-                type="button"
-                className="nav-strip-subtle-link"
-                onClick={onNavigateToReports}
-              >
-                Resident Reports Portal →
-              </button>
-            </div>
-          )}
-        </nav>
+        <OpsNavStrip
+          activePage="dispatch"
+          onNavigateToDashboard={goToOperations}
+          onNavigateToProblems={goToProblems}
+          onNavigateToDispatch={() => {}}
+          onNavigateToCrews={goToCrews}
+          onNavigateToWorkOrders={() => handleOpenWorkOrder('')}
+          onNavigateToReports={goToReports}
+        />
 
-        {/* 2. Operations Welcome Banner (Matches ProblemsPage Scenic Canvas) */}
-        <section className="dispatch-welcome-banner" aria-label="Dispatch Operations Banner">
-          <div className="dispatch-banner-content">
-            <span className="banner-agent-badge">AI Agent 3 : Prioritization & Dispatch</span>
-            <h1 className="dispatch-banner-heading">Recommendation Review</h1>
-            <p className="dispatch-banner-sub">
-              Human-in-the-loop authorization desk. Inspect multi-factor priority scores, examine real-time crew availability, and authorize municipal work orders.
-            </p>
-          </div>
-        </section>
+        {/* 2. Operations Welcome Banner */}
+        <HeroBanner
+          badge="AI AGENT 3 : PRIORITIZATION & DISPATCH"
+          title="Recommendation Review"
+          subtitle="Human-in-the-loop authorization desk. Inspect multi-factor priority scores, examine real-time crew availability, and authorize municipal work orders."
+          ariaLabel="Dispatch Operations Banner"
+        />
 
         {/* 3. Operational Metrics Strip */}
         <div className="review-simulation-strip"><span>☷ &nbsp; Recommendation review queue</span><strong>{reviewBucket === 'READY' ? 'Active queue' : reviewBucket.replace(/_/g, ' ')}</strong></div>
-        <section className="dispatch-metrics-strip" aria-label="Key Dispatch Metrics">
-          <div className="dispatch-metric-cell">
-            <div className="metric-label-row">
-              <span className="metric-label">Pending Reviews</span>
-              <span className="metric-mint-pip" title="Action Required" />
-            </div>
-            <div className="metric-value">{metrics.pending}</div>
-            <div className="metric-descriptor">Awaiting coordinator authorization</div>
-          </div>
-
-          <div className="dispatch-metric-cell">
-            <div className="metric-label-row">
-              <span className="metric-label">High / Critical</span>
-            </div>
-            <div className="metric-value">{metrics.highCritical}</div>
-            <div className="metric-descriptor">Priority score ≥ 60/100</div>
-          </div>
-
-          <div className="dispatch-metric-cell">
-            <div className="metric-label-row">
-              <span className="metric-label">Total AI Assessed</span>
-            </div>
-            <div className="metric-value">{metrics.total}</div>
-            <div className="metric-descriptor">Recommendations generated</div>
-          </div>
-
-          <div className="dispatch-metric-cell">
-            <div className="metric-label-row">
-              <span className="metric-label">Available Crews</span>
-            </div>
-            <div className="metric-value">{metrics.availableCrewCount} / 5</div>
-            <div className="metric-descriptor">Standby for deployment</div>
-          </div>
-        </section>
+        <MetricsStrip
+          items={[
+            {
+              id: 'pending',
+              label: 'Pending Reviews',
+              value: metrics.pending,
+              descriptor: 'Awaiting coordinator authorization',
+              hasPip: true,
+            },
+            {
+              id: 'high-critical',
+              label: 'High / Critical',
+              value: metrics.highCritical,
+              descriptor: 'Priority score ≥ 60/100',
+            },
+            {
+              id: 'total',
+              label: 'Total AI Assessed',
+              value: metrics.total,
+              descriptor: 'Recommendations generated',
+            },
+            {
+              id: 'crews',
+              label: 'Available Crews',
+              value: `${metrics.availableCrewCount} / 5`,
+              descriptor: 'Standby for deployment',
+            },
+          ]}
+          ariaLabel="Key Dispatch Metrics"
+        />
 
         {/* 4. Filter Toolbar */}
         <nav className="dispatch-review-tabs" aria-label="Recommendation review views">
@@ -731,6 +661,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
                   {/* Actions Header Strip */}
                   <div className="detail-action-buttons">
+                    {/* ─── MEMBER 3 SCOPE: Human Override — Edit Priority / Crew ─────── */}
                     <button
                       type="button"
                       className="dispatch-action-btn edit-btn"
@@ -745,6 +676,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       <span>Edit</span>
                     </button>
 
+                    {/* ─── MEMBER 3 SCOPE: Dispatch Optimization — Regenerate Recommendation ─────── */}
                     <button
                       type="button"
                       className="dispatch-action-btn regen-btn"
@@ -760,6 +692,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       <span>Regenerate</span>
                     </button>
 
+                    {/* ─── MEMBER 4 SCOPE: Safety Gate — Rejection Authorization ──────── */}
                     <button
                       type="button"
                       className="dispatch-action-btn reject-btn"
@@ -774,6 +707,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       <span>Reject</span>
                     </button>
 
+                    {/* ─── MEMBER 4 SCOPE: Safety Gate — Approval Authorization ──────── */}
                     <button
                       type="button"
                       className="dispatch-action-btn approve-btn"
@@ -879,6 +813,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                   </div>
                 </div>
 
+                {/* ─── MEMBER 4 SCOPE: Agent 4 Validation Review Panel ───────────── */}
                 <ValidationReviewPanel key={selectedDetail.recommendationId} detail={selectedDetail} token={authToken}
                   onChange={(id, bucket) => { if (id) { requestedSelection.current = id; setReviewBucket('ALL'); setPage(1); setSelectedRecId(id); }
                     if (bucket) { requestedSelection.current = null; setReviewBucket(bucket); setPage(1); } setRefreshTrigger(v => v + 1); }} />
@@ -979,7 +914,6 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
           </section>
         </div>
       </main>
-      </div>
 
       {/* Decision Modals */}
       {modalMode === 'approve' && activeListItem && (

@@ -34,7 +34,7 @@
 
 .header-brand-name,
 .problems-brand-name {
-  font-family: 'Gemunu Libre', var(--mw-font-family, 'DM Sans'), sans-serif;
+  font-family: var(--mw-font-sinhala);
   font-size: 2.25rem;
   font-weight: 800;
   color: var(--mw-primary-forest, #123C32);
@@ -181,7 +181,7 @@
   border: none;
   background: transparent;
   color: var(--mw-text-primary, #18211E);
-  font-family: var(--mw-font-family, 'DM Sans', sans-serif);
+  font-family: var(--mw-font);
   font-size: 0.8125rem;
   font-weight: 500;
   padding: 0.55rem 0.75rem;
@@ -222,7 +222,7 @@
   border: 1px solid var(--mw-primary-forest, #123C32);
   border-radius: 20px;
   padding: 0.45rem 1.15rem;
-  font-family: var(--mw-font-family, 'DM Sans', sans-serif);
+  font-family: var(--mw-font);
   font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
