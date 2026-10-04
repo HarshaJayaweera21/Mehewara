@@ -11,7 +11,12 @@ import 'problem_detail_screen.dart';
 import 'problem_explorer_provider.dart';
 
 class ProblemExplorerScreen extends StatefulWidget {
-  const ProblemExplorerScreen({super.key});
+  final bool embedded;
+
+  const ProblemExplorerScreen({
+    super.key,
+    this.embedded = false,
+  });
 
   @override
   State<ProblemExplorerScreen> createState() => _ProblemExplorerScreenState();
@@ -58,7 +63,7 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
                     Positioned(
                       left: 14,
                       right: 14,
-                      bottom: 74, // Above the bottom nav bar
+                      bottom: widget.embedded ? 14 : 74, // Above the bottom nav bar
                       child: ProblemPreviewCard(
                         problem: provider.selectedProblem!,
                         onTrackProgress: () {
@@ -74,14 +79,15 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
                     ),
 
                   // 4. BOTTOM NAVIGATION BAR
-                  const Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: CivicBottomNavBar(
-                      currentTab: CivicNavTab.incidents,
+                  if (!widget.embedded)
+                    const Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: CivicBottomNavBar(
+                        currentTab: CivicNavTab.incidents,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),

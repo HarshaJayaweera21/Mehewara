@@ -140,7 +140,16 @@ class _RailItem extends StatelessWidget {
               children: [
                 Icon(icon, size: 20, color: selected ? CivicColors.forest : CivicColors.slateGreen),
                 const SizedBox(width: 12),
-                Text(label, style: TextStyle(fontWeight: selected ? FontWeight.w800 : FontWeight.w600, color: selected ? CivicColors.forest : CivicColors.charcoal)),
+                Expanded(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                      color: selected ? CivicColors.forest : CivicColors.charcoal,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
