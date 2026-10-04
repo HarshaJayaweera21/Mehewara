@@ -7,16 +7,17 @@ import '../../../services/reports/report_service.dart';
 import 'resident_report_detail_screen.dart';
 
 class MyReportsScreen extends StatefulWidget {
-  const MyReportsScreen({super.key, this.onCreateReport});
+  const MyReportsScreen({super.key, this.onCreateReport, this.service});
 
   final VoidCallback? onCreateReport;
+  final ReportService? service;
 
   @override
   State<MyReportsScreen> createState() => _MyReportsScreenState();
 }
 
 class _MyReportsScreenState extends State<MyReportsScreen> {
-  final _service = ReportService();
+  late final ReportService _service;
   final _search = TextEditingController();
   late Future<List<ResidentReport>> _reports;
   String _filter = 'All';
@@ -30,6 +31,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
   @override
   void initState() {
     super.initState();
+    _service = widget.service ?? ReportService();
     _reports = _service.getMyReports();
   }
 
@@ -108,6 +110,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                       };
                       final matchesQuery =
                           query.isEmpty ||
+                          (report.title?.toLowerCase().contains(query) ?? false) ||
                           report.description.toLowerCase().contains(query) ||
                           (report.address?.toLowerCase().contains(query) ??
                               false) ||
@@ -129,19 +132,21 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                             : visibleReports.length + 3,
                         separatorBuilder: (_, _) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
-                          if (index == 0)
+                          if (index == 0) {
                             return _ReportsHero(
                               total: reports.length,
                               active: activeCount,
                               resolved: resolvedCount,
                             );
-                          if (index == 1)
+                          }
+                          if (index == 1) {
                             return _ReportFilters(
                               selected: _filter,
                               onSelected: (value) =>
                                   setState(() => _filter = value),
                             );
-                          if (index == 2)
+                          }
+                          if (index == 2) {
                             return TextField(
                               controller: _search,
                               onChanged: (_) => setState(() {}),
@@ -159,6 +164,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                                       ),
                               ),
                             );
+                          }
                           if (visibleReports.isEmpty) {
                             return const Padding(
                               padding: EdgeInsets.symmetric(vertical: 28),
