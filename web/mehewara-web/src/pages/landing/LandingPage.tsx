@@ -42,12 +42,7 @@ const processSteps = [
 ];
 
 export function LandingPage({ currentUser, onNavigateToLogin, onNavigateToReports, onSignIn: legacySignIn, onSignUp: legacySignUp }: LandingPageProps) {
-  let navigate: (to: string) => void = () => {};
-  try {
-    navigate = useNavigate();
-  } catch {
-    // Fallback in tests without Router
-  }
+  const navigate = useNavigate();
 
   const signIn = onNavigateToLogin ?? legacySignIn ?? (() => navigate(ROUTES.LOGIN));
   const signUp = onNavigateToLogin ?? legacySignUp ?? (() => navigate(ROUTES.REGISTER));

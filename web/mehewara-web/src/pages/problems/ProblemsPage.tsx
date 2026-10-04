@@ -68,17 +68,8 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   onNavigateToCrews,
   onNavigateToWorkOrders,
 }) => {
-  let navigate: (to: string) => void = () => {};
-  let searchParams: URLSearchParams = new URLSearchParams();
-  let setSearchParams: (params: URLSearchParams | Record<string, string>) => void = () => {};
-  try {
-    navigate = useNavigate();
-    const [sp, setSp] = useSearchParams();
-    searchParams = sp;
-    setSearchParams = setSp;
-  } catch {
-    // Tests outside router
-  }
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
   const goToLanding = onNavigateToLanding || (() => navigate(ROUTES.HOME));
@@ -116,7 +107,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
     if (idFromParam !== selectedProblemId) {
       setSelectedProblemId(idFromParam || null);
     }
-  }, [searchParams]);
+  }, [searchParams, selectedProblemId]);
 
   // Fetch count of uncertain reports requiring coordinator review
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { UncertainReportsPage } from '../../../src/pages/problems/UncertainReportsPage';
 import * as problemApi from '../../../src/services/problemApi';
 import type { UncertainReportResponse, ProblemResponse } from '../../../src/types/problems';
@@ -47,10 +48,12 @@ describe('Problem Form Validation Tests (Member 2)', () => {
 
   it('Create Problem Form disables submit button when title is empty or whitespace', async () => {
     render(
-      <UncertainReportsPage
-        token="test-token"
-        onNavigateToProblems={vi.fn()}
-      />
+      <MemoryRouter>
+        <UncertainReportsPage
+          token="test-token"
+          onNavigateToProblems={vi.fn()}
+        />
+      </MemoryRouter>
     );
 
     // Wait for the report card description to render
@@ -88,10 +91,12 @@ describe('Problem Form Validation Tests (Member 2)', () => {
 
   it('Link Report Form validates that a target problem is selected', async () => {
     render(
-      <UncertainReportsPage
-        token="test-token"
-        onNavigateToProblems={vi.fn()}
-      />
+      <MemoryRouter>
+        <UncertainReportsPage
+          token="test-token"
+          onNavigateToProblems={vi.fn()}
+        />
+      </MemoryRouter>
     );
 
     await waitFor(() => {
@@ -138,10 +143,12 @@ describe('Problem Form Validation Tests (Member 2)', () => {
     const linkSpy = vi.spyOn(problemApi, 'linkUncertainReport').mockResolvedValue(mockProblemResponse);
 
     render(
-      <UncertainReportsPage
-        token="test-token"
-        onNavigateToProblems={vi.fn()}
-      />
+      <MemoryRouter>
+        <UncertainReportsPage
+          token="test-token"
+          onNavigateToProblems={vi.fn()}
+        />
+      </MemoryRouter>
     );
 
     await waitFor(() => {

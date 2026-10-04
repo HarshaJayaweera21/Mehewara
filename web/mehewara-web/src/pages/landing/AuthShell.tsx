@@ -14,12 +14,7 @@ interface AuthShellProps {
 export function AuthShell({ mode, onBack, onSwitch, children }: AuthShellProps) {
   const isSignIn = mode === 'signin';
 
-  let navigate: (to: string) => void = () => {};
-  try {
-    navigate = useNavigate();
-  } catch {
-    // Fallback if rendered outside Router in tests
-  }
+  const navigate = useNavigate();
 
   const handleBack = () => {
     if (onBack) {

@@ -52,15 +52,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   onNavigateToReports,
   onNavigateToLanding,
 }) => {
-  let locationPath = '';
-  let navigate: (to: string) => void = () => {};
-  try {
-    const loc = useLocation();
-    locationPath = loc.pathname;
-    navigate = useNavigate();
-  } catch {
-    // Tests outside router
-  }
+  const location = useLocation();
+  const locationPath = location.pathname;
+  const navigate = useNavigate();
 
   const isRegisterRoute = locationPath === ROUTES.REGISTER;
   const isAuthRoute = locationPath === ROUTES.LOGIN || locationPath === ROUTES.REGISTER;

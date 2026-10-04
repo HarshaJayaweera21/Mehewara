@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { getProblems, linkUncertainReport } from '../../../src/services/problemApi';
 import { ProblemsPage } from '../../../src/pages/problems/ProblemsPage';
 import * as problemApi from '../../../src/services/problemApi';
@@ -83,7 +84,7 @@ describe('Problem Error States Tests (Member 2)', () => {
     );
     vi.spyOn(problemApi, 'getUncertainReports').mockResolvedValue([]);
 
-    render(<ProblemsPage token="valid-token" />);
+    render(<MemoryRouter><ProblemsPage token="valid-token" /></MemoryRouter>);
 
     // Expect loading state first or wait for error state
     await waitFor(() => {

@@ -40,12 +40,7 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
   onLogout,
   onOpenProfile,
 }) => {
-  let navigate: (to: string) => void = () => {};
-  try {
-    navigate = useNavigate();
-  } catch {
-    // Tests outside router
-  }
+  const navigate = useNavigate();
 
   const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
   const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));

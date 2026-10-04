@@ -28,17 +28,8 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
   onOpenProfile,
   onNavigateToProblems,
 }) => {
-  let navigate: (to: string) => void = () => {};
-  let searchParams = new URLSearchParams();
-  let setSearchParams: (params: Record<string, string>) => void = () => {};
-  try {
-    navigate = useNavigate();
-    const [sp, setSp] = useSearchParams();
-    searchParams = sp;
-    setSearchParams = setSp;
-  } catch {
-    // outside router
-  }
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const handleLogout = onLogout || (() => navigate(ROUTES.LOGIN));
   const handleOpenProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
@@ -93,7 +84,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
     if (p !== selectedDetailId) {
       setSelectedDetailId(p);
     }
-  }, [searchParams]);
+  }, [searchParams, selectedDetailId]);
 
   const handleOpenDetail = (id: string) => {
     setSelectedDetailId(id);
@@ -149,7 +140,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [token, activeTab, page, selectedStatus, searchQuery]);
+  }, [token, activeTab, page, selectedStatus, searchQuery, setLoading, setError, setReports, setTotalPages, setTotalItems]);
 
   useEffect(() => {
     fetchReports();

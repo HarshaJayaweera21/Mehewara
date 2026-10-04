@@ -29,12 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
-  let navigate: (to: string) => void = () => {};
-  try {
-    navigate = useNavigate();
-  } catch {
-    // Graceful fallback if rendered outside Router context in tests
-  }
+  const navigate = useNavigate();
 
   const handleBrandClick = () => {
     if (onBrandClick) {

@@ -22,17 +22,8 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
   onNavigateToDispatch?: () => void;
   onNavigateToCrews?: () => void;
 }) {
-  let navigate: (to: string) => void = () => {};
-  let searchParams: URLSearchParams = new URLSearchParams();
-  let setSearchParams: (params: Record<string, string>) => void = () => {};
-  try {
-    navigate = useNavigate();
-    const [sp, setSp] = useSearchParams();
-    searchParams = sp;
-    setSearchParams = setSp;
-  } catch {
-    // Tests outside router
-  }
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const goToProblems = onNavigateToProblems || onCoordinator || (() => navigate(ROUTES.PROBLEMS));
   const goToDispatch = onNavigateToDispatch || (() => navigate(ROUTES.DISPATCH));
@@ -53,7 +44,7 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
     if (idFromParam && idFromParam !== selectedId) {
       setSelectedId(idFromParam);
     }
-  }, [searchParams]);
+  }, [searchParams, selectedId]);
 
   const handleSelectJob = (id: string) => {
     if (id === selectedId) return;

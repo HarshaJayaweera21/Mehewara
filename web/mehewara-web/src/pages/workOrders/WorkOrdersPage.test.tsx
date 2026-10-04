@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { WorkOrdersPage } from './WorkOrdersPage';
 import type { WorkOrder } from '../../types/workOrders';
 import { completeWorkOrder, startWorkOrder } from '../../services/workOrdersApi';
@@ -31,7 +32,7 @@ describe('WorkOrder screens and contracts', () => {
       return reply(url.includes('?') ? { items: [current], totalItems: 1, totalPages: 1, page: 1, pageSize: 20 } : current);
     });
     vi.stubGlobal('fetch', fetcher);
-    render(<WorkOrdersPage {...props} />);
+    render(<MemoryRouter><WorkOrdersPage {...props} /></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button', { name: /Clear main drain/ }));
     fireEvent.click(await screen.findByRole('button', { name: 'Start Job' }));
     fireEvent.change(await screen.findByLabelText('Completion notes (optional)'), { target: { value: 'Repaired' } });
@@ -47,7 +48,7 @@ describe('WorkOrder screens and contracts', () => {
       if (url.endsWith('/complete')) { conflict = true; return reply({ error: { code: 'WORK_ORDER_STATE_CONFLICT', message: 'Changed' } }, 409); }
       return reply(url.includes('?') ? { items: [{ ...job, status: 'IN_PROGRESS' }], totalItems: 1, totalPages: 1 } : { ...job, status: 'IN_PROGRESS' });
     }));
-    render(<WorkOrdersPage {...props} initialId={job.id} />);
+    render(<MemoryRouter><WorkOrdersPage {...props} initialId={job.id} /></MemoryRouter>);
     fireEvent.change(await screen.findByLabelText('Completion notes (optional)'), { target: { value: 'Keep my note' } });
     fireEvent.click(screen.getByRole('button', { name: 'Complete Job' }));
     expect(await screen.findByText(/latest status has been loaded/)).toBeInTheDocument();
@@ -56,7 +57,7 @@ describe('WorkOrder screens and contracts', () => {
 
   it('shows a missing crew error and does not offer job actions', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => reply({ error: { code: 'CREW_NOT_LINKED', message: 'No crew is linked to this leader account.' } }, 403)));
-    render(<WorkOrdersPage {...props} />);
+    render(<MemoryRouter><WorkOrdersPage {...props} /></MemoryRouter>);
     expect(await screen.findByRole('alert')).toHaveTextContent('No crew is linked');
     expect(screen.queryByText('Start Job')).not.toBeInTheDocument();
   });
@@ -64,7 +65,7 @@ describe('WorkOrder screens and contracts', () => {
   it('admin monitoring has filters and no execution actions', async () => {
     const fetcher = vi.fn(async (url: string) => reply(url.includes('?') ? { items: [job], totalItems: 1, totalPages: 1 } : job));
     vi.stubGlobal('fetch', fetcher);
-    render(<WorkOrdersPage {...props} user={{ ...props.user, role: 'ADMIN' }} initialId={job.id} />);
+    render(<MemoryRouter><WorkOrdersPage {...props} user={{ ...props.user, role: 'ADMIN' }} initialId={job.id} /></MemoryRouter>);
     await screen.findByRole('heading', { name: job.title, level: 2 });
     expect(screen.queryByText('Start Job')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Created from'), { target: { value: '2026-09-01' } });

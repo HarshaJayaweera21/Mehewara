@@ -53,15 +53,8 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   onNavigateToOperations,
   onOpenWorkOrder,
 }) => {
-  let navigate: (to: string) => void = () => {};
-  let searchParams: URLSearchParams = new URLSearchParams();
-  try {
-    navigate = useNavigate();
-    const [sp] = useSearchParams();
-    searchParams = sp;
-  } catch {
-    // Tests outside router
-  }
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const goToOperations = onNavigateToOperations || (() => navigate(ROUTES.OPERATIONS));
   const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
@@ -101,7 +94,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
     if (bucketParam && bucketParam !== reviewBucket) {
       setReviewBucket(bucketParam);
     }
-  }, [searchParams]);
+  }, [searchParams, reviewBucket]);
 
   // Modal states
   const [modalMode, setModalMode] = useState<'approve' | 'edit' | 'reject' | 'regenerate' | null>(null);
@@ -183,8 +176,8 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
   useEffect(() => {
     fetchData();
-    return () => { fetchSequence.current++; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const seq = fetchSequence;
+    return () => { seq.current++; };
   }, [fetchData, refreshTrigger]);
 
   // 2. Fetch single detailed recommendation when selection changes

@@ -28,12 +28,7 @@ export const OpsNavStrip: React.FC<OpsNavStripProps> = ({
   onNavigateToReports,
   showReportsLink = true,
 }) => {
-  let navigate: (to: string) => void = () => {};
-  try {
-    navigate = useNavigate();
-  } catch {
-    // Graceful fallback for non-router tests
-  }
+  const navigate = useNavigate();
 
   const goToDashboard = onNavigateToDashboard || (() => navigate(ROUTES.OPERATIONS));
   const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));

@@ -41,12 +41,7 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
   onNavigateToReports,
   onNavigateToWorkOrders,
 }) => {
-  let navigate: (to: string) => void = () => {};
-  try {
-    navigate = useNavigate();
-  } catch {
-    // Tests outside router
-  }
+  const navigate = useNavigate();
 
   const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
   const goToDispatch = onNavigateToDispatch || (() => navigate(ROUTES.DISPATCH));

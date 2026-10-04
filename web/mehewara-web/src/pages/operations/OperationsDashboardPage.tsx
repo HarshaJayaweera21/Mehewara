@@ -63,12 +63,7 @@ export function OperationsDashboardPage({
   onNavigateToProblems, onNavigateToUncertainReports, onNavigateToDispatch,
   onNavigateToCrews, onNavigateToWorkOrders,
 }: OperationsDashboardPageProps) {
-  let navigate: (to: string) => void = () => {};
-  try {
-    navigate = useNavigate();
-  } catch {
-    // Tests outside router
-  }
+  const navigate = useNavigate();
 
   const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
   const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
