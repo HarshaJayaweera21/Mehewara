@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import contextvars
 import logging
+import math
 from typing import Any
 from langchain_core.tools import tool
 
@@ -135,9 +136,95 @@ def get_recent_jobs(crew_id: str) -> list[dict[str, Any]]:
     return []
 
 
+@tool
+def calculate_crew_proximity(
+    crew_lat: float,
+    crew_lon: float,
+    problem_lat: float,
+    problem_lon: float,
+) -> dict[str, Any]:
+    """
+    Calculate estimated road transit distance and travel time between crew coordinates and problem coordinates.
+    Applies urban grid tortuosity factor (1.35) and average urban response speed (25 km/h).
+
+    Args:
+        crew_lat: Latitude of crew depot or current location.
+        crew_lon: Longitude of crew depot or current location.
+        problem_lat: Latitude of municipal problem.
+        problem_lon: Longitude of municipal problem.
+    """
+    R = 6371.0  # Earth radius in km
+    d_lat = math.radians(problem_lat - crew_lat)
+    d_lon = math.radians(problem_lon - crew_lon)
+    lat1 = math.radians(crew_lat)
+    lat2 = math.radians(problem_lat)
+
+    a = math.sin(d_lat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(d_lon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    straight_distance = R * c
+
+    road_distance = round(straight_distance * 1.35, 2)
+    travel_time_minutes = max(2, int(round((road_distance / 25.0) * 60)))
+
+    return {
+        "straightDistanceKm": round(straight_distance, 2),
+        "roadDistanceKm": road_distance,
+        "estimatedTravelMinutes": travel_time_minutes,
+    }
+
+
+@tool
+def estimate_remediation_duration(
+    category: str,
+    priority: str = "MEDIUM",
+    report_count: int = 1,
+) -> dict[str, Any]:
+    """
+    Estimate physical on-site remediation duration in minutes based on municipal category, severity, and report volume.
+
+    Args:
+        category: Municipal category (DRAINAGE, ROAD, WASTE, ELECTRICAL, ENVIRONMENT).
+        priority: Assessed priority level (LOW, MEDIUM, HIGH, CRITICAL).
+        report_count: Number of citizen reports linked to the problem.
+    """
+    base_durations = {
+        "WASTE": 35,
+        "ELECTRICAL": 45,
+        "DRAINAGE": 60,
+        "ROAD": 75,
+        "ENVIRONMENT": 60,
+    }
+    cat_upper = (category or "").strip().upper()
+    base = base_durations.get(cat_upper, 60)
+
+    prio_multipliers = {
+        "LOW": 0.8,
+        "MEDIUM": 1.0,
+        "HIGH": 1.4,
+        "CRITICAL": 2.0,
+    }
+    prio_upper = (priority or "MEDIUM").strip().upper()
+    prio_mult = prio_multipliers.get(prio_upper, 1.0)
+
+    vol_mult = min(1.5, 1.0 + 0.1 * max(0, report_count - 1))
+
+    duration = int(round(base * prio_mult * vol_mult))
+    clamped = max(15, min(480, duration))
+    is_quick_win = clamped <= 45
+
+    return {
+        "category": cat_upper,
+        "estimatedDurationMinutes": clamped,
+        "isQuickWin": is_quick_win,
+    }
+
+
 AGENT_3_TOOLS = [
     get_crew_capabilities,
     check_crew_availability,
     get_recent_jobs,
+    calculate_crew_proximity,
+    estimate_remediation_duration,
 ]
+
 

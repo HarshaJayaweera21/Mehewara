@@ -34,7 +34,7 @@ class CrewService {
       return response;
     }
 
-    throw ApiException(
+    throw ApiException.named(
       message: 'Unexpected login response from server',
       statusCode: 500,
     );
@@ -46,7 +46,7 @@ class CrewService {
     if (response is Map<String, dynamic>) {
       return CrewModel.fromJson(response);
     }
-    throw ApiException(
+    throw ApiException.named(
       message: 'Invalid crew profile response payload',
       statusCode: 500,
     );
@@ -64,7 +64,7 @@ class CrewService {
     if (response is Map<String, dynamic>) {
       return CrewModel.fromJson(response);
     }
-    throw ApiException(
+    throw ApiException.named(
       message: 'Invalid crew status response payload',
       statusCode: 500,
     );
@@ -72,13 +72,29 @@ class CrewService {
 
   /// Get active and past work orders assigned to this crew
   Future<List<WorkOrderModel>> getCrewWorkOrders() async {
-    final response = await _apiClient.get(ApiConstants.crewWorkOrders);
-    if (response is List) {
-      return response
-          .map((item) => WorkOrderModel.fromJson(item as Map<String, dynamic>))
-          .toList();
+    final orders = <WorkOrderModel>[];
+    var page = 1;
+    while (true) {
+      final response = await _apiClient.get(
+        ApiConstants.crewWorkOrders,
+        queryParams: {'page': '$page', 'pageSize': '100'},
+      );
+      if (response is! Map<String, dynamic> || response['items'] is! List) {
+        throw ApiException.named(
+          message: 'Invalid crew work orders response payload',
+          statusCode: 500,
+        );
+      }
+
+      orders.addAll((response['items'] as List).map(
+        (item) => WorkOrderModel.fromJson(item as Map<String, dynamic>),
+      ));
+      final totalPages = response['totalPages'] as int? ?? 0;
+      if (page >= totalPages) {
+        return orders;
+      }
+      page++;
     }
-    return [];
   }
 
   /// Start working on an assigned work order (transitions ASSIGNED -> IN_PROGRESS)
@@ -87,7 +103,7 @@ class CrewService {
     if (response is Map<String, dynamic>) {
       return WorkOrderModel.fromJson(response);
     }
-    throw ApiException(
+    throw ApiException.named(
       message: 'Invalid response from starting work order',
       statusCode: 500,
     );
@@ -104,7 +120,7 @@ class CrewService {
     if (response is Map<String, dynamic>) {
       return WorkOrderModel.fromJson(response);
     }
-    throw ApiException(
+    throw ApiException.named(
       message: 'Invalid response from completing work order',
       statusCode: 500,
     );
@@ -122,7 +138,7 @@ class CrewService {
     if (response is Map<String, dynamic>) {
       return WorkOrderModel.fromJson(response);
     }
-    throw ApiException(
+    throw ApiException.named(
       message: 'Invalid response from reporting work order issue',
       statusCode: 500,
     );
@@ -134,10 +150,26 @@ class CrewService {
     if (response is Map<String, dynamic>) {
       return response;
     }
-    throw ApiException(
+    throw ApiException.named(
       message: 'Invalid response from fetching problem details',
       statusCode: 500,
     );
   }
+
+  /// Send real-time telemetry heartbeat to backend in-memory cache (non-blocking)
+  Future<void> sendHeartbeat(double latitude, double longitude) async {
+    try {
+      await _apiClient.post(
+        '/crew/heartbeat',
+        body: {
+          'latitude': latitude,
+          'longitude': longitude,
+        },
+      );
+    } catch (_) {
+      // Non-blocking telemetry ping; ignore transient network drops
+    }
+  }
 }
+
 

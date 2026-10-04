@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   loginWithCredentials,
   registerResident,
@@ -8,6 +9,8 @@ import {
   removeProfilePhoto,
 } from '../../services/api';
 import type { User } from '../../types/auth';
+import { isCrewLeader } from '../../types/access';
+import { ROUTES } from '../../routes/paths';
 import { LandingPage } from '../landing/LandingPage';
 import { AuthShell } from '../landing/AuthShell';
 import './LoginPage.css';
@@ -49,8 +52,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   onNavigateToReports,
   onNavigateToLanding,
 }) => {
-  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
-  const [publicView, setPublicView] = useState<'landing' | 'auth'>('landing');
+  const location = useLocation();
+  const locationPath = location.pathname;
+  const navigate = useNavigate();
+
+  const isRegisterRoute = locationPath === ROUTES.REGISTER;
+  const isAuthRoute = locationPath === ROUTES.LOGIN || locationPath === ROUTES.REGISTER;
+
+  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>(isRegisterRoute ? 'signup' : 'signin');
+  const [publicView, setPublicView] = useState<'landing' | 'auth'>(isAuthRoute ? 'auth' : 'landing');
+
+  useEffect(() => {
+    if (locationPath === ROUTES.REGISTER) {
+      setActiveTab('signup');
+      setPublicView('auth');
+    } else if (locationPath === ROUTES.LOGIN) {
+      setActiveTab('signin');
+      setPublicView('auth');
+    }
+  }, [locationPath]);
 
   // Sign In state
   const [email, setEmail] = useState('');
@@ -93,38 +113,42 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     const setupGoogleButton = () => {
       if (!window.google?.accounts?.id) return false;
 
-      if (!googleInitializedRef.current) {
-        window.google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: async (response) => {
-            try {
-              setLoading(true);
-              setError(null);
-              const authData = await loginWithGoogle(response.credential);
-              localStorage.setItem('mehewara_token', authData.accessToken);
-              localStorage.setItem('mehewara_user', JSON.stringify(authData.user));
-              setCurrentUser(authData.user);
-              onLoginSuccess?.(authData.user, authData.accessToken);
-            } catch (err: unknown) {
-              setError(err instanceof Error ? err.message : 'Google authentication failed.');
-            } finally {
-              setLoading(false);
-            }
-          },
-        });
-        googleInitializedRef.current = true;
-      }
+      try {
+        if (!googleInitializedRef.current) {
+          window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: async (response) => {
+              try {
+                setLoading(true);
+                setError(null);
+                const authData = await loginWithGoogle(response.credential);
+                localStorage.setItem('mehewara_token', authData.accessToken);
+                localStorage.setItem('mehewara_user', JSON.stringify(authData.user));
+                setCurrentUser(authData.user);
+                onLoginSuccess?.(authData.user, authData.accessToken);
+              } catch (err: unknown) {
+                setError(err instanceof Error ? err.message : 'Google authentication failed.');
+              } finally {
+                setLoading(false);
+              }
+            },
+          });
+          googleInitializedRef.current = true;
+        }
 
-      const btnContainer = document.getElementById('google-btn-rendered');
-      if (btnContainer) {
-        btnContainer.innerHTML = '';
-        window.google.accounts.id.renderButton(btnContainer, {
-          theme: 'outline',
-          size: 'large',
-          width: '350',
-          text: 'signin_with',
-        });
-        return true;
+        const btnContainer = document.getElementById('google-btn-rendered');
+        if (btnContainer) {
+          btnContainer.innerHTML = '';
+          window.google.accounts.id.renderButton(btnContainer, {
+            theme: 'outline',
+            size: 'large',
+            width: '350',
+            text: 'signin_with',
+          });
+          return true;
+        }
+      } catch (err) {
+        console.warn('Google Identity Services button rendering deferred or blocked by browser:', err);
       }
       return false;
     };
@@ -331,6 +355,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             onClick={() => {
               setActiveTab('signin');
               setError(null);
+              if (locationPath === ROUTES.REGISTER) {
+                navigate(ROUTES.LOGIN);
+              }
             }}
           >
             Sign in
@@ -342,6 +369,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             onClick={() => {
               setActiveTab('signup');
               setError(null);
+              if (locationPath === ROUTES.LOGIN) {
+                navigate(ROUTES.REGISTER);
+              }
             }}
           >
             Create account
@@ -434,11 +464,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         mode={activeTab}
         onBack={() => {
           setError(null);
-          setPublicView('landing');
+          if (onNavigateToLanding) {
+            onNavigateToLanding();
+          } else {
+            navigate(ROUTES.HOME);
+          }
         }}
         onSwitch={() => {
           setError(null);
-          setActiveTab((tab) => tab === 'signin' ? 'signup' : 'signin');
+          const nextTab = activeTab === 'signin' ? 'signup' : 'signin';
+          setActiveTab(nextTab);
+          if (locationPath === ROUTES.LOGIN || locationPath === ROUTES.REGISTER) {
+            navigate(nextTab === 'signin' ? ROUTES.LOGIN : ROUTES.REGISTER);
+          }
         }}
       >
         {authPanel}
@@ -565,7 +603,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   className="submit-btn"
                   onClick={() => onNavigateToReports?.()}
                 >
-                  📋 Go to Reports Portal
+                  {currentUser.role === 'ADMIN' ? 'Go to coordinator dashboard' : isCrewLeader(currentUser.role) ? 'Go to My Jobs' : 'Go to Reports Portal'}
                 </button>
                 <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
                   <button

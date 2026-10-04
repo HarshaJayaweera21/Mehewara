@@ -16,6 +16,7 @@ export const RegenerateRecommendationModal: React.FC<RegenerateRecommendationMod
   onSuccess,
 }) => {
   const [feedback, setFeedback] = useState('');
+  const [requestId] = useState(() => crypto.randomUUID());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -26,7 +27,9 @@ export const RegenerateRecommendationModal: React.FC<RegenerateRecommendationMod
 
     try {
       await regenerateRecommendation(token, recommendation.recommendationId, {
-        feedback: feedback.trim() || undefined,
+        reason: feedback.trim(),
+        expectedRevision: recommendation.revision,
+        requestId,
       });
       onSuccess();
     } catch (err) {
@@ -83,18 +86,20 @@ export const RegenerateRecommendationModal: React.FC<RegenerateRecommendationMod
           </div>
 
           <p className="modal-description-subtle">
-            Re-triggering AI Agent 3 sends the problem parameters back into the LangGraph state machine. It will query real-time crew availability, re-calculate the multi-factor heuristic score, and produce an updated dispatch recommendation.
+            Regeneration uses current Problem and crew information to produce a new recommendation, then validates it. You will review the result before approving dispatch.
           </p>
 
           <div className="dispatch-form-group">
             <label htmlFor="coordinator-feedback" className="dispatch-form-label">
-              Coordinator Prompt / Guiding Feedback <span className="optional-tag">(Optional)</span>
+              Reason and review feedback (required)
             </label>
             <textarea
               id="coordinator-feedback"
               rows={3}
+              required
+              maxLength={4000}
               className="dispatch-form-textarea"
-              placeholder="e.g. Factor in upcoming heavy monsoon rainfall warnings; or prefer nearby crew with specialized vacuum pumps."
+              placeholder="Explain what should be reconsidered, such as an unavailable crew or an unsupported priority reason."
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
             />
@@ -117,7 +122,7 @@ export const RegenerateRecommendationModal: React.FC<RegenerateRecommendationMod
               {isSubmitting ? (
                 <>
                   <span className="dispatch-spinner-pip" />
-                  Running AI Agent 3...
+                  Queuing review...
                 </>
               ) : (
                 'Regenerate Assessment'

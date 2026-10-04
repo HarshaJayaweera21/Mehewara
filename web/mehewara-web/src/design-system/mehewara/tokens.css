@@ -11,6 +11,178 @@
   --mehewara-border: #DDE2DE;
   --mehewara-radius: 12px;
   --mehewara-font: Inter, "Segoe UI", Arial, sans-serif;
+
+  /* Unified Core Tokens */
+  --mw-forest: #123C32;
+  --mw-forest-hover: #0D3028;
+  --mw-mint: #4FD1A1;
+  --mw-sage: #E5F6EE;
+  --mw-canvas: #F7F7F2;
+  --mw-surface: #FFFFFF;
+  --mw-surface-subtle: #FBFBFA;
+
+  /* Typography */
+  --mw-font: Inter, "Segoe UI", Arial, sans-serif;
+  --mw-font-sinhala: "Gemunu Libre", var(--mw-font);
+
+  /* Text & Border */
+  --mw-ink: #18211E;
+  --mw-muted: #68736E;
+  --mw-faint: #8F9995;
+  --mw-line: #DDE2DE;
+  --mw-line-subtle: #EBEFEA;
+
+  /* Shadows */
+  --mw-shadow-sm: 0 1px 2px rgba(18, 60, 50, 0.04);
+  --mw-shadow-md: 0 1px 3px rgba(18, 60, 50, 0.06), 0 1px 2px rgba(18, 60, 50, 0.04);
+  --mw-shadow-lg: 0 8px 24px rgba(18, 60, 50, 0.10);
+
+  /* Ops Page & Legacy Aliases for seamless cascade */
+  --mw-font-family: var(--mw-font);
+  --mw-primary-forest: var(--mw-forest);
+  --mw-primary-hover: var(--mw-forest-hover);
+  --mw-mint-accent: var(--mw-mint);
+  --mw-soft-sage: var(--mw-sage);
+  --mw-page-bg: var(--mw-canvas);
+  --mw-text-primary: var(--mw-ink);
+  --mw-text-secondary: var(--mw-muted);
+  --mw-text-muted: var(--mw-faint);
+  --mw-border: var(--mw-line);
+  --mw-border-subtle: var(--mw-line-subtle);
+  --mw-border-focus: var(--mw-forest);
+  --mw-shadow-subtle: var(--mw-shadow-sm);
+  --mw-shadow-card: var(--mw-shadow-md);
+  --mw-shadow-hover: var(--mw-shadow-lg);
+
+  /* Semantic Alert / Priority Tokens */
+  --mw-critical-text: #991B1B;
+  --mw-critical-bg: #FEF2F2;
+  --mw-critical-border: #FEE2E2;
+
+  --mw-high-text: #C2410C;
+  --mw-high-bg: #FFF7ED;
+  --mw-high-border: #FFEDD5;
+
+  --mw-medium-text: #B45309;
+  --mw-medium-bg: #FFFBEB;
+  --mw-medium-border: #FEF3C7;
+
+  --mw-low-text: #3D5A4C;
+  --mw-low-bg: #F0F4F2;
+  --mw-low-border: #E1E8E4;
+
+  --mw-identified-text: #123C32;
+  --mw-identified-bg: #E5F6EE;
+  --mw-identified-border: #D1EAE0;
+
+  --mw-assigned-text: #1E40AF;
+  --mw-assigned-bg: #EFF6FF;
+  --mw-assigned-border: #DBEAFE;
+
+  --mw-in-progress-text: #0F766E;
+  --mw-in-progress-bg: #F0FDFA;
+  --mw-in-progress-border: #CCFBF1;
+
+  --mw-resolved-text: #166534;
+  --mw-resolved-bg: #F0FDF4;
+  --mw-resolved-border: #DCFCE7;
+}
+
+/* Standard Button Classes */
+.mw-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--mw-forest);
+  color: #FFFFFF;
+  border: 1px solid var(--mw-forest);
+  border-radius: 8px;
+  padding: 0.55rem 1.15rem;
+  font-family: var(--mw-font);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--mw-shadow-sm);
+  user-select: none;
+}
+.mw-btn-primary:hover {
+  background: var(--mw-forest-hover);
+  border-color: var(--mw-forest-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--mw-shadow-md);
+}
+.mw-btn-primary:active {
+  transform: translateY(0);
+}
+
+.mw-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--mw-sage);
+  color: var(--mw-forest);
+  border: 1px solid var(--mw-line);
+  border-radius: 8px;
+  padding: 0.55rem 1.15rem;
+  font-family: var(--mw-font);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 160ms ease;
+  user-select: none;
+}
+.mw-btn-secondary:hover {
+  background: #d5eedf;
+  border-color: #c4d7cc;
+}
+
+.mw-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: var(--mw-forest);
+  border: 1px solid var(--mw-line);
+  border-radius: 8px;
+  padding: 0.55rem 1.15rem;
+  font-family: var(--mw-font);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 160ms ease;
+}
+.mw-btn-ghost:hover {
+  background: var(--mw-surface-subtle);
+  border-color: var(--mw-forest);
+}
+
+.mw-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--mw-critical-bg);
+  color: var(--mw-critical-text);
+  border: 1px solid var(--mw-critical-border);
+  border-radius: 8px;
+  padding: 0.55rem 1.15rem;
+  font-family: var(--mw-font);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 160ms ease;
+}
+.mw-btn-danger:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
 }
 .mehewara-icon { display: inline-block; flex: none; vertical-align: middle; }
 .mehewara-badge { display: inline-flex; align-items: center; gap: 7px; min-height: 28px; padding: 3px 10px; box-sizing: border-box; border-radius: 999px; font: 600 12px/1.5 var(--mehewara-font); white-space: nowrap; }
@@ -26,3 +198,119 @@
 .mehewara-badge[data-kind="status"][data-value="in-progress"] { color: #2F696D; background: #E7F2F1; }
 .mehewara-badge[data-kind="status"][data-value="resolved"] { color: #376A50; background: #E5F3E9; }
 @media (forced-colors: active) { .mehewara-badge { border: 1px solid CanvasText; } }
+
+/* ==========================================================================
+   Mehewara Administrator Suite - Shared Hero & Metrics Utilities
+   ========================================================================== */
+
+.mw-welcome-banner {
+  background-color: #F6FAF7;
+  background-image: url('../../assets/bg.png');
+  background-position: center bottom;
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 10px;
+  min-height: 180px;
+  padding: 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.04);
+  box-sizing: border-box;
+}
+
+.mw-banner-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: #0F766E;
+  background: rgba(229, 246, 238, 0.9);
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  margin-bottom: 0.6rem;
+  align-self: flex-start;
+  border: 1px solid #CCFBF1;
+}
+
+.mw-banner-heading {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--mw-primary-forest, #123C32);
+  margin: 0 0 0.4rem;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.mw-banner-sub {
+  font-size: 0.95rem;
+  color: var(--mw-text-secondary, #68736E);
+  margin: 0;
+  max-width: 720px;
+  line-height: 1.45;
+}
+
+.mw-metrics-strip {
+  display: grid;
+  background: #FFFFFF;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.03);
+  overflow: hidden;
+}
+
+.mw-metric-cell {
+  padding: 1.25rem 1.5rem;
+  border-right: 1px solid var(--mw-border-subtle, #EBEFEA);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: background-color 150ms ease;
+}
+
+.mw-metric-cell:last-child {
+  border-right: none;
+}
+
+.mw-metric-cell:hover {
+  background-color: var(--mw-surface-subtle, #FAFAF7);
+}
+
+.mw-metric-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.2rem;
+}
+
+.mw-metric-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mw-text-secondary, #68736E);
+}
+
+.mw-metric-pip {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mw-accent-mint, #4FD1A1);
+}
+
+.mw-metric-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--mw-primary-forest, #123C32);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.mw-metric-descriptor {
+  font-size: 0.78rem;
+  color: var(--mw-text-secondary, #68736E);
+}
+

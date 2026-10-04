@@ -95,6 +95,7 @@ class WorkflowTriggerResponse(BaseModel):
         alias="priorityAnalysis",
         description="Priority ranking and crew recommendation produced by Agent 3",
     )
+    safety_validation: dict[str, Any] | None = Field(default=None, alias="safetyValidation")
     recommendations: list[dict[str, Any]] | None = Field(
         default=None,
         description="List of recommendations produced by the workflow",

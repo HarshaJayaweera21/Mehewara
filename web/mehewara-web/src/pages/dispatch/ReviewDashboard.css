@@ -1,0 +1,30 @@
+.dispatch-review-tabs, .dispatch-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+}
+.dispatch-review-tabs button, .dispatch-pagination button, .checklist-section details button {
+  background: #fff;
+  color: #123c32;
+  border: 1px solid #c8dcd4;
+  border-radius: 8px;
+  padding: 9px 13px;
+  cursor: pointer;
+}
+.dispatch-review-tabs button.active { background: #123c32; color: #fff; }
+.dispatch-review-tabs button:focus-visible, .dispatch-pagination button:focus-visible {
+  outline: 3px solid #62a68b;
+  outline-offset: 2px;
+}
+.dispatch-pagination { font-size: 13px; color: #42594f; }
+.dispatch-pagination span { flex: 1; min-width: 200px; }
+.dispatch-pagination button:disabled { opacity: .5; cursor: default; }
+.review-fingerprint, .review-history-text, .review-job-history p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.review-job-history { border-top: 1px solid #dce7e1; padding: 12px 0; }
+.checklist-section details { margin: 12px 0; }
+.checklist-section summary { cursor: pointer; font-weight: 600; }

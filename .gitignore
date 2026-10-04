@@ -110,6 +110,10 @@ x86/
 *.ipr
 *.iws
 
+# Antigravity / Gemini IDE local state
+.gemini/
+**/.gemini/
+
 
 # ============================================================
 # GENERAL LOGS / CACHE / TEMPORARY FILES
@@ -353,6 +357,10 @@ lerna-debug.log*
 # mobile/mehewara_mobile
 # ============================================================
 
+# Flutter build outputs
+build/
+**/build/
+
 # Dart / Flutter tooling
 .dart_tool/
 **/.dart_tool/
@@ -365,10 +373,17 @@ lerna-debug.log*
 
 # Flutter generated configuration
 .flutter-plugins
+**/.flutter-plugins
 .flutter-plugins-dependencies
+**/.flutter-plugins-dependencies
 .packages
+**/.packages
 
 .widget_preview/
+**/.widget_preview/
+
+# Stitch UI prototype downloads
+**/stitch_*/
 
 # Symbolication / obfuscation outputs
 app.*.symbols
@@ -483,6 +498,10 @@ compose.override.yml
 local-data/
 **/local-data/
 
+# Deployment test artifacts
+database/deployment-artifacts/*
+!database/deployment-artifacts/.gitkeep
+
 
 # ============================================================
 # UPLOADS / GENERATED USER MEDIA
@@ -533,6 +552,27 @@ graphify-out/
 .graphify_analysis.json
 .graphify_labels.json
 .graphify_root
+.graphifyignore
+**/.graphifyignore
 graph.html
 GRAPH_TREE.html
 GRAPH_REPORT.md
+
+
+# ============================================================
+# DOCUMENTATION BACKUPS
+# ============================================================
+.documentation-backup-20260926
+**/.documentation-backup-20260926
+
+
+# ============================================================
+# CODEX (AI Tooling & Session Artifacts)
+# ============================================================
+.codex/
+**/.codex/
+.codex
+.codex*
+codex/
+**/codex/
+*.codex

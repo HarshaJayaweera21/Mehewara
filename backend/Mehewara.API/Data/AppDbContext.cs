@@ -19,8 +19,11 @@ public class AppDbContext : DbContext
     public DbSet<Crew> Crews { get; set; }
     public DbSet<WorkOrder> WorkOrders { get; set; }
     public DbSet<ApprovalHistory> ApprovalHistories { get; set; }
+    public DbSet<ActivityHistory> ActivityHistories { get; set; }
     public DbSet<WorkflowRun> WorkflowRuns { get; set; }
     public DbSet<WorkflowEvent> WorkflowEvents { get; set; }
+
+    public DbSet<AiReviewJob> AiReviewJobs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -429,6 +432,9 @@ public class AppDbContext : DbContext
             entity.Property(p => p.PriorityScore)
                 .HasColumnName("priority_score");
 
+            entity.Property(p => p.EstimatedDurationMinutes)
+                .HasColumnName("estimated_duration_minutes");
+
             entity.Property(p => p.Status)
                 .HasColumnName("status")
                 .HasMaxLength(30)
@@ -511,6 +517,9 @@ public class AppDbContext : DbContext
                 .HasColumnName("crew_id")
                 .IsRequired();
 
+            entity.Property(w => w.RecommendationId)
+                .HasColumnName("recommendation_id");
+
             entity.Property(w => w.Priority)
                 .HasColumnName("priority")
                 .HasMaxLength(20)
@@ -564,6 +573,11 @@ public class AppDbContext : DbContext
                 .HasForeignKey(w => w.CrewId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(w => w.Recommendation)
+                .WithMany()
+                .HasForeignKey(w => w.RecommendationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // CHECK constraints
             entity.ToTable("work_orders", table =>
             {
@@ -582,6 +596,21 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(w => w.CrewId)
                 .HasDatabaseName("idx_work_orders_crew_id");
+
+            entity.HasIndex(w => w.RecommendationId)
+                .IsUnique()
+                .HasFilter("recommendation_id IS NOT NULL")
+                .HasDatabaseName("idx_work_orders_recommendation_id");
+
+            entity.HasIndex(w => w.CrewId, "IX_WorkOrders_ActiveCrew")
+                .IsUnique()
+                .HasFilter("status IN ('ASSIGNED', 'IN_PROGRESS')")
+                .HasDatabaseName("ux_work_orders_active_crew");
+
+            entity.HasIndex(w => w.ProblemId, "IX_WorkOrders_ActiveProblem")
+                .IsUnique()
+                .HasFilter("status IN ('ASSIGNED', 'IN_PROGRESS')")
+                .HasDatabaseName("ux_work_orders_active_problem");
 
             // Storage-level invariant: A crew can NEVER possess more than one work order in IN_PROGRESS status
             entity.HasIndex(w => w.CrewId)
@@ -613,8 +642,10 @@ public class AppDbContext : DbContext
                 .HasDefaultValueSql("gen_random_uuid()");
 
             entity.Property(a => a.WorkOrderId)
-                .HasColumnName("work_order_id")
-                .IsRequired();
+                .HasColumnName("work_order_id");
+
+            entity.Property(a => a.RecommendationId)
+                .HasColumnName("recommendation_id");
 
             entity.Property(a => a.DecidedBy)
                 .HasColumnName("decided_by")
@@ -639,6 +670,11 @@ public class AppDbContext : DbContext
                 .HasForeignKey(a => a.WorkOrderId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(a => a.Recommendation)
+                .WithMany()
+                .HasForeignKey(a => a.RecommendationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // User → ApprovalHistory
             entity.HasOne(a => a.DecidedByUser)
                 .WithMany()
@@ -656,6 +692,14 @@ public class AppDbContext : DbContext
             // Indexes
             entity.HasIndex(a => a.WorkOrderId)
                 .HasDatabaseName("idx_approval_history_work_order_id");
+
+            entity.HasIndex(a => a.RecommendationId)
+                .HasDatabaseName("idx_approval_history_recommendation_id");
+
+            entity.HasIndex(a => a.RecommendationId, "IX_ApprovalHistory_TerminalRecommendation")
+                .IsUnique()
+                .HasFilter("recommendation_id IS NOT NULL AND decision IN ('APPROVED', 'REJECTED')")
+                .HasDatabaseName("ux_approval_history_terminal_recommendation");
 
             entity.HasIndex(a => a.DecidedBy)
                 .HasDatabaseName("idx_approval_history_decided_by");
@@ -851,5 +895,45 @@ public class AppDbContext : DbContext
             entity.HasIndex(w => w.StartedAt)
                 .HasDatabaseName("idx_workflow_events_started_at");
         });
+
+        modelBuilder.Entity<ActivityHistory>(entity =>
+        {
+            entity.ToTable("activity_history", table =>
+            {
+                table.HasCheckConstraint("chk_activity_history_action",
+                    "action IN ('RECOMMENDATION_EDITED', 'WORK_ORDER_STARTED', 'WORK_ORDER_COMPLETED')");
+                table.HasCheckConstraint("chk_activity_history_target",
+                    "(action = 'RECOMMENDATION_EDITED' AND recommendation_id IS NOT NULL AND work_order_id IS NULL) " +
+                    "OR (action IN ('WORK_ORDER_STARTED', 'WORK_ORDER_COMPLETED') AND work_order_id IS NOT NULL AND recommendation_id IS NULL)");
+                table.HasCheckConstraint("chk_activity_history_edit_reason",
+                    "action <> 'RECOMMENDATION_EDITED' OR NULLIF(BTRIM(note), '') IS NOT NULL");
+            });
+
+            entity.HasKey(a => a.ActivityId);
+            entity.Property(a => a.ActivityId).HasColumnName("activity_id").HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(a => a.ActorUserId).HasColumnName("actor_user_id").IsRequired();
+            entity.Property(a => a.Action).HasColumnName("action").HasMaxLength(40).IsRequired();
+            entity.Property(a => a.RecommendationId).HasColumnName("recommendation_id");
+            entity.Property(a => a.WorkOrderId).HasColumnName("work_order_id");
+            entity.Property(a => a.BeforeData).HasColumnName("before_data").HasColumnType("jsonb").IsRequired();
+            entity.Property(a => a.AfterData).HasColumnName("after_data").HasColumnType("jsonb").IsRequired();
+            entity.Property(a => a.Note).HasColumnName("note");
+            entity.Property(a => a.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP").IsRequired();
+
+            entity.HasOne(a => a.ActorUser).WithMany().HasForeignKey(a => a.ActorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(a => a.Recommendation).WithMany().HasForeignKey(a => a.RecommendationId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(a => a.WorkOrder).WithMany().HasForeignKey(a => a.WorkOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(a => new { a.RecommendationId, a.CreatedAt })
+                .HasDatabaseName("idx_activity_history_recommendation_time");
+            entity.HasIndex(a => new { a.WorkOrderId, a.CreatedAt })
+                .HasDatabaseName("idx_activity_history_work_order_time");
+            entity.HasIndex(a => new { a.ActorUserId, a.CreatedAt })
+                .HasDatabaseName("idx_activity_history_actor_time");
+        });
+        AiReviewSchema.Configure(modelBuilder);
     }
 }

@@ -1,0 +1,555 @@
+/* ==========================================================================
+   Mehewara Municipal Operations - Dashboard Styling
+   Unified with Forest & Sage Design System
+   ========================================================================== */
+
+.ops-page-container {
+  min-height: 100vh;
+  background-color: var(--mw-canvas);
+  color: var(--mw-ink);
+  font-family: var(--mw-font);
+  padding: 2.25rem 2.5rem 4rem;
+  box-sizing: border-box;
+}
+
+.ops-page-container * {
+  box-sizing: border-box;
+}
+
+.ops-page-container button {
+  cursor: pointer;
+}
+
+.ops-content-wrap {
+  width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* 1. Toolbar */
+
+/* 3. Toolbar */
+.ops-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ops-search-box {
+  position: relative;
+  flex: 1;
+  max-width: 440px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #FFFFFF;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 8px;
+  padding: 0 1rem;
+  height: 40px;
+  color: var(--mw-text-secondary, #68736E);
+  box-sizing: border-box;
+}
+
+.ops-search-box input {
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--mw-text-primary, #18211E);
+  font-size: 0.875rem;
+  font-family: var(--mw-font);
+}
+
+.ops-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ops-duty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--mw-sage, #E5F6EE);
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 20px;
+  padding: 0 12px;
+  height: 40px;
+  color: var(--mw-primary-forest, #123C32);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ops-duty i {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mw-accent-mint, #4FD1A1);
+}
+
+.ops-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 40px;
+  padding: 0 1rem;
+  background: #FFFFFF;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--mw-primary-forest, #123C32);
+  cursor: pointer;
+  transition: all 140ms ease;
+  font-family: var(--mw-font);
+}
+
+.ops-refresh-btn:hover {
+  background: var(--mw-sage, #E5F6EE);
+  border-color: var(--mw-primary-forest, #123C32);
+}
+
+/* Main Content Area */
+.ops-content {
+  width: 100%;
+}
+
+.ops-error {
+  background: var(--mw-critical-bg, #FEF2F2);
+  color: var(--mw-critical-text, #991B1B);
+  border: 1px solid var(--mw-critical-border, #FEE2E2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  font-size: 13px;
+}
+
+.ops-error button {
+  border: 0;
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+  font-weight: 700;
+  padding: 0 4px;
+}
+
+
+/* Dashboard Columns */
+.ops-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1.12fr) minmax(225px, 0.83fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.ops-panel {
+  background: var(--mw-surface);
+  border: 1px solid var(--mw-line);
+  border-radius: 12px;
+  padding: 20px;
+  min-width: 0;
+  box-shadow: var(--mw-shadow-sm);
+}
+
+.ops-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.ops-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--mw-forest);
+}
+
+.ops-panel-title h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  color: var(--mw-forest);
+}
+
+.ops-panel-title .mehewara-icon {
+  flex: none;
+  color: var(--mw-forest);
+}
+
+.ops-red-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--mw-critical-text);
+  border-radius: 50%;
+  flex: none;
+}
+
+.ops-pill {
+  border-radius: 20px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.ops-pill.danger {
+  color: var(--mw-critical-text);
+  background: var(--mw-critical-bg);
+}
+
+.ops-pill.mint {
+  color: var(--mw-forest);
+  background: var(--mw-sage);
+}
+
+.ops-panel-heading > small {
+  font-size: 11px;
+  color: var(--mw-muted);
+}
+
+.ops-panel-description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--mw-muted);
+  margin: 12px 0 16px;
+  min-height: 38px;
+}
+
+.ops-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.ops-problem-card,
+.ops-report-card,
+.ops-ai-card {
+  background: var(--mw-surface-subtle);
+  border: 1px solid var(--mw-line-subtle);
+  border-radius: 10px;
+  padding: 14px;
+  min-width: 0;
+  transition: all 140ms ease;
+}
+
+.ops-problem-card:hover,
+.ops-report-card:hover,
+.ops-ai-card:hover {
+  border-color: var(--mw-forest);
+  box-shadow: var(--mw-shadow-sm);
+}
+
+.ops-item-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--mw-muted);
+}
+
+.ops-priority-tag {
+  color: var(--mw-high-text);
+  background: var(--mw-high-bg);
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ops-priority-tag.critical {
+  background: var(--mw-critical-bg);
+  color: var(--mw-critical-text);
+}
+
+.ops-problem-card h3,
+.ops-ai-card h3 {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+  margin: 10px 0 4px;
+  letter-spacing: -0.01em;
+  color: var(--mw-ink);
+}
+
+.ops-problem-card p {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--mw-muted);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-problem-card p .mehewara-icon {
+  color: var(--mw-forest);
+  flex: none;
+}
+
+.ops-card-footer {
+  background: var(--mw-surface);
+  border: 1px solid var(--mw-line-subtle);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.ops-card-footer small {
+  font-size: 11px;
+  color: var(--mw-muted);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.ops-card-footer button,
+.ops-primary-link {
+  border: 0;
+  border-radius: 6px;
+  color: #FFFFFF;
+  background: var(--mw-forest);
+  font-family: var(--mw-font);
+  font-weight: 650;
+  font-size: 11px;
+  padding: 6px 12px;
+  white-space: nowrap;
+  transition: all 140ms ease;
+}
+
+.ops-card-footer button:hover,
+.ops-primary-link:hover {
+  background: var(--mw-forest-hover);
+}
+
+/* Report Card Specifics */
+.ops-report-card {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  text-align: left;
+  color: inherit;
+  width: 100%;
+  border: 1px solid var(--mw-line-subtle);
+  cursor: pointer;
+}
+
+.ops-report-photo {
+  width: 60px;
+  min-height: 60px;
+  background: var(--mw-sage);
+  border-radius: 6px;
+  overflow: hidden;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--mw-forest);
+}
+
+.ops-report-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ops-report-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ops-report-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.ops-report-meta em {
+  font-size: 10px;
+  font-style: normal;
+  background: var(--mw-sage);
+  border-radius: 10px;
+  padding: 2px 7px;
+  color: var(--mw-forest);
+  font-weight: 700;
+}
+
+.ops-report-meta small {
+  font-size: 10px;
+  color: var(--mw-faint);
+  white-space: nowrap;
+}
+
+.ops-report-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+  color: var(--mw-ink);
+}
+
+.ops-report-copy > small {
+  font-size: 11px;
+  color: var(--mw-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-report-status {
+  font-size: 10px;
+  color: var(--mw-forest);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+/* AI Card Specifics */
+.ops-ai-card > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  color: var(--mw-forest);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ops-ai-card > div small {
+  color: var(--mw-muted);
+  font-size: 10px;
+}
+
+.ops-ai-card p {
+  font-size: 11px;
+  color: var(--mw-muted);
+  line-height: 1.4;
+  margin: 0 0 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ops-ai-card > small {
+  font-size: 10px;
+  color: var(--mw-muted);
+}
+
+.ops-panel-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--mw-line);
+  border-radius: 8px;
+  background: var(--mw-surface-subtle);
+  color: var(--mw-forest);
+  width: 100%;
+  margin-top: 16px;
+  padding: 9px;
+  font-family: var(--mw-font);
+  font-size: 12px;
+  font-weight: 650;
+  transition: all 140ms ease;
+}
+
+.ops-panel-link:hover {
+  background: var(--mw-sage);
+  border-color: var(--mw-forest);
+}
+
+.ops-primary-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  margin-top: 16px;
+  white-space: normal;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+
+.ops-empty {
+  font-size: 12px;
+  color: var(--mw-muted);
+  line-height: 1.5;
+  margin: 0;
+  padding: 20px 8px;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .ops-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ops-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ops-ai {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 850px) {
+  .ops-page-container {
+    padding: 1.5rem 1rem 3rem;
+  }
+  .ops-action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ops-search {
+    width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .ops-title-row h1 {
+    font-size: 24px;
+  }
+  .ops-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .ops-metric {
+    min-height: 135px;
+    padding: 12px;
+  }
+  .ops-metric > strong {
+    font-size: 30px;
+  }
+  .ops-columns {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .ops-ai {
+    grid-column: auto;
+  }
+  .ops-panel {
+    padding: 16px;
+  }
+}

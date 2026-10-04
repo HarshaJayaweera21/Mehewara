@@ -14,11 +14,16 @@ namespace Mehewara.API.Controllers;
 public class CrewProfileController : ControllerBase
 {
     private readonly ICrewService _crewService;
+    private readonly ICrewLocationService _crewLocationService;
     private readonly ILogger<CrewProfileController> _logger;
 
-    public CrewProfileController(ICrewService crewService, ILogger<CrewProfileController> logger)
+    public CrewProfileController(
+        ICrewService crewService,
+        ICrewLocationService crewLocationService,
+        ILogger<CrewProfileController> logger)
     {
         _crewService = crewService;
+        _crewLocationService = crewLocationService;
         _logger = logger;
     }
 
@@ -94,30 +99,24 @@ public class CrewProfileController : ControllerBase
         return Ok(updated);
     }
 
-    [HttpGet("work-orders")]
-    [ProducesResponseType(typeof(List<CrewWorkOrderItemDto>), StatusCodes.Status200OK)]
+    [HttpPost("heartbeat")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetMyCrewWorkOrders()
+    public async Task<IActionResult> RecordHeartbeat([FromBody] CrewHeartbeatDto dto)
     {
+        if (dto.Latitude < -90 || dto.Latitude > 90 || dto.Longitude < -180 || dto.Longitude > 180)
+        {
+            throw new BadRequestException("Invalid latitude or longitude coordinates.", "INVALID_COORDINATES");
+        }
+
         var userId = GetCurrentUserId();
         var crew = await _crewService.GetCrewByLeaderUserIdAsync(userId);
-
-        if (crew == null && User.IsInRole("ADMIN"))
+        if (crew != null)
         {
-            var allCrews = await _crewService.GetCrewsAsync(new CrewQueryParams { Page = 1, PageSize = 1 });
-            if (allCrews.Items.Count > 0)
-            {
-                crew = await _crewService.GetCrewByIdAsync(allCrews.Items[0].Id);
-            }
+            _crewLocationService.RecordHeartbeat(crew.Id, dto.Latitude, dto.Longitude);
+            _logger.LogDebug("Received telemetry heartbeat for Crew {CrewId}: ({Lat}, {Lon})", crew.Id, dto.Latitude, dto.Longitude);
         }
-
-        if (crew == null)
-        {
-            throw new NotFoundException("No municipal crew is assigned to this user.", "CREW_NOT_FOUND");
-        }
-
-        var workOrders = await _crewService.GetCrewWorkOrdersAsync(crew.Id);
-        return Ok(workOrders);
+        return NoContent();
     }
 }

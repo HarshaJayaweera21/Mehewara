@@ -2,11 +2,11 @@
 Mehewara AI Service — Central Multi-Agent LangGraph Pipeline
 
 Authoritative LangGraph orchestration pipeline for the Mehewara Municipal System.
-Chains the 4 specialized agent stages sequentially:
+Runs Agents 1–3, then returns to ASP.NET for durable Agent 4 scheduling:
 - Node 1: Agent 1 (Report Analysis & Structuring) — Owner: Member 1
 - Node 2: Agent 2 (Problem Consolidation)          — Owner: Member 2
 - Node 3: Agent 3 (Prioritization & Crew)          — Owner: Member 3 (Plug-in ready)
-- Node 4: Agent 4 (Validation & Safety)            — Owner: Member 4 (Plug-in ready)
+- Agent 4 (Validation & Safety) runs in the separate backend-owned review job.
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ from typing import Any, TypedDict
 from uuid import UUID
 
 from langgraph.graph import END, StateGraph
+from agents.safety_agent import validate_recommendation
 
 # Agent 1 (Member 1)
 from agents.report_agent import analyze_report_with_llm
@@ -48,6 +49,15 @@ class MehewaraWorkflowState(TypedDict, total=False):
     Authoritative state flowing sequentially through all agent nodes.
     Each agent reads from this state and attaches its output dictionary.
     """
+    job_id: str | None
+    resolved_problem_id: str | None
+    recommendation_id: str | None
+    recommendation_revision: int | None
+    review_kind: str | None
+    authorized_report_ids: list[str]
+    authorized_crew_ids: list[str]
+    authorized_problem_ids: list[str]
+    coordinator_feedback: str | None
     workflow_id: str
     raw_report: dict[str, Any]
 
@@ -67,8 +77,9 @@ class MehewaraWorkflowState(TypedDict, total=False):
     priority_analysis: dict[str, Any] | None
     recommendations: list[dict[str, Any]] | None
 
-    # Stage 4 Output (Member 4 — Validation & Safety - Future)
+    # Stage 4 Output (Member 4 — Validation & Safety)
     safety_validation: dict[str, Any] | None
+    validation_feedback: dict[str, Any] | None
 
     error: str | None
 
@@ -258,11 +269,13 @@ async def agent_3_prioritization_node(state: MehewaraWorkflowState) -> dict[str,
                 state.get("workflow_id"),
             )
 
-        # 4. Execute Agent 3 recommendation
+        # 4. Execute Agent 3 recommendation (supports Agent 4 revision feedback)
+        validation_feedback = state.get("validation_feedback")
         result: PriorityRecommendationOutput = await run_priority_recommendation(
             problem_data=problem_data,
             structured_report=structured_report,
             available_crews=available_crews,
+            validation_feedback=validation_feedback,
         )
 
         logger.info(
@@ -289,10 +302,15 @@ async def agent_3_prioritization_node(state: MehewaraWorkflowState) -> dict[str,
 # 3. StateGraph Assembly & Compilation
 # ────────────────────────────────────────────────────────────────
 
+async def agent_4_validation_node(state: MehewaraWorkflowState) -> dict[str, Any]:
+    return {"safety_validation": await validate_recommendation(dict(state))}
+
+
 def build_mehewara_graph() -> StateGraph:
     """
-    Assembles and compiles the full multi-agent workflow graph.
-    Flow: START -> Agent 1 -> Agent 2 -> Agent 3 -> END (Agent 4 plug-in ready)
+    Compile the initial generation graph.
+    Flow: START -> Agent 1 -> Agent 2 -> Agent 3 -> END.
+    ASP.NET persists the response and enqueues Agent 4 atomically.
     """
     builder = StateGraph(MehewaraWorkflowState)
 
@@ -339,11 +357,6 @@ async def run_mehewara_workflow(
 
     final_state = await mehewara_graph.ainvoke(initial_state)
 
-    if final_state.get("error") and not final_state.get("problem_analysis"):
-        error_msg = final_state["error"]
-        logger.error("[Workflow %s] Workflow terminated with error: %s", workflow_id, error_msg)
-        raise RuntimeError(error_msg)
-
     structured_report = final_state.get("structured_report")
     problem_analysis = final_state.get("problem_analysis")
     priority_analysis = final_state.get("priority_analysis")
@@ -351,7 +364,11 @@ async def run_mehewara_workflow(
 
     return {
         "workflow_id": str(workflow_id),
-        "status": "completed",
+        "status": "failed" if final_state.get("error") else "waiting",
+        "safety_validation": {
+            "status": "NOT_RUN",
+            "issues": ["Agent 4 awaits backend persistence and durable review scheduling."],
+        },
         "report_analysis": structured_report,
         "problem_analysis": problem_analysis,
         "priority_analysis": priority_analysis,

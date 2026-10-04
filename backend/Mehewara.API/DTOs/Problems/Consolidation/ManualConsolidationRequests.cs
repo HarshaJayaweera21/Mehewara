@@ -18,3 +18,9 @@ public class CreateProblemFromUncertainReportRequest
     public string? Address { get; set; }
     public string? CoordinatorNotes { get; set; }
 }
+
+public class CancelUncertainReportRequest
+{
+    public Guid ReportId { get; set; }
+    public string? Reason { get; set; }
+}

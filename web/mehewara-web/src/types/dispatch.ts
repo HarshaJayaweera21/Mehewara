@@ -4,19 +4,41 @@
 
 export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
-export type ValidationStatus = 'VALID' | 'WARNING' | 'REVISION_REQUIRED' | 'INVALID';
+export type ValidationStatus = 'VALID' | 'WARNING' | 'REVISION_REQUIRED' | 'INVALID' | 'ERROR' | 'NOT_RUN';
 
 export type ReviewDecision = 'APPROVED' | 'REJECTED' | 'REVISION_REQUIRED';
 
 export interface RecommendationValidation {
   status: ValidationStatus | string;
   issues: string[];
+  checks?: { code: string; passed: boolean; message: string }[];
+  findings?: { code: string; message: string; evidenceRefs: string[]; correction: string }[];
+  evidenceRefs?: string[];
+  suggestedAction?: string | null;
+  policyVersion?: string | null;
+  snapshotHash?: string | null;
+  snapshotAt?: string | null;
 }
 
 export interface RecommendationListItem {
   recommendationId: string;
+  revision: number;
+  isCurrent: boolean;
+  currentRecommendationId?: string | null;
+  reviewBucket: string;
+  reviewProgress: string;
+  attentionReason: string | null;
+  allowedActions: string[];
+  canApprove: boolean;
+  origin?: string | null;
+  editedBy?: string | null;
+  editedAt?: string | null;
+  requiresResponsibilityAcknowledgement?: boolean;
+  previousRecommendationId: string | null;
+  latestJob: ReviewJob | null;
   problemId: string;
   problemTitle: string;
+  address?: string | null;
   category: string;
   priority: PriorityLevel;
   priorityScore: number;
@@ -25,12 +47,24 @@ export interface RecommendationListItem {
   recommendedCrewId: string | null;
   recommendedCrewName: string | null;
   recommendationReason: string;
+  dispatchStrategy?: 'IMMEDIATE_QUICK_WIN' | 'URGENT_CRITICAL_PRIORITY' | 'CLUSTERED_EN_ROUTE' | 'STANDARD_DISPATCH' | string;
+  estimatedDurationMinutes?: number | null;
+  distanceKm?: number | null;
+  estimatedTravelMinutes?: number | null;
   validation: RecommendationValidation;
   reviewDecision: ReviewDecision | null;
   createdAt: string;
 }
 
 export interface RecommendationDetail extends RecommendationListItem {
+  originalOutputData?: string | null;
+  jobHistory: ReviewJob[];
+  humanOverrideApproval?: { revision: number; acknowledgedBy: string; acknowledgedAt: string;
+    responsibilityAcknowledged: boolean; reason: string; approvalId: string; workOrderId: string } | null;
+  validationHistory: { id: string; startedAt: string; completedAt: string | null; status: string; result: string | null }[];
+  editHistory: { id: string; createdAt: string; reason: string | null; before: string; after: string; actorUserId: string }[];
+  history: { recommendationId: string; previousRecommendationId: string | null; revision: number;
+    createdAt: string; outputData: string | null; validationResult: string | null; originalOutputData?: string | null }[];
   problemDescription: string | null;
   latitude: number;
   longitude: number;
@@ -48,52 +82,71 @@ export interface RecommendationQueryParams {
   page?: number;
   pageSize?: number;
   priority?: string;
+  category?: string;
   reviewDecision?: string;
+  reviewBucket?: string;
   status?: string;
   search?: string;
 }
 
 export interface EditRecommendationRequest {
-  problemTitle?: string;
+  expectedRevision: number;
+  requiredCrewType?: string;
+  priorityReasons?: string[];
+  recommendationReason?: string;
   priority?: string;
   priorityScore?: number;
-  requiredCrewType?: string;
   recommendedCrewId?: string;
-  recommendationReason?: string;
-  notes?: string;
+  editReason: string;
 }
-
-export interface ApproveRecommendationRequest {
-  instructions?: string;
-  notes?: string;
-}
-
+export interface ApproveRecommendationRequest { reason?: string; expectedRevision: number; acknowledgeHumanOverrideResponsibility?: boolean; }
 export interface ApproveRecommendationResponse {
-  workOrderId: string;
-  problemId: string;
-  crewId: string;
-  status: string;
-  assignedAt: string;
-  approvalHistoryId: string;
+  recommendationId: string; decision: string; decidedBy: string; decidedAt: string;
+  workOrder: { id: string; problemId: string; crewId: string; priority: string; status: string; assignedAt: string | null; createdAt: string };
 }
 
 export interface RejectRecommendationRequest {
+  expectedRevision: number;
   reason: string;
 }
 
 export interface RejectRecommendationResponse {
   recommendationId: string;
-  status: string;
-  rejectedAt: string;
+  decision: string;
+  decidedAt: string;
+  decidedBy: string;
   reason: string;
 }
 
 export interface RegenerateRecommendationRequest {
-  feedback?: string;
+  reason: string;
+  expectedRevision: number;
+  requestId: string;
 }
-
 export interface RegenerateRecommendationResponse {
-  recommendationId: string;
+  jobId: string;
   status: string;
-  regeneratedAt: string;
+  statusUrl: string;
+}
+export interface ReviewJob {
+  requestId: string;
+  requestedBy: string;
+  origin: string | null;
+  workflowRunId: string;
+  recommendationId: string;
+  expectedRevision: number;
+  updatedAt: string;
+  chainId: string | null;
+  parentJobId: string | null;
+  correctionCount: number | null;
+  evidenceRetryCount: number | null;
+  nextAttemptAt: string | null;
+  id: string;
+  kind: 'REGENERATE' | 'VALIDATE';
+  status: 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  reason: string;
+  error: string | null;
+  resultRecommendationId: string | null;
+  createdAt: string;
+  attempts: number;
 }

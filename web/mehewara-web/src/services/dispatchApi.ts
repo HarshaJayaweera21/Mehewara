@@ -1,4 +1,5 @@
 import type {
+  ReviewJob,
   RecommendationListItem,
   RecommendationDetail,
   RecommendationQueryParams,
@@ -10,24 +11,8 @@ import type {
   RegenerateRecommendationRequest,
   RegenerateRecommendationResponse,
 } from '../types/dispatch';
-import type { PagedResult } from '../types/problems';
-import type { ApiError } from '../types/auth';
-
-const API_BASE = 'http://localhost:5194/api';
-
-async function handleResponse<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    let errorData: ApiError | null = null;
-    try {
-      errorData = await res.json();
-    } catch {
-      // response was not JSON
-    }
-    const message = errorData?.error?.message || `Request failed with status ${res.status}`;
-    throw new Error(message);
-  }
-  return res.json();
-}
+import type { PagedResult } from '../types/common';
+import { API_BASE, handleResponse, getAuthHeaders, buildQueryString } from './httpClient';
 
 /**
  * Get paginated list of Agent 3 dispatch recommendations
@@ -36,21 +21,11 @@ export async function getRecommendations(
   token: string,
   params?: RecommendationQueryParams
 ): Promise<PagedResult<RecommendationListItem>> {
-  const query = new URLSearchParams();
-  if (params?.page) query.append('page', params.page.toString());
-  if (params?.pageSize) query.append('pageSize', params.pageSize.toString());
-  if (params?.priority) query.append('priority', params.priority);
-  if (params?.reviewDecision) query.append('reviewDecision', params.reviewDecision);
-  if (params?.status) query.append('status', params.status);
-  if (params?.search) query.append('search', params.search);
-
-  const url = `${API_BASE}/dispatch/recommendations${query.toString() ? `?${query.toString()}` : ''}`;
+  const url = `${API_BASE}/dispatch/recommendations${buildQueryString(params as Record<string, unknown>)}`;
 
   const res = await fetch(url, {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, false),
   });
 
   return handleResponse<PagedResult<RecommendationListItem>>(res);
@@ -65,9 +40,7 @@ export async function getRecommendationById(
 ): Promise<RecommendationDetail> {
   const res = await fetch(`${API_BASE}/dispatch/recommendations/${recommendationId}`, {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, false),
   });
 
   return handleResponse<RecommendationDetail>(res);
@@ -76,21 +49,19 @@ export async function getRecommendationById(
 /**
  * Human-in-the-Loop Override: Edit priority, score, recommended crew, or notes
  */
+// Backend EditRecommendationAsync returns a full RecommendationDetailDto
 export async function editRecommendation(
   token: string,
   recommendationId: string,
   data: EditRecommendationRequest
-): Promise<RecommendationListItem> {
+): Promise<RecommendationDetail> {
   const res = await fetch(`${API_BASE}/dispatch/recommendations/${recommendationId}`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, true),
     body: JSON.stringify(data),
   });
 
-  return handleResponse<RecommendationListItem>(res);
+  return handleResponse<RecommendationDetail>(res);
 }
 
 /**
@@ -103,10 +74,7 @@ export async function approveRecommendation(
 ): Promise<ApproveRecommendationResponse> {
   const res = await fetch(`${API_BASE}/dispatch/recommendations/${recommendationId}/approve`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, true),
     body: JSON.stringify(data),
   });
 
@@ -123,10 +91,7 @@ export async function rejectRecommendation(
 ): Promise<RejectRecommendationResponse> {
   const res = await fetch(`${API_BASE}/dispatch/recommendations/${recommendationId}/reject`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, true),
     body: JSON.stringify(data),
   });
 
@@ -134,7 +99,7 @@ export async function rejectRecommendation(
 }
 
 /**
- * Request regeneration: Resets status and triggers AI workflow regeneration
+ * Queue a durable Agent 3 + Agent 4 regeneration job
  */
 export async function regenerateRecommendation(
   token: string,
@@ -143,12 +108,21 @@ export async function regenerateRecommendation(
 ): Promise<RegenerateRecommendationResponse> {
   const res = await fetch(`${API_BASE}/dispatch/recommendations/${recommendationId}/regenerate`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token, true),
     body: JSON.stringify(data),
   });
 
   return handleResponse<RegenerateRecommendationResponse>(res);
+}
+
+export async function validateRecommendation(token: string, id: string, data: RegenerateRecommendationRequest): Promise<RegenerateRecommendationResponse> {
+  const res = await fetch(`${API_BASE}/dispatch/recommendations/${id}/validate`, {
+    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse<RegenerateRecommendationResponse>(res);
+}
+export async function getReviewJob(token: string, id: string): Promise<ReviewJob> {
+  const res = await fetch(`${API_BASE}/dispatch/review-jobs/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+  return handleResponse<ReviewJob>(res);
 }

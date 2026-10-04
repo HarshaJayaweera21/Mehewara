@@ -8,65 +8,56 @@
   min-height: 100vh;
   background-color: var(--mw-page-bg, #F7F7F2);
   color: var(--mw-text-primary, #18211E);
-  font-family: var(--mw-font-family, 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-family: var(--mw-font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  display: flex;
-  flex-direction: column;
+  padding: 2.25rem 2.5rem 4rem;
+  box-sizing: border-box;
 }
 
 .urp-main {
   flex: 1;
   width: 100%;
   max-width: 100%;
-  padding: 2.25rem 2.5rem 4rem;
+  padding: 0;
   box-sizing: border-box;
-}
-
-/* ==========================================================================
-   Header Strip
-   ========================================================================== */
-.urp-header-strip {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1.75rem;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid var(--mw-border, #DDE2DE);
-}
-
-.urp-header-left {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
 }
+
+
+
 
 .urp-back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  background: none;
-  border: none;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--mw-surface, #FFFFFF);
+  border: 1px solid var(--mw-border, #DDE2DE);
   color: var(--mw-primary-forest, #123C32);
-  font-family: inherit;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  padding: 0;
-  margin-bottom: 0.5rem;
   cursor: pointer;
-  transition: gap 140ms ease, color 140ms ease;
+  transition: all 140ms ease;
+  box-shadow: var(--mw-shadow-subtle, 0 1px 2px rgba(18, 60, 50, 0.04));
+  flex-shrink: 0;
+  padding: 0;
 }
 
 .urp-back-btn:hover {
-  gap: 0.55rem;
-  color: var(--mw-primary-hover, #0D3028);
+  background: var(--mw-soft-sage, #E5F6EE);
+  border-color: var(--mw-primary-forest, #123C32);
+  color: var(--mw-primary-forest, #123C32);
+  transform: translateY(-1px);
 }
 
-.urp-title-group {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  flex-wrap: wrap;
+.urp-back-btn svg {
+  transition: transform 140ms ease;
+}
+
+.urp-back-btn:hover svg {
+  transform: translateX(-2px);
 }
 
 .urp-page-title {
@@ -75,59 +66,7 @@
   color: var(--mw-text-primary, #18211E);
   margin: 0;
   letter-spacing: -0.02em;
-}
-
-.urp-badge-count {
-  display: inline-flex;
-  align-items: center;
-  background-color: var(--mw-medium-bg, #FFFBEB);
-  border: 1px solid var(--mw-medium-border, #FEF3C7);
-  color: var(--mw-medium-text, #B45309);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.urp-subtitle {
-  color: var(--mw-text-secondary, #68736E);
-  font-size: 0.8375rem;
-  margin: 0.25rem 0 0;
-  max-width: 720px;
-  line-height: 1.5;
-}
-
-.urp-subtitle strong {
-  color: var(--mw-medium-text, #B45309);
-}
-
-.urp-refresh-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  background-color: var(--mw-surface, #FFFFFF);
-  border: 1px solid var(--mw-border, #DDE2DE);
-  color: var(--mw-text-secondary, #68736E);
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 140ms ease;
-  flex-shrink: 0;
-}
-
-.urp-refresh-btn:hover:not(:disabled) {
-  border-color: var(--mw-border-focus, #123C32);
-  color: var(--mw-text-primary, #18211E);
-}
-
-.urp-refresh-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  line-height: 1.2;
 }
 
 /* ==========================================================================
@@ -246,12 +185,14 @@
 }
 
 /* ==========================================================================
-   Card Grid
+   Card Grid — Fixed 3 columns
    ========================================================================== */
 .urp-card-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem;
+  gap: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (max-width: 1100px) {
@@ -267,9 +208,14 @@
 }
 
 /* ==========================================================================
-   Individual Card — Matches problem-card styling from ProblemsPage
+   Individual Card — Fixed Dimensions & Rigid Interior Section Hierarchy
    ========================================================================== */
 .urp-card {
+  width: 100%;
+  height: 600px;
+  min-height: 600px;
+  max-height: 600px;
+  box-sizing: border-box;
   background: var(--mw-surface, #FFFFFF);
   border: 1px solid var(--mw-border, #DDE2DE);
   border-radius: 8px;
@@ -286,12 +232,18 @@
   box-shadow: var(--mw-shadow-hover, 0 4px 12px rgba(18, 60, 50, 0.06));
 }
 
-/* Card Header */
+/* 1. Card Header — Fixed 48px */
 .urp-card-header {
+  width: 100%;
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  box-sizing: border-box;
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.85rem 1.15rem;
+  padding: 0 1.15rem;
   border-bottom: 1px solid var(--mw-border-subtle, #EBEFEA);
 }
 
@@ -343,32 +295,62 @@
   color: var(--mw-text-muted, #8F9995);
 }
 
-/* Card Body */
+/* Card Body — Fixed structure */
 .urp-card-body {
-  padding: 1.15rem;
+  padding: 1rem 1.15rem;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.75rem;
+  box-sizing: border-box;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* 2. Description Section — Fixed 80px */
+.urp-desc-section {
+  width: 100%;
+  height: 80px;
+  min-height: 80px;
+  max-height: 80px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
 }
 
 .urp-report-desc {
-  font-size: 0.925rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--mw-text-primary, #18211E);
   margin: 0;
   font-style: italic;
   line-height: 1.45;
+  width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Card Metadata */
+/* 3. Card Metadata Section — Fixed 56px */
 .urp-card-meta {
+  width: 100%;
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
+  box-sizing: border-box;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 0.35rem;
-  padding: 0.6rem 0;
+  padding: 0.4rem 0;
   border-top: 1px solid var(--mw-border-subtle, #EBEFEA);
   border-bottom: 1px solid var(--mw-border-subtle, #EBEFEA);
+  overflow: hidden;
 }
 
 .urp-meta-row {
@@ -377,6 +359,7 @@
   gap: 0.45rem;
   font-size: 0.8125rem;
   color: var(--mw-text-secondary, #68736E);
+  min-width: 0;
 }
 
 .urp-meta-icon {
@@ -388,36 +371,85 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+  flex: 1;
 }
 
-/* Photo Thumbnails */
+/* 4. Photo Evidence Section — Fixed 60px */
+.urp-photos-section {
+  width: 100%;
+  height: 60px;
+  min-height: 60px;
+  max-height: 60px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
 .urp-photos-row {
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
+  width: 100%;
+  height: 100%;
+  align-items: center;
 }
 
 .urp-thumbnail {
-  width: 54px;
-  height: 54px;
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
   object-fit: cover;
   border-radius: 6px;
   border: 1px solid var(--mw-border, #DDE2DE);
   transition: transform 150ms ease;
+  flex-shrink: 0;
 }
 
 .urp-thumbnail:hover {
   transform: scale(1.08);
 }
 
-/* ==========================================================================
-   Nearby Candidate Problems Section
-   ========================================================================== */
+.urp-photos-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0 0.75rem;
+  background-color: var(--mw-surface-subtle, #FBFBFA);
+  border: 1px dashed var(--mw-border, #DDE2DE);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--mw-text-muted, #8F9995);
+  font-style: italic;
+}
+
+/* 5. Nearby Candidate Problems Section — Fixed 220px */
+.urp-candidates-wrapper {
+  width: 100%;
+  height: 220px;
+  min-height: 220px;
+  max-height: 220px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
 .urp-candidates-section {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   background-color: var(--mw-surface-subtle, #FBFBFA);
   border: 1px solid var(--mw-border-subtle, #EBEFEA);
   border-radius: 6px;
-  padding: 0.75rem 0.85rem;
+  padding: 0.65rem 0.85rem;
+  overflow: hidden;
 }
 
 .urp-candidates-title {
@@ -429,24 +461,29 @@
   color: var(--mw-text-secondary, #68736E);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin: 0 0 0.55rem;
+  margin: 0 0 0.4rem;
+  flex-shrink: 0;
 }
 
 .urp-candidates-list {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.35rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .urp-candidate-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0.7rem;
+  padding: 0.35rem 0.65rem;
   background-color: var(--mw-surface, #FFFFFF);
   border: 1px solid var(--mw-border, #DDE2DE);
   border-radius: 6px;
   transition: border-color 140ms ease, box-shadow 140ms ease;
+  flex-shrink: 0;
 }
 
 .urp-candidate-item:hover {
@@ -509,78 +546,69 @@
   color: #FFFFFF;
 }
 
-.urp-view-all-problems-btn {
+.urp-view-all-nearby-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   width: 100%;
-  background: none;
-  border: none;
-  border-top: 1px solid var(--mw-border-subtle, #EBEFEA);
+  background: var(--mw-surface, #FFFFFF);
+  border: 1px dashed var(--mw-border, #DDE2DE);
+  border-radius: 5px;
   color: var(--mw-primary-forest, #123C32);
   font-family: inherit;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  padding: 0.55rem 0 0.15rem;
+  padding: 0.32rem 0.5rem;
   margin-top: 0.35rem;
   cursor: pointer;
-  transition: color 140ms ease;
+  transition: all 140ms ease;
+  flex-shrink: 0;
 }
 
-.urp-view-all-problems-btn:hover {
-  color: var(--mw-primary-hover, #0D3028);
-}
-
-.urp-view-all-problems-btn svg {
-  transition: transform 200ms ease;
-}
-
-.urp-chevron-up {
-  transform: rotate(180deg);
+.urp-view-all-nearby-btn:hover {
+  background-color: var(--mw-soft-sage, #E5F6EE);
+  border-color: var(--mw-primary-forest, #123C32);
+  color: var(--mw-primary-forest, #123C32);
 }
 
 .urp-no-candidates {
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 0.5rem;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   color: var(--mw-text-muted, #8F9995);
   font-style: italic;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 1rem;
+  background-color: var(--mw-surface-subtle, #FBFBFA);
+  border: 1px dashed var(--mw-border, #DDE2DE);
+  border-radius: 6px;
 }
 
-/* ==========================================================================
-   Card Actions Footer
-   ========================================================================== */
+/* 6. Card Actions Footer — Fixed 62px */
 .urp-card-actions {
+  width: 100%;
+  height: 62px;
+  min-height: 62px;
+  max-height: 62px;
+  box-sizing: border-box;
+  flex-shrink: 0;
   display: flex;
   gap: 0.65rem;
+  align-items: center;
   padding: 0.85rem 1.15rem;
   border-top: 1px solid var(--mw-border-subtle, #EBEFEA);
   background-color: var(--mw-surface-subtle, #FBFBFA);
 }
 
-.urp-btn-secondary {
-  flex: 1;
-  background-color: var(--mw-surface, #FFFFFF);
-  border: 1px solid var(--mw-border, #DDE2DE);
-  color: var(--mw-text-secondary, #68736E);
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 140ms ease;
-}
-
-.urp-btn-secondary:hover {
-  border-color: var(--mw-border-focus, #123C32);
-  color: var(--mw-text-primary, #18211E);
-}
-
 .urp-btn-primary {
-  flex: 1.2;
+  flex: 1.3;
   background-color: var(--mw-primary-forest, #123C32);
   border: 1px solid transparent;
   color: #FFFFFF;
@@ -591,6 +619,10 @@
   font-weight: 600;
   cursor: pointer;
   transition: background-color 140ms ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .urp-btn-primary:hover:not(:disabled) {
@@ -600,6 +632,46 @@
 .urp-btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.urp-btn-cancel-report {
+  flex: 1;
+  background-color: var(--mw-surface, #FFFFFF);
+  border: 1px solid var(--mw-critical-border, #FEE2E2);
+  color: var(--mw-critical-text, #991B1B);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 140ms ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.urp-btn-cancel-report:hover:not(:disabled) {
+  background-color: var(--mw-critical-bg, #FEF2F2);
+  border-color: var(--mw-critical-text, #991B1B);
+}
+
+.urp-btn-cancel-report:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.urp-btn-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #FCA5A5;
+  border-top-color: #991B1B;
+  border-radius: 50%;
+  animation: urp-spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 /* ==========================================================================
@@ -741,10 +813,353 @@
 }
 
 /* ==========================================================================
+   All Candidate Problems Modal
+   ========================================================================== */
+.urp-all-candidates-modal {
+  max-width: 640px;
+  width: 100%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.urp-modal-candidates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  overflow-y: auto;
+  max-height: 52vh;
+  margin: 1.25rem 0;
+  padding-right: 4px;
+}
+
+.urp-modal-candidates-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.urp-modal-candidates-list::-webkit-scrollbar-thumb {
+  background: var(--mw-border, #DDE2DE);
+  border-radius: 4px;
+}
+
+.urp-modal-candidate-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--mw-surface, #FFFFFF);
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 8px;
+  transition: all 140ms ease;
+}
+
+.urp-modal-candidate-card:hover {
+  border-color: var(--mw-border-focus, #123C32);
+  box-shadow: var(--mw-shadow-subtle, 0 1px 3px rgba(18, 60, 50, 0.05));
+}
+
+.urp-modal-candidate-info {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.urp-modal-cand-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.urp-modal-cand-index {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--mw-text-muted, #8F9995);
+}
+
+.urp-modal-cand-distance {
+  font-size: 0.71875rem;
+  font-weight: 600;
+  color: var(--mw-primary-forest, #123C32);
+}
+
+.urp-modal-cand-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--mw-text-primary, #18211E);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.urp-modal-candidate-info:hover .urp-modal-cand-title {
+  color: var(--mw-primary-forest, #123C32);
+  text-decoration: underline;
+}
+
+.urp-modal-cand-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--mw-text-muted, #8F9995);
+}
+
+.urp-modal-cand-address {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 250px;
+}
+
+.urp-modal-cand-reports {
+  white-space: nowrap;
+}
+
+.urp-modal-cand-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.urp-btn-view-details {
+  background: none;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  color: var(--mw-text-secondary, #68736E);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 140ms ease;
+  white-space: nowrap;
+}
+
+.urp-btn-view-details:hover {
+  border-color: var(--mw-border-focus, #123C32);
+  color: var(--mw-text-primary, #18211E);
+  background-color: var(--mw-surface-subtle, #FBFBFA);
+}
+
+/* ==========================================================================
+   Pagination Controls (Minimalist Civic-Tech Style)
+   ========================================================================== */
+.urp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--mw-border-subtle, #EBEFEA);
+}
+
+.urp-pagination-info {
+  font-size: 0.8125rem;
+  color: var(--mw-text-muted, #8F9995);
+}
+
+.urp-pagination-info strong {
+  color: var(--mw-text-primary, #18211E);
+  font-weight: 600;
+}
+
+.urp-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.urp-pagination-btn {
+  border: 1px solid var(--mw-border, #DDE2DE);
+  background: var(--mw-surface, #FFFFFF);
+  color: var(--mw-text-secondary, #68736E);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 0.65rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 140ms ease;
+}
+
+.urp-pagination-btn:hover:not(:disabled) {
+  border-color: var(--mw-border-focus, #123C32);
+  color: var(--mw-text-primary, #18211E);
+  background: var(--mw-soft-sage, #E5F6EE);
+}
+
+.urp-pagination-btn.active {
+  background: var(--mw-primary-forest, #123C32);
+  border-color: var(--mw-primary-forest, #123C32);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.urp-pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--mw-surface-subtle, #FBFBFA);
+}
+
+/* ==========================================================================
+   Cancel Confirmation Modal
+   ========================================================================== */
+.urp-cancel-confirm-modal {
+  max-width: 480px;
+  width: 100%;
+  padding: 1.75rem;
+  box-sizing: border-box;
+}
+
+.urp-confirm-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1.15rem;
+}
+
+.urp-confirm-icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background-color: #FEF2F2;
+  border: 1px solid #FEE2E2;
+  color: #DC2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.urp-confirm-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.urp-confirm-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--mw-text-primary, #18211E);
+}
+
+.urp-confirm-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #991B1B;
+  background-color: #FEF2F2;
+  border: 1px solid #FEE2E2;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  width: fit-content;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.urp-confirm-message {
+  margin: 0 0 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--mw-text-secondary, #4A5551);
+}
+
+.urp-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--mw-border-subtle, #EBEFEA);
+}
+
+.urp-btn-cancel-back {
+  background: var(--mw-surface, #FFFFFF);
+  border: 1px solid var(--mw-border, #DDE2DE);
+  color: var(--mw-text-secondary, #68736E);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.55rem 1.1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.urp-btn-cancel-back:hover:not(:disabled) {
+  border-color: var(--mw-border-focus, #123C32);
+  color: var(--mw-text-primary, #18211E);
+  background-color: var(--mw-surface-subtle, #FBFBFA);
+}
+
+.urp-btn-cancel-back:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.urp-btn-confirm-cancel {
+  background-color: #DC2626;
+  border: 1px solid #DC2626;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.55rem 1.15rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: all 140ms ease;
+}
+
+.urp-btn-confirm-cancel:hover:not(:disabled) {
+  background-color: #B91C1C;
+  border-color: #B91C1C;
+}
+
+.urp-btn-confirm-cancel:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.urp-btn-spinner-white {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: urp-spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
    Responsive Adjustments
    ========================================================================== */
 @media (max-width: 860px) {
-  .urp-main {
+  .urp-container {
     padding: 1.5rem 1.25rem 3rem;
   }
 
@@ -752,14 +1167,10 @@
     flex-direction: column;
     gap: 1rem;
   }
-
-  .urp-refresh-btn {
-    align-self: flex-start;
-  }
 }
 
 @media (max-width: 580px) {
-  .urp-main {
+  .urp-container {
     padding: 1.25rem 1rem 2.5rem;
   }
 
@@ -774,5 +1185,15 @@
   .urp-btn-secondary,
   .urp-btn-primary {
     flex: none;
+  }
+
+  .urp-confirm-actions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .urp-btn-cancel-back,
+  .urp-btn-confirm-cancel {
+    width: 100%;
   }
 }

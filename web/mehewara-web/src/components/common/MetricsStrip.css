@@ -1,0 +1,113 @@
+/* ==========================================================================
+   Mehewara Unified Admin Metrics Strip Component
+   ========================================================================== */
+
+.mw-metrics-strip {
+  display: grid;
+  background: #FFFFFF;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.03);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.mw-metric-cell {
+  padding: 1.25rem 1.5rem;
+  border-right: 1px solid var(--mw-border-subtle, #EBEFEA);
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.15s ease;
+  min-width: 0;
+}
+
+.mw-metric-cell:last-child {
+  border-right: none;
+}
+
+.mw-metric-cell.clickable {
+  cursor: pointer;
+}
+
+.mw-metric-cell.clickable:hover {
+  background-color: #F8FAF8;
+}
+
+.mw-metric-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.mw-metric-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mw-text-secondary, #68736E);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mw-metric-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--mw-primary-mint, #10B981);
+  flex-shrink: 0;
+}
+
+.mw-metric-pip.pip-amber {
+  background-color: #F59E0B;
+}
+
+.mw-metric-pip.pip-coral {
+  background-color: #EF4444;
+}
+
+.mw-metric-pip.pip-blue {
+  background-color: #3B82F6;
+}
+
+.mw-metric-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--mw-text-primary, #18211E);
+  line-height: 1.1;
+  margin-bottom: 0.35rem;
+}
+
+.mw-metric-descriptor {
+  font-size: 0.8rem;
+  color: var(--mw-text-secondary, #68736E);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 960px) {
+  .mw-metrics-strip {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .mw-metric-cell:nth-child(2n) {
+    border-right: none;
+  }
+  .mw-metric-cell:nth-child(-n+2) {
+    border-bottom: 1px solid var(--mw-border-subtle, #EBEFEA);
+  }
+}
+
+@media (max-width: 540px) {
+  .mw-metrics-strip {
+    grid-template-columns: 1fr !important;
+  }
+  .mw-metric-cell {
+    border-right: none;
+    border-bottom: 1px solid var(--mw-border-subtle, #EBEFEA);
+  }
+  .mw-metric-cell:last-child {
+    border-bottom: none;
+  }
+}

@@ -8,7 +8,7 @@
   min-height: 100vh;
   background-color: var(--mw-page-bg, #F7F7F2);
   color: var(--mw-text-primary, #18211E);
-  font-family: var(--mw-font-family, 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif);
+  font-family: var(--mw-font);
   padding: 2.25rem 2.5rem 4rem;
   box-sizing: border-box;
 }
@@ -21,136 +21,7 @@
   gap: 1.5rem;
 }
 
-/* Secondary Navigation Breadcrumbs / Module Switcher */
-.operations-nav-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.6rem 1rem;
-  background: #FFFFFF;
-  border: 1px solid var(--mw-border, #DDE2DE);
-  border-radius: 8px;
-  font-size: 0.85rem;
-}
-
-.nav-strip-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.nav-strip-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  background: transparent;
-  border: none;
-  color: var(--mw-text-secondary, #68736E);
-  font-weight: 500;
-  font-size: 0.85rem;
-  cursor: pointer;
-  padding: 0.35rem 0.65rem;
-  border-radius: 6px;
-  transition: all 140ms ease;
-}
-
-.nav-strip-btn:hover {
-  background: var(--mw-soft-sage, #E5F6EE);
-  color: var(--mw-primary-forest, #123C32);
-}
-
-.nav-strip-btn.active {
-  background: var(--mw-soft-sage, #E5F6EE);
-  color: var(--mw-primary-forest, #123C32);
-  font-weight: 600;
-}
-
-.nav-strip-divider {
-  color: #B5BFBA;
-}
-
-.nav-strip-subtle-link {
-  background: none;
-  border: none;
-  color: #0F766E;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.nav-strip-subtle-link:hover {
-  text-decoration: underline;
-}
-
-/* 1. Operations Welcome Banner */
-.dispatch-welcome-banner {
-  background-color: #F6FAF7;
-  background-image: url('../../assets/bg.png');
-  background-position: center bottom;
-  background-size: 100% auto;
-  background-repeat: no-repeat;
-  border: 1px solid var(--mw-border, #DDE2DE);
-  border-radius: 10px;
-  min-height: 180px;
-  padding: 1.75rem 2rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.04);
-}
-
-.banner-agent-badge {
-  display: inline-block;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 700;
-  color: #0F766E;
-  background: rgba(229, 246, 238, 0.9);
-  padding: 0.25rem 0.65rem;
-  border-radius: 20px;
-  margin-bottom: 0.6rem;
-  align-self: flex-start;
-  border: 1px solid #CCFBF1;
-}
-
-.dispatch-banner-heading {
-  font-size: 1.65rem;
-  font-weight: 700;
-  color: var(--mw-primary-forest, #123C32);
-  margin: 0 0 0.4rem;
-  letter-spacing: -0.02em;
-}
-
-.dispatch-banner-sub {
-  font-size: 0.95rem;
-  color: var(--mw-text-secondary, #68736E);
-  margin: 0;
-  max-width: 720px;
-  line-height: 1.45;
-}
-
-/* 2. Operational Metrics Strip */
-.dispatch-metrics-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  background: #FFFFFF;
-  border: 1px solid var(--mw-border, #DDE2DE);
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.03);
-}
-
-.dispatch-metric-cell {
-  padding: 1.25rem 1.5rem;
-  border-right: 1px solid var(--mw-border-subtle, #EBEFEA);
-  display: flex;
-  flex-direction: column;
-}
-
-.dispatch-metric-cell:last-child {
-  border-right: none;
-}
+/* 1. Review Simulation Strip & Navigation */
 
 .metric-label-row {
   display: flex;
@@ -1031,8 +902,8 @@
 .dispatch-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(18, 60, 50, 0.45);
-  backdrop-filter: blur(4px);
+  background: rgba(18, 60, 50, 0.35);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1041,11 +912,12 @@
 }
 
 .dispatch-modal-card {
-  background: #FFFFFF;
-  border-radius: 12px;
+  background: var(--mw-surface, #FFFFFF);
+  border: 1px solid var(--mw-line, #DDE2DE);
+  border-radius: var(--mehewara-radius, 12px);
   width: 100%;
   max-width: 540px;
-  box-shadow: 0 10px 30px rgba(18, 60, 50, 0.15);
+  box-shadow: var(--mw-shadow-lg);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1363,3 +1235,178 @@
   color: #C2410C;
   border: 1px solid #FFEDD5;
 }
+
+/* ==========================================================================
+   Opportunistic Dispatch & Execution Telemetry Styles
+   ========================================================================== */
+
+/* Strategy Badges on Queue Items */
+.strategy-tag {
+  font-size: 0.64rem;
+  font-weight: 700;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  transition: transform 120ms ease;
+}
+
+.strategy-tag.quick-win {
+  background: #E0F2FE;
+  color: #0369A1;
+  border: 1px solid #BAE6FD;
+}
+
+.strategy-tag.urgent-hazard {
+  background: #FEF2F2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+  animation: pulse-hazard 2s infinite ease-in-out;
+}
+
+.strategy-tag.clustered {
+  background: #F3E8FF;
+  color: #7E22CE;
+  border: 1px solid #E9D5FF;
+}
+
+@keyframes pulse-hazard {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+/* Queue Item Telemetry Row */
+.queue-item-telemetry-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.queue-telemetry-pill {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.12rem 0.42rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: #F1F5F3;
+  color: #374151;
+  border: 1px solid #E5EBE8;
+}
+
+.queue-telemetry-pill.duration-pill {
+  background: #EFF6FF;
+  color: #1E40AF;
+  border-color: #DBEAFE;
+}
+
+.queue-telemetry-pill.distance-pill {
+  background: #F0FDF4;
+  color: #166534;
+  border-color: #DCFCE7;
+}
+
+.queue-telemetry-pill.transit-pill {
+  background: #FAF5FF;
+  color: #6B21A8;
+  border-color: #F3E8FF;
+}
+
+/* Detail Strategy Badge in Header */
+.detail-strategy-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Telemetry Section Card in Details */
+.detail-section.telemetry-section {
+  background: #FFFFFF;
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 10px;
+  padding: 1.25rem 1.4rem;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.03);
+}
+
+.telemetry-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.telemetry-sub {
+  font-size: 0.8rem;
+  color: #8F9995;
+  margin: 0.2rem 0 0;
+}
+
+.telemetry-opportunity-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0369A1;
+  background: #E0F2FE;
+  border: 1px solid #BAE6FD;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  letter-spacing: 0.02em;
+}
+
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  background: #F8FAF9;
+  border: 1px solid #EBEFEA;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.telemetry-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.telemetry-cell-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #68736E;
+}
+
+.telemetry-cell-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #123C32;
+  font-feature-settings: "tnum";
+}
+
+.telemetry-cell-value.strategy-name {
+  font-size: 0.88rem;
+  color: #0F766E;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.telemetry-cell-desc {
+  font-size: 0.72rem;
+  color: #8F9995;
+  line-height: 1.3;
+}
+

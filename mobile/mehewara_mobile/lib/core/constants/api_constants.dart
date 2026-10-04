@@ -14,6 +14,10 @@ class ApiConstants {
 
   // Endpoints
   static const String login = '/auth/login';
+  static const String register = '/auth/register';
+  static const String reports = '/reports';
+  static const String reportPhotos = '/reports/photos';
+  static const String residentReports = '/resident/reports';
   static const String crewProfile = '/crew/profile';
   static const String crewStatus = '/crew/status';
   static const String crewWorkOrders = '/crew/work-orders';

@@ -107,5 +107,27 @@ class PriorityRecommendationOutput(BaseModel):
         alias="recommendationReason",
         description="Concise factual explanation of the crew selection or availability constraint",
     )
+    estimated_duration_minutes: int = Field(
+        default=60,
+        ge=10,
+        le=2880,
+        alias="estimatedDurationMinutes",
+        description="Estimated on-site physical remediation duration in minutes",
+    )
+    distance_km: float | None = Field(
+        default=None,
+        alias="distanceKm",
+        description="Estimated road transit distance from crew location in kilometers",
+    )
+    estimated_travel_minutes: int | None = Field(
+        default=None,
+        alias="estimatedTravelMinutes",
+        description="Estimated transit time from crew location in minutes",
+    )
+    dispatch_strategy: str = Field(
+        default="STANDARD_DISPATCH",
+        alias="dispatchStrategy",
+        description="Dispatch strategy: IMMEDIATE_QUICK_WIN, URGENT_CRITICAL_PRIORITY, or STANDARD_DISPATCH",
+    )
 
     model_config = {"populate_by_name": True, "serialize_by_alias": True}
