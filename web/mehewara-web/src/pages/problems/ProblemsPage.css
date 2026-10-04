@@ -3,71 +3,12 @@
    Visual Philosophy: Restrained, Editorial, Civic-Tech Minimalism
    ========================================================================== */
 
-:root {
-  --mw-font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  
-  /* Core Color System */
-  --mw-primary-forest: #123C32;
-  --mw-primary-hover: #0D3028;
-  --mw-mint-accent: #4FD1A1;
-  --mw-soft-sage: #E5F6EE;
-  --mw-page-bg: #F7F7F2;
-  --mw-surface: #FFFFFF;
-  --mw-surface-subtle: #FBFBFA;
-  
-  /* Text & Border */
-  --mw-text-primary: #18211E;
-  --mw-text-secondary: #68736E;
-  --mw-text-muted: #8F9995;
-  --mw-border: #DDE2DE;
-  --mw-border-subtle: #EBEFEA;
-  --mw-border-focus: #123C32;
-  
-  /* Semantic Accents (Restrained, Muted) */
-  --mw-critical-text: #991B1B;
-  --mw-critical-bg: #FEF2F2;
-  --mw-critical-border: #FEE2E2;
-
-  --mw-high-text: #C2410C;
-  --mw-high-bg: #FFF7ED;
-  --mw-high-border: #FFEDD5;
-
-  --mw-medium-text: #B45309;
-  --mw-medium-bg: #FFFBEB;
-  --mw-medium-border: #FEF3C7;
-
-  --mw-low-text: #3D5A4C;
-  --mw-low-bg: #F0F4F2;
-  --mw-low-border: #E1E8E4;
-
-  --mw-identified-text: #123C32;
-  --mw-identified-bg: #E5F6EE;
-  --mw-identified-border: #D1EAE0;
-
-  --mw-assigned-text: #1E40AF;
-  --mw-assigned-bg: #EFF6FF;
-  --mw-assigned-border: #DBEAFE;
-
-  --mw-in-progress-text: #0F766E;
-  --mw-in-progress-bg: #F0FDFA;
-  --mw-in-progress-border: #CCFBF1;
-
-  --mw-resolved-text: #166534;
-  --mw-resolved-bg: #F0FDF4;
-  --mw-resolved-border: #DCFCE7;
-  
-  /* Subtle Elevation */
-  --mw-shadow-subtle: 0 1px 2px rgba(18, 60, 50, 0.04);
-  --mw-shadow-card: 0 1px 3px rgba(18, 60, 50, 0.03), 0 1px 2px rgba(18, 60, 50, 0.02);
-  --mw-shadow-hover: 0 4px 12px rgba(18, 60, 50, 0.06);
-}
-
 /* Base Container */
 .problems-dashboard-container {
   min-height: 100vh;
   background-color: var(--mw-page-bg);
   color: var(--mw-text-primary);
-  font-family: var(--mw-font-family);
+  font-family: var(--mw-font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding: 2.25rem 2.5rem 4rem;
@@ -83,103 +24,8 @@
   gap: 1.75rem;
 }
 
-/* Top Navigation Header is now managed by Header.tsx and Header.css */
-
-
 /* ==========================================================================
-   1. Coordinator Welcome Banner (Scenic Municipal Illustrated Canvas)
-   ========================================================================== */
-.problems-welcome-banner {
-  background-color: #F6FAF7;
-  background-image: url('../../assets/bg.png');
-  background-position: center bottom;
-  background-size: 100% auto;
-  background-repeat: no-repeat;
-  border: 1px solid var(--mw-border);
-  border-radius: 10px;
-  min-height: 300px;
-  padding: 1.75rem 2rem 1rem;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.04), 0 1px 2px rgba(18, 60, 50, 0.02);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
-  box-sizing: border-box;
-}
-
-.problems-welcome-banner:hover {
-  border-color: #BEE0D1;
-  box-shadow: 0 3px 8px rgba(18, 60, 50, 0.06);
-}
-
-/* Strongly Centered Content Stack */
-.welcome-banner-center-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  position: relative;
-  z-index: 2;
-  width: 100%;
-}
-
-/* Main Heading */
-.welcome-banner-heading {
-  margin: 0;
-  font-family: var(--mw-font-family);
-  font-size: 2.25rem;
-  font-weight: 750;
-  letter-spacing: -0.025em;
-  color: var(--mw-primary-forest);
-  line-height: 1.2;
-  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.75);
-}
-
-/* Supporting Text */
-.welcome-banner-text {
-  margin: 0;
-  font-family: var(--mw-font-family);
-  font-size: 0.885rem;
-  font-weight: 500;
-  color: #384C43;
-  line-height: 1.45;
-  max-width: 620px;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
-}
-
-/* ==========================================================================
-   2. Top Metrics Strip (Unified White Surface with Dividers)
-   ========================================================================== */
-.problems-metrics-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  background: var(--mw-surface);
-  border: 1px solid var(--mw-border);
-  border-radius: 8px;
-  box-shadow: var(--mw-shadow-card);
-  overflow: hidden;
-}
-
-.problems-metric-cell {
-  padding: 1.25rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  border-right: 1px solid var(--mw-border);
-  position: relative;
-  transition: background-color 150ms ease;
-}
-
-.problems-metric-cell:last-child {
-  border-right: none;
-}
-
-.problems-metric-cell:hover {
-  background-color: var(--mw-surface-subtle);
-}
+/* Coordinator Triage Alert Banner */
 
 .metric-label-row {
   display: flex;
@@ -285,7 +131,7 @@
   border: none;
   background: transparent;
   outline: none;
-  font-family: var(--mw-font-family);
+  font-family: var(--mw-font);
   font-size: 0.875rem;
   color: var(--mw-text-primary);
 }
@@ -313,7 +159,7 @@
   border: 1px solid var(--mw-border);
   border-radius: 6px;
   padding: 0 2rem 0 0.85rem;
-  font-family: var(--mw-font-family);
+  font-family: var(--mw-font);
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--mw-text-primary);
@@ -340,7 +186,7 @@
   border: 1px solid transparent;
   background: transparent;
   color: var(--mw-text-secondary);
-  font-family: var(--mw-font-family);
+  font-family: var(--mw-font);
   font-size: 0.8125rem;
   font-weight: 500;
   padding: 0 0.75rem;
@@ -650,7 +496,7 @@
   border: 1px solid var(--mw-border);
   border-radius: 6px;
   padding: 0.45rem 0.85rem;
-  font-family: var(--mw-font-family);
+  font-family: var(--mw-font);
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--mw-primary-forest);
@@ -733,7 +579,7 @@
   border: 1px solid var(--mw-border);
   background: var(--mw-surface);
   color: var(--mw-text-secondary);
-  font-family: var(--mw-font-family);
+  font-family: var(--mw-font);
   font-size: 0.8125rem;
   font-weight: 500;
   min-width: 36px;
@@ -910,7 +756,7 @@
   background: var(--mw-primary-forest);
   color: #FFFFFF;
   border: 1px solid var(--mw-primary-forest);
-  font-family: var(--mw-font-family);
+  font-family: var(--mw-font);
   font-size: 0.8125rem;
   font-weight: 600;
   padding: 0.55rem 1.15rem;
@@ -931,7 +777,7 @@
   background: var(--mw-surface);
   color: var(--mw-primary-forest);
   border: 1px solid var(--mw-border);
-  font-family: var(--mw-font-family);
+  font-family: var(--mw-font);
   font-size: 0.8125rem;
   font-weight: 600;
   padding: 0.55rem 1.15rem;

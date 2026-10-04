@@ -1,17 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { User } from '../../types/auth';
 import type { ReportSummaryResponse } from '../../types/reports';
 import { getResidentReports, getAllReports } from '../../services/reportApi';
 import { ReportCard } from '../../components/reports/ReportCard';
 import { CreateReportModal } from '../../components/reports/CreateReportModal';
 import { ReportDetailModal } from '../../components/reports/ReportDetailModal';
+import { Header, HeroBanner, MetricsStrip } from '../../components/common';
+import { OpsNavStrip } from '../../components/common/OpsNavStrip';
+import { ROUTES } from '../../routes/paths';
 import './ReportsPage.css';
 
 interface ReportsPageProps {
   currentUser: User;
   token: string;
-  onLogout: () => void;
-  onOpenProfile: () => void;
+  onLogout?: () => void;
+  onOpenProfile?: () => void;
   onNavigateToProblems?: () => void;
 }
 
@@ -24,9 +28,40 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
   onOpenProfile,
   onNavigateToProblems,
 }) => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const handleLogout = onLogout || (() => navigate(ROUTES.LOGIN));
+  const handleOpenProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
+  const handleNavigateToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
+
   const isAdmin = currentUser.role === 'ADMIN';
 
-  const [activeTab, setActiveTab] = useState<'my-reports' | 'coordinator-reports'>('my-reports');
+  const tabParam = searchParams.get('tab');
+  const initialTab = tabParam === 'coordinator-reports' && isAdmin ? 'coordinator-reports' : 'my-reports';
+  const [activeTab, setActiveTab] = useState<'my-reports' | 'coordinator-reports'>(initialTab);
+
+  useEffect(() => {
+    const p = searchParams.get('tab');
+    if (p === 'coordinator-reports' && isAdmin) {
+      setActiveTab('coordinator-reports');
+    } else if (p === 'my-reports') {
+      setActiveTab('my-reports');
+    }
+  }, [searchParams, isAdmin]);
+
+  const handleTabChange = (tab: 'my-reports' | 'coordinator-reports') => {
+    setActiveTab(tab);
+    setPage(1);
+    try {
+      const next = new URLSearchParams(searchParams);
+      next.set('tab', tab);
+      setSearchParams(Object.fromEntries(next.entries()));
+    } catch {
+      // outside router
+    }
+  };
+
   const [reports, setReports] = useState<ReportSummaryResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +76,37 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
 
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedDetailId, setSelectedDetailId] = useState<string | null>(null);
+  const reportIdParam = searchParams.get('reportId');
+  const [selectedDetailId, setSelectedDetailId] = useState<string | null>(reportIdParam);
+
+  useEffect(() => {
+    const p = searchParams.get('reportId');
+    if (p !== selectedDetailId) {
+      setSelectedDetailId(p);
+    }
+  }, [searchParams, selectedDetailId]);
+
+  const handleOpenDetail = (id: string) => {
+    setSelectedDetailId(id);
+    try {
+      const next = new URLSearchParams(searchParams);
+      next.set('reportId', id);
+      setSearchParams(Object.fromEntries(next.entries()));
+    } catch {
+      // outside router
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedDetailId(null);
+    try {
+      const next = new URLSearchParams(searchParams);
+      next.delete('reportId');
+      setSearchParams(Object.fromEntries(next.entries()));
+    } catch {
+      // outside router
+    }
+  };
 
   const fetchReports = useCallback(async () => {
     try {
@@ -75,7 +140,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [token, activeTab, page, selectedStatus, searchQuery]);
+  }, [token, activeTab, page, selectedStatus, searchQuery, setLoading, setError, setReports, setTotalPages, setTotalItems]);
 
   useEffect(() => {
     fetchReports();
@@ -90,135 +155,160 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
     fetchReports();
   };
 
+  const reportMetrics = useMemo(() => {
+    const total = totalItems || reports.length;
+    const pending = reports.filter((r) => {
+      const s = (r.status || '').toUpperCase();
+      return s === 'SUBMITTED' || s === 'PENDING';
+    }).length;
+    const inProgress = reports.filter((r) => {
+      const s = (r.status || '').toUpperCase();
+      return s === 'IN_PROGRESS' || s === 'ASSIGNED' || s === 'PROCESSING';
+    }).length;
+    const resolved = reports.filter((r) => {
+      const s = (r.status || '').toUpperCase();
+      return s === 'RESOLVED' || s === 'CLOSED';
+    }).length;
+    return { total, pending, inProgress, resolved };
+  }, [reports, totalItems]);
+
   return (
     <div className="reports-page-container">
-      {/* Top Navbar */}
-      <header className="reports-navbar">
-        <div className="navbar-brand">
-          <div className="brand-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
+      {/* Top Header */}
+      <Header
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onOpenProfile={handleOpenProfile}
+        onBrandClick={() => navigate(isAdmin ? ROUTES.OPERATIONS : ROUTES.HOME)}
+        roleBadgeText={isAdmin ? 'Municipal Coordinator' : 'Resident'}
+        showName={true}
+      />
+
+      <div className="reports-content-wrap">
+        {/* Operations Navigation Strip for Coordinators */}
+        {isAdmin && (
+          <OpsNavStrip
+            activePage="reports"
+            onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
+            onNavigateToProblems={handleNavigateToProblems}
+            onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
+            onNavigateToCrews={() => navigate(ROUTES.CREWS)}
+            onNavigateToWorkOrders={() => navigate(ROUTES.WORK_ORDERS)}
+            onNavigateToReports={() => {}}
+          />
+        )}
+
+        {/* Hero Welcome Banner */}
+        <HeroBanner
+          badge={isAdmin ? 'CITIZEN INTAKE & TELEMETRY' : 'RESIDENT PORTAL'}
+          title={isAdmin ? 'Municipal Infrastructure Reports' : 'Resident Issue Tracker'}
+          subtitle={
+            isAdmin
+              ? 'Centralized registry of citizen-submitted civic infrastructure defects, geocoded reports, triage status, and council repair workflows.'
+              : 'Submit public defects, track council inspection milestones, and monitor municipal repair progress in your local ward.'
+          }
+          ariaLabel="Municipal Reports Banner"
+        />
+
+        {/* Operational Metrics Strip for Coordinators */}
+        {isAdmin && (
+          <MetricsStrip
+            items={[
+              {
+                id: 'total',
+                label: 'Total Reports',
+                value: reportMetrics.total,
+                descriptor: 'Citizen defect submissions',
+                hasPip: true,
+              },
+              {
+                id: 'pending',
+                label: 'Awaiting Triage',
+                value: reportMetrics.pending,
+                descriptor: 'New reports requiring evaluation',
+                hasPip: true,
+              },
+              {
+                id: 'in-progress',
+                label: 'In Progress',
+                value: reportMetrics.inProgress,
+                descriptor: 'Active investigation or repair',
+              },
+              {
+                id: 'resolved',
+                label: 'Resolved / Closed',
+                value: reportMetrics.resolved,
+                descriptor: 'Defects verified resolved',
+              },
+            ]}
+            ariaLabel="Key Reports Metrics"
+          />
+        )}
+
+        {/* Consolidated Reports Toolbar */}
+        <div className="reports-toolbar">
+          <div className="reports-toolbar-left">
+            {isAdmin && (
+              <div className="reports-view-tabs" role="tablist" aria-label="Reports Views">
+                <button
+                  type="button"
+                  className={`reports-tab-btn ${activeTab === 'my-reports' ? 'active' : ''}`}
+                  onClick={() => handleTabChange('my-reports')}
+                  role="tab"
+                  aria-selected={activeTab === 'my-reports'}
+                >
+                  📋 My Reports
+                </button>
+                <button
+                  type="button"
+                  className={`reports-tab-btn ${activeTab === 'coordinator-reports' ? 'active' : ''}`}
+                  onClick={() => handleTabChange('coordinator-reports')}
+                  role="tab"
+                  aria-selected={activeTab === 'coordinator-reports'}
+                >
+                  🏢 Coordinator All Reports
+                </button>
+              </div>
+            )}
           </div>
-          <div>
-            <div className="brand-title">Mehewara</div>
-            <div className="brand-subtitle">Municipal Operations & Resident Portal</div>
+
+          <div className="reports-toolbar-right">
+            <button
+              type="button"
+              className="primary-add-report-btn"
+              onClick={() => setIsCreateModalOpen(true)}
+              title="Create a new infrastructure report"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              <span>Report an Issue</span>
+            </button>
           </div>
         </div>
 
-        <div className="navbar-actions">
-          {isAdmin && (
-            <div className="nav-tabs">
+        {/* Main Content Area */}
+        <main className="reports-main-content">
+          {/* Success Banner */}
+          {successBanner && (
+            <div className="success-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>{successBanner}</span>
               <button
                 type="button"
-                className={`nav-tab-btn ${activeTab === 'my-reports' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('my-reports');
-                  setPage(1);
-                }}
+                onClick={() => setSuccessBanner(null)}
+                style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '1.2rem' }}
               >
-                📋 My Reports
+                &times;
               </button>
-              <button
-                type="button"
-                className={`nav-tab-btn ${activeTab === 'coordinator-reports' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('coordinator-reports');
-                  setPage(1);
-                }}
-              >
-                🏢 Coordinator All Reports
-              </button>
-              {onNavigateToProblems && (
-                <button
-                  type="button"
-                  className="nav-tab-btn"
-                  onClick={onNavigateToProblems}
-                  style={{ borderColor: '#123C32', color: '#123C32', fontWeight: 600 }}
-                  title="Switch to Municipal Problems Dashboard"
-                >
-                  ⚡ Problems Dashboard
-                </button>
-              )}
             </div>
           )}
 
-          {/* Sequential Button to Add Reports */}
-          <button
-            type="button"
-            className="primary-add-report-btn"
-            onClick={() => setIsCreateModalOpen(true)}
-            title="Create a new infrastructure report"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Report an Issue
-          </button>
+          {/* Error Banner */}
+          {error && <div className="error-banner">{error}</div>}
 
-          {/* User Profile Pill */}
-          <div className="user-profile-pill" onClick={onOpenProfile} style={{ cursor: 'pointer' }} title="View Profile">
-            <div className="user-avatar-small">
-              {currentUser.profileImageUrl ? (
-                <img src={currentUser.profileImageUrl} alt={currentUser.name} />
-              ) : (
-                currentUser.name?.charAt(0).toUpperCase() || 'U'
-              )}
-            </div>
-            <span className="user-name-small">{currentUser.name}</span>
-            <span className="role-badge-small">{currentUser.role}</span>
-          </div>
-
-          <button type="button" className="signout-btn" onClick={onLogout} title="Sign Out">
-            Sign Out
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="reports-main-content">
-        {/* Success Banner */}
-        {successBanner && (
-          <div className="success-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>{successBanner}</span>
-            <button
-              type="button"
-              onClick={() => setSuccessBanner(null)}
-              style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '1.2rem' }}
-            >
-              &times;
-            </button>
-          </div>
-        )}
-
-        {/* Error Banner */}
-        {error && <div className="error-banner">{error}</div>}
-
-        {/* Header Title Section */}
-        <div className="reports-header-section">
-          <div>
-            <h1 className="page-title">
-              {activeTab === 'my-reports' ? 'My Reported Issues' : 'Municipal Reports Dashboard (Coordinator)'}
-            </h1>
-            <p className="page-desc">
-              {activeTab === 'my-reports'
-                ? 'Track the status, coordinates, and council repair progress of your submitted public issues.'
-                : 'Review, filter, and inspect incoming citizen reports submitted across all municipal zones.'}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            className="primary-add-report-btn"
-            onClick={() => setIsCreateModalOpen(true)}
-          >
-            ➕ Add New Report
-          </button>
-        </div>
-
-        {/* Filters and Search Bar */}
-        <div className="reports-filter-bar">
+          {/* Filters and Search Bar */}
+          <div className="reports-filter-bar">
           <div className="filter-group">
             <span className="filter-label">Status Filter:</span>
             <div className="status-filter-pills">
@@ -289,7 +379,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
                 <ReportCard
                   key={report.id}
                   report={report}
-                  onViewDetails={(id) => setSelectedDetailId(id)}
+                  onViewDetails={(id) => handleOpenDetail(id)}
                 />
               ))}
             </div>
@@ -342,6 +432,8 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
           </div>
         )}
       </main>
+      </div>
+
 
       {/* Create Report Modal */}
       {isCreateModalOpen && (
@@ -357,7 +449,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
         <ReportDetailModal
           token={token}
           reportId={selectedDetailId}
-          onClose={() => setSelectedDetailId(null)}
+          onClose={handleCloseDetail}
         />
       )}
     </div>

@@ -1,14 +1,15 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import App from './App';
-import { crewRoles } from './types/access';
-vi.mock('./pages/auth/LoginPage', () => ({ LoginPage: ({ onNavigateToReports }: { onNavigateToReports: () => void }) => <button onClick={onNavigateToReports}>Return from profile</button> }));
-vi.mock('./pages/reports/ReportsPage', () => ({ ReportsPage: () => <div>Resident portal</div> }));
-vi.mock('./pages/problems', () => ({ ProblemsPage: () => <div>Coordinator dashboard</div> }));
-vi.mock('./pages/problems/UncertainReportsPage', () => ({ UncertainReportsPage: () => null }));
-vi.mock('./pages/dispatch', () => ({ DispatchDashboardPage: () => null }));
-vi.mock('./pages/crews', () => ({ CrewListPage: () => null }));
-vi.mock('./pages/landing', () => ({ LandingPage: () => null }));
+import '@testing-library/jest-dom/vitest';
+import App from '../../src/App';
+import { crewRoles } from '../../src/types/access';
+vi.mock('../../src/pages/auth/LoginPage', () => ({ LoginPage: ({ onNavigateToReports }: { onNavigateToReports: () => void }) => <button onClick={onNavigateToReports}>Return from profile</button> }));
+vi.mock('../../src/pages/reports/ReportsPage', () => ({ ReportsPage: () => <div>Resident portal</div> }));
+vi.mock('../../src/pages/problems', () => ({ ProblemsPage: () => <div>Coordinator dashboard</div> }));
+vi.mock('../../src/pages/problems/UncertainReportsPage', () => ({ UncertainReportsPage: () => null }));
+vi.mock('../../src/pages/dispatch', () => ({ DispatchDashboardPage: () => null }));
+vi.mock('../../src/pages/crews', () => ({ CrewListPage: () => null }));
+vi.mock('../../src/pages/landing', () => ({ LandingPage: () => null }));
 beforeEach(() => localStorage.clear());
 afterEach(() => vi.unstubAllGlobals());
 for (const role of crewRoles) {

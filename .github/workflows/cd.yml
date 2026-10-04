@@ -55,8 +55,8 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          script_stop: true
           script: |
+            set -eu
             mkdir -p "${{ secrets.VPS_DEPLOY_PATH }}/nginx"
 
       - name: Upload production configuration
@@ -86,10 +86,12 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           envs: GHCR_USERNAME,GHCR_TOKEN
-          script_stop: true
           script: |
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-            cd ${{ secrets.VPS_DEPLOY_PATH }}
+            set -eu
+            cd "${{ secrets.VPS_DEPLOY_PATH }}"
+            test -s .env || { echo "Missing production .env file"; exit 1; }
+            docker info >/dev/null || { echo "Deployment user cannot access Docker"; exit 1; }
+            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
             docker compose --env-file .env -f compose.prod.yml pull
             docker compose --env-file .env -f compose.prod.yml up -d
             docker compose --env-file .env -f compose.prod.yml ps

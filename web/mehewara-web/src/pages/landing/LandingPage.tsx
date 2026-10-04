@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { User } from '../../types/auth';
 import { Icon, StatusBadge, mehewaraAssets } from '../../design-system/mehewara';
+import { ROUTES } from '../../routes/paths';
 import './LandingPage.css';
 
 interface LandingPageProps {
@@ -40,9 +42,11 @@ const processSteps = [
 ];
 
 export function LandingPage({ currentUser, onNavigateToLogin, onNavigateToReports, onSignIn: legacySignIn, onSignUp: legacySignUp }: LandingPageProps) {
-  const signIn = onNavigateToLogin ?? legacySignIn ?? (() => undefined);
-  const signUp = onNavigateToLogin ?? legacySignUp ?? signIn;
-  const navigateToReports = onNavigateToReports ?? (() => undefined);
+  const navigate = useNavigate();
+
+  const signIn = onNavigateToLogin ?? legacySignIn ?? (() => navigate(ROUTES.LOGIN));
+  const signUp = onNavigateToLogin ?? legacySignUp ?? (() => navigate(ROUTES.REGISTER));
+  const navigateToReports = onNavigateToReports ?? (() => navigate(ROUTES.REPORTS));
   const [menuOpen, setMenuOpen] = useState(false);
   const reportTrackRef = useRef<HTMLDivElement>(null);
   const [activeReport, setActiveReport] = useState(0);

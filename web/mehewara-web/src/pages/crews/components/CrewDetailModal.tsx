@@ -1,17 +1,86 @@
 import React, { useEffect, useState } from 'react';
-import type { CrewDetail } from '../../../types/crew';
+import type { CrewDetail, CrewType } from '../../../types/crew';
 import { getCrewById } from '../../../services/crewApi';
+import '../../dispatch/DispatchDashboardPage.css';
+
+const CREW_EQUIPMENT_SPECS: Record<
+  CrewType,
+  {
+    baseDepot: string;
+    vehicleUnit: string;
+    equipment: string[];
+    memberCount: number;
+  }
+> = {
+  DRAINAGE: {
+    baseDepot: 'Central Colombo Depot — Ward 07 (Cinnamon Gardens)',
+    vehicleUnit: 'Heavy Jetting Unit WP-LB-4091',
+    equipment: [
+      'High-pressure sewer jetter (250 bar)',
+      'Submersible trash pump (4-inch)',
+      'Four-gas atmospheric detection monitors',
+      'Hydraulic trench shoring safety set',
+    ],
+    memberCount: 6,
+  },
+  ROAD: {
+    baseDepot: 'Central Colombo Depot — Ward 03 (Kollupitiya)',
+    vehicleUnit: 'Asphalt Patching Truck WP-GA-8112',
+    equipment: [
+      'Vibratory dual-drum asphalt compactor',
+      'Infrared pavement joint heater',
+      'Pneumatic demolition jackhammers',
+      'Solar-powered traffic diversion arrow board',
+    ],
+    memberCount: 5,
+  },
+  WASTE: {
+    baseDepot: 'North Colombo Depot — Ward 12 (Kotahena)',
+    vehicleUnit: 'Hydraulic Compactor WP-NA-2234',
+    equipment: [
+      'Rear-loading hydraulic waste compactor',
+      'Dual-bin mechanical lifter & tipper',
+      'Chemical spill containment barrier kit',
+      'Industrial sanitization & pressure wash rig',
+    ],
+    memberCount: 4,
+  },
+  ELECTRICAL: {
+    baseDepot: 'Central Colombo Depot — Ward 05 (Havelock Town)',
+    vehicleUnit: 'Insulated Aerial Boom Lift WP-QA-5067',
+    equipment: [
+      '14m insulated cherry picker bucket',
+      '1000V rated live-line dielectric tools',
+      'Digital street illumination lux meter',
+      'Mobile emergency grid generator (15 kVA)',
+    ],
+    memberCount: 4,
+  },
+  ENVIRONMENT: {
+    baseDepot: 'South Colombo Depot — Ward 06 (Wellawatte)',
+    vehicleUnit: 'Arboricultural Flatbed WP-LA-3389',
+    equipment: [
+      'High-capacity hydraulic wood chipper',
+      'Heavy commercial chainsaws (24" & 36")',
+      'Arborist rigging blocks and friction brakes',
+      'Hydraulic knuckle-boom debris crane',
+    ],
+    memberCount: 5,
+  },
+};
 
 interface CrewDetailModalProps {
   crewId: string | null;
   token: string;
   onClose: () => void;
+  onNavigateToWorkOrder?: (workOrderId?: string) => void;
 }
 
 export const CrewDetailModal: React.FC<CrewDetailModalProps> = ({
   crewId,
   token,
   onClose,
+  onNavigateToWorkOrder,
 }) => {
   const [crew, setCrew] = useState<CrewDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -110,10 +179,22 @@ export const CrewDetailModal: React.FC<CrewDetailModalProps> = ({
                   <span className="meta-item-val font-mono">{crew.contactNumber || '+94 11 269 1111'}</span>
                 </div>
                 <div className="crew-meta-item">
+                  <span className="meta-item-label">Assigned Base Depot</span>
+                  <span className="meta-item-val">
+                    {CREW_EQUIPMENT_SPECS[crew.crewType]?.baseDepot || 'Municipal Central Depot'}
+                  </span>
+                </div>
+                <div className="crew-meta-item">
+                  <span className="meta-item-label">Vehicle Fleet ID</span>
+                  <span className="meta-item-val font-mono">
+                    {CREW_EQUIPMENT_SPECS[crew.crewType]?.vehicleUnit || 'Municipal Unit'}
+                  </span>
+                </div>
+                <div className="crew-meta-item">
                   <span className="meta-item-label">Current Work Order</span>
                   <span className="meta-item-val font-mono">
                     {crew.activeWorkOrderId ? (
-                      <span className="active-wo-link">{crew.activeWorkOrderId.substring(0, 8)}...</span>
+                      <span className="active-wo-link">WO: {crew.activeWorkOrderId.substring(0, 8)}...</span>
                     ) : (
                       <span className="text-muted">None (Standing By)</span>
                     )}
@@ -125,8 +206,38 @@ export const CrewDetailModal: React.FC<CrewDetailModalProps> = ({
                 </div>
               </div>
 
+              {/* Standard Equipment Inventory */}
+              {CREW_EQUIPMENT_SPECS[crew.crewType]?.equipment && (
+                <div className="crew-equipment-section" style={{ marginTop: '16px' }}>
+                  <span className="detail-section-label" style={{ display: 'block', marginBottom: '8px', fontSize: '0.78rem', fontWeight: 700, color: '#68736E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Certified Equipment & Heavy Machinery
+                  </span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px' }}>
+                    {CREW_EQUIPMENT_SPECS[crew.crewType].equipment.map((item, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 10px',
+                          background: '#F9FBFA',
+                          border: '1px solid #EBEFEA',
+                          borderRadius: '6px',
+                          fontSize: '0.8rem',
+                          color: '#18211E',
+                        }}
+                      >
+                        <span style={{ color: '#4FD1A1', fontSize: '10px' }}>●</span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Real-time Readiness Notice */}
-              <div className={`crew-readiness-notice ${crew.status === 'AVAILABLE' ? 'ready' : 'busy'}`}>
+              <div className={`crew-readiness-notice ${crew.status === 'AVAILABLE' ? 'ready' : 'busy'}`} style={{ marginTop: '16px' }}>
                 {crew.status === 'AVAILABLE' ? (
                   <>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -151,6 +262,21 @@ export const CrewDetailModal: React.FC<CrewDetailModalProps> = ({
         </div>
 
         <div className="dispatch-modal-actions">
+          {crew?.activeWorkOrderId && onNavigateToWorkOrder && (
+            <button
+              type="button"
+              className="dispatch-btn-primary"
+              onClick={() => {
+                onClose();
+                onNavigateToWorkOrder(crew.activeWorkOrderId!);
+              }}
+            >
+              <span>View Active Work Order</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          )}
           <button type="button" className="dispatch-btn-secondary" onClick={onClose}>
             Close Profile
           </button>
