@@ -100,7 +100,7 @@ async def test_unified_workflow_mocked_execution():
             related_reports=[],
         )
 
-        assert result["status"] == "completed"
+        assert result["status"] == "waiting"
         assert result["workflow_id"] == str(w_id)
 
         # Stage 1 output present

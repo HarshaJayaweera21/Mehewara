@@ -5,6 +5,7 @@ public class WorkOrder
     public Guid WorkOrderId { get; set; }
     public Guid ProblemId { get; set; }
     public Guid CrewId { get; set; }
+    public Guid? RecommendationId { get; set; }
     public string Priority { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string? Instructions { get; set; }
@@ -19,6 +20,7 @@ public class WorkOrder
     // Navigation properties
     public Problem Problem { get; set; } = null!;
     public Crew Crew { get; set; } = null!;
+    public WorkflowEvent? Recommendation { get; set; }
     public ICollection<ApprovalHistory> ApprovalHistories { get; set; }
         = new List<ApprovalHistory>();
 }

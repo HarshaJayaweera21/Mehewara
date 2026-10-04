@@ -15,10 +15,9 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
   onClose,
   onSuccess,
 }) => {
-  const [instructions, setInstructions] = useState(
-    `Deploy to ${recommendation.problemTitle}. Implement standard municipal safety perimeter and execute ${recommendation.category} repairs.`
-  );
-  const [notes, setNotes] = useState('');
+  const [reason, setReason] = useState('');
+  const [responsibilityAcknowledged, setResponsibilityAcknowledged] = useState(false);
+  const humanOverride = recommendation.requiresResponsibilityAcknowledgement === true;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -29,12 +28,13 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
 
     try {
       const res = await approveRecommendation(token, recommendation.recommendationId, {
-        instructions: instructions.trim(),
-        notes: notes.trim() || undefined,
+        reason: reason.trim() || undefined,
+        expectedRevision: recommendation.revision,
+        acknowledgeHumanOverrideResponsibility: humanOverride && responsibilityAcknowledged,
       });
-      onSuccess(res.workOrderId);
+      onSuccess(res.workOrder.id);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Approval failed. 10-point validation checklist blocked dispatch.');
+      setErrorMessage(err instanceof Error ? err.message : 'Approval failed. Check the server response and retry.');
     } finally {
       setIsSubmitting(false);
     }
@@ -118,43 +118,22 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
               <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
             </svg>
             <div>
-              <strong>Squad Priority Queue:</strong> Approving adds this work order to{' '}
-              <strong>{recommendation.recommendedCrewName || 'the squad'}</strong>&apos;s mobile queue in priority order ({recommendation.priority}).
-              Squads can safely stack up multiple assigned tasks and execute them sequentially.
+              Approval creates a work order after the backend checks current report links,
+              crew specialty and availability, and conflicting active work.
             </div>
           </div>
 
           <div className="dispatch-form-group">
-            <label htmlFor="instructions" className="dispatch-form-label">
-              Work Order Instructions <span className="required-star">*</span>
-            </label>
-            <textarea
-              id="instructions"
-              rows={3}
-              className="dispatch-form-textarea"
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              placeholder="Specify crew dispatch instructions..."
-              required
-            />
-            <span className="dispatch-form-hint">
-              These operational instructions are stored in the WorkOrder and displayed on the Crew Leader mobile terminal.
-            </span>
+            <label htmlFor="approvalReason" className="dispatch-form-label">Approval reason {humanOverride ? '(required for human override)' : '(optional)'}</label>
+            <textarea id="approvalReason" className="dispatch-form-textarea" value={reason} onChange={e => setReason(e.target.value)} rows={3} required={humanOverride} maxLength={4000} />
           </div>
-
-          <div className="dispatch-form-group">
-            <label htmlFor="notes" className="dispatch-form-label">
-              Internal Coordinator Approval Notes (Optional)
+          {humanOverride && (
+            <label className="dispatch-form-label">
+              <input type="checkbox" checked={responsibilityAcknowledged} onChange={e => setResponsibilityAcknowledged(e.target.checked)} required />{' '}
+              I reviewed this human override and accept responsibility for approving the edited recommendation.
+              Agent 4 has not validated this revision.
             </label>
-            <input
-              id="notes"
-              type="text"
-              className="dispatch-form-input"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g., Authorized after reviewing stormwater drainage canal capacity"
-            />
-          </div>
+          )}
 
           <div className="dispatch-modal-actions">
             <button
@@ -168,7 +147,7 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
             <button
               type="submit"
               className="dispatch-btn-primary"
-              disabled={isSubmitting || !instructions.trim()}
+              disabled={isSubmitting || (humanOverride && (!responsibilityAcknowledged || !reason.trim()))}
             >
               {isSubmitting ? (
                 <>
