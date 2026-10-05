@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -223,53 +221,9 @@ class _ResidentReportDetailScreenState extends State<ResidentReportDetailScreen>
             status: report.status,
             linkedProblemCount: report.linkedProblemCount,
           ),
-          if (report.aiAnalysis?.isNotEmpty == true) ...[
+          if (report.parsedAiAnalysis != null) ...[
             const Divider(height: 28, color: Color(0xFFEBEFEA)),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: CivicColors.mintTint,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: CivicColors.mintPip.withValues(alpha: 0.35),
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.auto_awesome_rounded,
-                    size: 20,
-                    color: CivicColors.forest,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'AI Triage & Assessment',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 12.5,
-                            color: CivicColors.forest,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _assessmentSummary(report.aiAnalysis!),
-                          style: const TextStyle(
-                            height: 1.4,
-                            fontSize: 12,
-                            color: CivicColors.forest,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _AiTriageCard(info: report.parsedAiAnalysis!),
           ],
         ],
       ),
@@ -363,19 +317,238 @@ class _ResidentReportDetailScreenState extends State<ResidentReportDetailScreen>
       ),
     );
   }
+}
 
-  String _assessmentSummary(String input) {
-    try {
-      final decoded = jsonDecode(input);
-      if (decoded is Map<String, dynamic>) {
-        return (decoded['observedIssue'] ?? decoded['summary'] ?? input).toString();
-      }
-    } catch (_) {
-      // Fallback
+class _AiTriageCard extends StatelessWidget {
+  final AiTriageInfo info;
+
+  const _AiTriageCard({required this.info});
+
+  @override
+  Widget build(BuildContext context) {
+    final isUncertain = info.isUncertain;
+
+    final cardBg = isUncertain ? const Color(0xFFFFFBEB) : CivicColors.mintTint;
+    final cardBorder = isUncertain
+        ? const Color(0xFFFDE68A)
+        : CivicColors.mintPip.withValues(alpha: 0.35);
+    final iconColor = isUncertain ? const Color(0xFFB45309) : CivicColors.forest;
+    final titleColor = isUncertain ? const Color(0xFF92400E) : CivicColors.forest;
+    final textColor = isUncertain ? const Color(0xFF78350F) : CivicColors.forest;
+    final chipBg = Colors.white.withValues(alpha: 0.85);
+
+    final chips = <_TriageBadge>[];
+    if (info.affectedAsset != null && info.affectedAsset!.trim().isNotEmpty) {
+      chips.add(_TriageBadge(
+        icon: Icons.layers_outlined,
+        label: 'Asset: ${info.affectedAsset}',
+      ));
     }
-    return input;
+    if (info.priority != null && info.priority!.trim().isNotEmpty) {
+      chips.add(_TriageBadge(
+        icon: Icons.flag_rounded,
+        label: '${info.priority} Priority',
+      ));
+    }
+    if (info.inferredCategory != null && info.inferredCategory!.trim().isNotEmpty) {
+      chips.add(_TriageBadge(
+        icon: Icons.category_outlined,
+        label: info.inferredCategory!,
+      ));
+    }
+    for (final hazard in info.hazards) {
+      chips.add(_TriageBadge(
+        icon: Icons.warning_amber_rounded,
+        label: hazard,
+      ));
+    }
+    for (final ev in info.evidence) {
+      chips.add(_TriageBadge(
+        icon: Icons.check_circle_outline_rounded,
+        label: ev,
+      ));
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: isUncertain
+                      ? const Color(0xFFFEF3C7)
+                      : CivicColors.mintPip.withValues(alpha: 0.25),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isUncertain
+                      ? Icons.policy_rounded
+                      : Icons.auto_awesome_rounded,
+                  size: 18,
+                  color: iconColor,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            info.title,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12.5,
+                              color: titleColor,
+                            ),
+                          ),
+                        ),
+                        if (info.badgeText != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isUncertain
+                                  ? const Color(0xFFFDE68A)
+                                  : CivicColors.mintPip.withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              info.badgeText!,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: isUncertain
+                                    ? const Color(0xFF92400E)
+                                    : CivicColors.forest,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      info.summary,
+                      style: TextStyle(
+                        height: 1.45,
+                        fontSize: 12,
+                        color: textColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (info.observedIssue != null &&
+              info.observedIssue!.trim().isNotEmpty &&
+              info.observedIssue != info.summary) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: chipBg,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: cardBorder, width: 0.7),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Observed: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11.5,
+                      color: titleColor,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      info.observedIssue!,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        height: 1.35,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (chips.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: chips.map((c) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3.5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: chipBg,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: cardBorder, width: 0.7),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(c.icon, size: 12, color: iconColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        c.label,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+          if (isUncertain && info.missingInformation.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Awaiting coordinator verification: ${info.missingInformation.join(", ")}',
+              style: const TextStyle(
+                fontStyle: FontStyle.italic,
+                fontSize: 11,
+                color: Color(0xFF92400E),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
+
+class _TriageBadge {
+  final IconData icon;
+  final String label;
+
+  const _TriageBadge({required this.icon, required this.label});
+}
+
 
 class _StatusBanner extends StatelessWidget {
   final ResidentReport report;
