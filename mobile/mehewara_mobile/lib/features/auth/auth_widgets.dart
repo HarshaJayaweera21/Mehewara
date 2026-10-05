@@ -356,3 +356,186 @@ class AuthCard extends StatelessWidget {
     );
   }
 }
+
+/// Full-bleed atmospheric background featuring soft sage-mint gradient,
+/// ambient radial glow orbs, and welcoming Mehewara watermark stamps
+/// for scrollable portal pages (Resident & Crew profiles, dashboards, etc.).
+class CivicAtmosphericBackground extends StatelessWidget {
+  final Widget child;
+
+  const CivicAtmosphericBackground({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // 1. Soft atmospheric base gradient
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFF3F8F4), // Fresh soft mint-tinted alabaster
+                Color(0xFFF8FAF8),
+                Color(0xFFEBF4EE), // Gentle pale sage
+              ],
+              stops: [0.0, 0.45, 1.0],
+            ),
+          ),
+        ),
+
+        // 2. Ambient artistic glow orbs
+        Positioned(
+          top: -120,
+          right: -100,
+          child: IgnorePointer(
+            child: Container(
+              width: 380,
+              height: 380,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    CivicColors.mintPip.withValues(alpha: 0.16),
+                    CivicColors.mintPip.withValues(alpha: 0.05),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.55, 1.0],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: -140,
+          left: -120,
+          child: IgnorePointer(
+            child: Container(
+              width: 420,
+              height: 420,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    CivicColors.forest.withValues(alpha: 0.10),
+                    CivicColors.forest.withValues(alpha: 0.03),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.6, 1.0],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // 3. Welcoming Greenish Watermark (Oversized logo stamps)
+        Positioned(
+          right: -60,
+          top: 80,
+          child: IgnorePointer(
+            child: Transform.rotate(
+              angle: -math.pi / 24,
+              child: Opacity(
+                opacity: 0.038,
+                child: Image.asset(
+                  'assets/images/mehewara-logo.png',
+                  width: 380,
+                  height: 380,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: -80,
+          bottom: 120,
+          child: IgnorePointer(
+            child: Transform.rotate(
+              angle: math.pi / 18,
+              child: Opacity(
+                opacity: 0.030,
+                child: Image.asset(
+                  'assets/images/mehewara-logo.png',
+                  width: 340,
+                  height: 340,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // 4. Foreground content
+        child,
+      ],
+    );
+  }
+}
+
+/// Modern elevated card for profile and portal screens
+class CivicSurfaceCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final Color? color;
+  final Border? border;
+  final VoidCallback? onTap;
+
+  const CivicSurfaceCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.color,
+    this.border,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final decoration = BoxDecoration(
+      color: color ?? Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      border: border ??
+          Border.all(
+            color: const Color(0xFFE2E8E4),
+            width: 1.1,
+          ),
+      boxShadow: [
+        BoxShadow(
+          color: CivicColors.forest.withValues(alpha: 0.04),
+          blurRadius: 20,
+          offset: const Offset(0, 6),
+          spreadRadius: -2,
+        ),
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.015),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    );
+
+    final content = Container(
+      decoration: decoration,
+      padding: padding ?? const EdgeInsets.all(18),
+      child: child,
+    );
+
+    if (onTap != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: content,
+        ),
+      );
+    }
+    return content;
+  }
+}
+

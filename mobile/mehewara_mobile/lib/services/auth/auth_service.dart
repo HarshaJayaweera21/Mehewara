@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
@@ -145,7 +146,7 @@ class AuthService {
   }
 
   /// Uploads profile photo to backend / Cloudinary
-  Future<ResidentUser> uploadProfilePhoto(String filePath) async {
+  Future<ResidentUser> uploadProfilePhoto(XFile file) async {
     final uri = Uri.parse('${_api.baseUrl.replaceFirst(RegExp(r'/$'), '')}/auth/profile/photo');
     final request = http.MultipartRequest('POST', uri);
 
@@ -154,7 +155,12 @@ class AuthService {
       request.headers['Authorization'] = 'Bearer $token';
     }
 
-    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+    final bytes = await file.readAsBytes();
+    request.files.add(http.MultipartFile.fromBytes(
+      'file',
+      bytes,
+      filename: file.name.isNotEmpty ? file.name : 'avatar.jpg',
+    ));
 
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);

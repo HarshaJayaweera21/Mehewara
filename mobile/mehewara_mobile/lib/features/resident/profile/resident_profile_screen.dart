@@ -3,12 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/routes/app_routes.dart';
-import '../../../core/storage/token_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/user.dart';
 import '../../../services/auth/auth_service.dart';
 import '../../../services/reports/report_service.dart';
+import '../../auth/auth_widgets.dart';
 
 class ResidentProfileScreen extends StatefulWidget {
   const ResidentProfileScreen({super.key});
@@ -84,7 +84,7 @@ class _ResidentProfileScreenState extends State<ResidentProfileScreen> {
       showDragHandle: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (_) => _EditProfileSheet(user: _user!, auth: _auth),
     );
@@ -94,17 +94,58 @@ class _ResidentProfileScreenState extends State<ResidentProfileScreen> {
         _user = updated;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile details updated successfully.'),
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 10),
+              Text('Profile details updated successfully.'),
+            ],
+          ),
           backgroundColor: CivicColors.forest,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
   }
 
   Future<void> _logout() async {
-    await TokenStorage.clearSession();
-    if (mounted) {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: AppColors.priorityCritical),
+            SizedBox(width: 10),
+            Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to sign out of your Mehewara resident account?',
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: CivicColors.slateGreen)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.priorityCritical,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      await _auth.logout();
+      if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
     }
   }
@@ -115,577 +156,737 @@ class _ResidentProfileScreenState extends State<ResidentProfileScreen> {
       SnackBar(
         content: Text('$label copied to clipboard'),
         duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts[0].isEmpty) return 'R';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
+  }
+
+  Widget _buildInitialsAvatar(ResidentUser user) {
+    return Container(
+      width: 72,
+      height: 72,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            CivicColors.mintTint,
+            Color(0xFFD6F0E3),
+          ],
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        _initials(user.name),
+        style: const TextStyle(
+          fontSize: 26,
+          fontWeight: FontWeight.w800,
+          color: CivicColors.forest,
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: CivicColors.alabaster,
-        body: Center(
-          child: CircularProgressIndicator(color: CivicColors.forest),
-        ),
-      );
-    }
-
-    if (_errorMessage != null && _user == null) {
-      return Scaffold(
-        backgroundColor: CivicColors.alabaster,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.person_off_outlined, size: 54, color: CivicColors.slateGreen),
-                const SizedBox(height: 14),
-                const Text(
-                  'Could not load resident profile',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _errorMessage!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: CivicColors.slateGreen),
-                ),
-                const SizedBox(height: 18),
-                ElevatedButton(
-                  onPressed: _loadProfileData,
-                  child: const Text('Try again'),
-                ),
-              ],
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F7F4),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        title: const Row(
+          children: [
+            Text(
+              'Resident Profile',
+              style: TextStyle(
+                color: CivicColors.forest,
+                fontWeight: FontWeight.w800,
+                fontSize: 20,
+                letterSpacing: -0.3,
+              ),
             ),
-          ),
+          ],
         ),
-      );
-    }
+        actions: [
+          IconButton(
+            onPressed: _loadProfileData,
+            icon: const Icon(Icons.refresh_rounded, color: CivicColors.forest),
+            tooltip: 'Refresh Profile',
+          ),
+          if (_user != null)
+            IconButton(
+              onPressed: _openEditModal,
+              icon: const Icon(Icons.edit_outlined, color: CivicColors.forest),
+              tooltip: 'Edit Profile',
+            ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: CivicAtmosphericBackground(
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: CivicColors.forest),
+              )
+            : _errorMessage != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: CivicSurfaceCard(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.error_outline_rounded,
+                              size: 48,
+                              color: AppColors.priorityCritical,
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Unable to load profile',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: CivicColors.charcoal,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              _errorMessage!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: CivicColors.slateGreen,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: _loadProfileData,
+                              icon: const Icon(Icons.refresh_rounded, size: 16),
+                              label: const Text('Retry'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: CivicColors.forest,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                : _buildContent(),
+      ),
+    );
+  }
 
+  Widget _buildContent() {
     final user = _user!;
 
-    return Scaffold(
-      backgroundColor: CivicColors.alabaster,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadProfileData,
-          color: CivicColors.forest,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Header Card (Avatar, Name, Status Badge, Edit trigger)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Row(
-                          children: [
-                            Stack(
-                              children: [
-                                Container(
-                                  width: 64,
-                                  height: 64,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: CivicColors.mintTint,
-                                    border: Border.all(
-                                      color: CivicColors.mintPip.withValues(alpha: 0.5),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: ClipOval(
-                                    child: user.profilePhotoUrl != null &&
-                                            user.profilePhotoUrl!.isNotEmpty
-                                        ? Image.network(
-                                            user.profilePhotoUrl!,
-                                            width: 64,
-                                            height: 64,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) =>
-                                                _buildInitialsAvatar(user),
-                                          )
-                                        : _buildInitialsAvatar(user),
-                                  ),
-                                ),
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: GestureDetector(
-                                    onTap: _openEditModal,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: CivicColors.forest,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 2),
-                                      ),
-                                      child: const Icon(
-                                        Icons.camera_alt_rounded,
-                                        size: 13,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
+    return RefreshIndicator(
+      onRefresh: _loadProfileData,
+      color: CivicColors.forest,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. HERO PROFILE CARD
+            CivicSurfaceCard(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  // Avatar with camera badge
+                  Stack(
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: CivicColors.mintPip.withValues(alpha: 0.5),
+                            width: 2.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: CivicColors.forest.withValues(alpha: 0.08),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: user.profilePhotoUrl != null &&
+                                  user.profilePhotoUrl!.isNotEmpty
+                              ? Image.network(
+                                  user.profilePhotoUrl!,
+                                  width: 72,
+                                  height: 72,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _buildInitialsAvatar(user),
+                                )
+                              : _buildInitialsAvatar(user),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: _openEditModal,
+                          child: Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: CivicColors.forest,
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
                                 ),
                               ],
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            child: const Icon(
+                              Icons.camera_alt_rounded,
+                              size: 13,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+
+                  // Name, verified badge, and email
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: CivicColors.charcoal,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 3.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: CivicColors.badgeResolvedBg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: CivicColors.badgeResolvedBorder,
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
+                                  Icon(
+                                    Icons.verified_rounded,
+                                    size: 12,
+                                    color: CivicColors.badgeResolvedText,
+                                  ),
+                                  SizedBox(width: 4),
                                   Text(
-                                    user.name,
-                                    style: const TextStyle(
-                                      fontSize: 17,
+                                    'VERIFIED CITIZEN',
+                                    style: TextStyle(
+                                      fontSize: 10,
                                       fontWeight: FontWeight.w800,
-                                      color: CivicColors.charcoal,
-                                      letterSpacing: -0.2,
+                                      color: CivicColors.badgeResolvedText,
+                                      letterSpacing: 0.4,
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: CivicColors.badgeResolvedBg,
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: CivicColors.badgeResolvedBorder,
-                                          ),
-                                        ),
-                                        child: const Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.verified_rounded,
-                                              size: 12,
-                                              color: CivicColors.badgeResolvedText,
-                                            ),
-                                            SizedBox(width: 4),
-                                            Text(
-                                              'VERIFIED RESIDENT',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w800,
-                                                color: CivicColors.badgeResolvedText,
-                                                letterSpacing: 0.3,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    user.email,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: CivicColors.slateGreen,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
                             ),
-                            IconButton(
-                              onPressed: _openEditModal,
-                              icon: const Icon(Icons.edit_outlined),
-                              tooltip: 'Edit details',
-                              color: CivicColors.forest,
-                            ),
                           ],
                         ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // 2. CIVIC PARTICIPATION & ACTIVITY METRICS
-                    const Text(
-                      'CIVIC PARTICIPATION & ACTIVITY METRICS',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textSecondary,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            _buildProfileRow(
-                              icon: Icons.assignment_outlined,
-                              label: 'Total Incidents Reported',
-                              value: '$_totalReports community reports submitted',
-                            ),
-                            const Divider(height: 18),
-                            _buildProfileRow(
-                              icon: Icons.pending_actions_outlined,
-                              label: 'Active Dispatched Reports',
-                              value: '$_activeReports in progress with response crews',
-                            ),
-                            const Divider(height: 18),
-                            _buildProfileRow(
-                              icon: Icons.check_circle_outline_rounded,
-                              label: 'Resolved Municipal Issues',
-                              value: '$_resolvedReports verified & resolved',
-                            ),
-                            const Divider(height: 18),
-                            _buildProfileRow(
-                              icon: Icons.workspace_premium_outlined,
-                              label: 'Citizen Community Status',
-                              value: _totalReports > 5
-                                  ? 'Active Civic Champion'
-                                  : (_totalReports > 0
-                                      ? 'Active Community Contributor'
-                                      : 'Registered Citizen Member'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // 3. CONTACT INFORMATION & CREDENTIALS
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'CONTACT INFORMATION & CREDENTIALS',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textSecondary,
-                            letterSpacing: 0.6,
+                        const SizedBox(height: 5),
+                        Text(
+                          user.email,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: CivicColors.slateGreen,
+                            fontWeight: FontWeight.w500,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        InkWell(
-                          onTap: _openEditModal,
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                            child: Text(
-                              'Edit',
+                      ],
+                    ),
+                  ),
+
+                  // Edit button
+                  IconButton.filledTonal(
+                    onPressed: _openEditModal,
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    tooltip: 'Edit details',
+                    style: IconButton.styleFrom(
+                      backgroundColor: CivicColors.mintTint,
+                      foregroundColor: CivicColors.forest,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            // 2. CIVIC ACTIVITY & METRICS GRID (Modern Stat Tiles)
+            _buildSectionHeader(
+              title: 'CIVIC PARTICIPATION & ACTIVITY',
+              icon: Icons.analytics_outlined,
+            ),
+            const SizedBox(height: 10),
+
+            Row(
+              children: [
+                Expanded(
+                  child: _buildMetricTile(
+                    title: 'Total Reports',
+                    value: '$_totalReports',
+                    subtitle: 'Incidents filed',
+                    icon: Icons.assignment_outlined,
+                    iconBg: CivicColors.mintTint,
+                    iconColor: CivicColors.forest,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildMetricTile(
+                    title: 'Dispatched',
+                    value: '$_activeReports',
+                    subtitle: 'Crew responding',
+                    icon: Icons.pending_actions_outlined,
+                    iconBg: const Color(0xFFFFF7ED),
+                    iconColor: const Color(0xFFC2410C),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildMetricTile(
+                    title: 'Resolved Issues',
+                    value: '$_resolvedReports',
+                    subtitle: 'Verified complete',
+                    icon: Icons.check_circle_outline_rounded,
+                    iconBg: const Color(0xFFF0FDF4),
+                    iconColor: const Color(0xFF166534),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildMetricTile(
+                    title: 'Civic Tier',
+                    value: _totalReports >= 5
+                        ? 'Champion'
+                        : (_totalReports > 0 ? 'Contributor' : 'Active'),
+                    subtitle: 'Citizen Member',
+                    icon: Icons.workspace_premium_outlined,
+                    iconBg: CivicColors.mintTint,
+                    iconColor: CivicColors.forest,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // 3. CONTACT INFORMATION & CREDENTIALS
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildSectionHeader(
+                  title: 'CONTACT CREDENTIALS',
+                  icon: Icons.badge_outlined,
+                ),
+                InkWell(
+                  onTap: _openEditModal,
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    child: Text(
+                      'Edit',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: CivicColors.forest,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            CivicSurfaceCard(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Column(
+                children: [
+                  _buildProfileRow(
+                    icon: Icons.person_outline_rounded,
+                    label: 'Full Name',
+                    value: user.name,
+                  ),
+                  const Divider(height: 22, color: Color(0xFFEBEFEA)),
+                  _buildProfileRow(
+                    icon: Icons.email_outlined,
+                    label: 'Registered Email',
+                    value: user.email,
+                  ),
+                  const Divider(height: 22, color: Color(0xFFEBEFEA)),
+                  _buildProfileRow(
+                    icon: Icons.phone_outlined,
+                    label: 'Mobile Contact Number',
+                    value: user.phoneNumber?.isNotEmpty == true
+                        ? user.phoneNumber!
+                        : 'Not specified (Tap edit to add)',
+                    isMuted: user.phoneNumber?.isEmpty ?? true,
+                  ),
+                  const Divider(height: 22, color: Color(0xFFEBEFEA)),
+                  _buildProfileRow(
+                    icon: Icons.security_rounded,
+                    label: 'System Access Role',
+                    value: (user.role ?? 'RESIDENT').toUpperCase(),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 4. CIVIC PROFILE & MUNICIPAL JURISDICTION
+            _buildSectionHeader(
+              title: 'CIVIC JURISDICTION & WARD',
+              icon: Icons.account_balance_outlined,
+            ),
+            const SizedBox(height: 10),
+
+            CivicSurfaceCard(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Column(
+                children: [
+                  _buildProfileRow(
+                    icon: Icons.account_balance_outlined,
+                    label: 'Municipal Council',
+                    value: 'Colombo Municipal Council (CMC)',
+                  ),
+                  const Divider(height: 22, color: Color(0xFFEBEFEA)),
+                  _buildProfileRow(
+                    icon: Icons.location_city_outlined,
+                    label: 'Administrative District',
+                    value: 'Western Province — Colombo District',
+                  ),
+                  const Divider(height: 22, color: Color(0xFFEBEFEA)),
+                  _buildProfileRow(
+                    icon: Icons.map_outlined,
+                    label: 'Assigned Electoral Ward',
+                    value: 'Ward 07 — Cinnamon Gardens (Central Colombo)',
+                  ),
+                  const Divider(height: 22, color: Color(0xFFEBEFEA)),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: CivicColors.mintTint,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.fingerprint_rounded,
+                          size: 18,
+                          color: CivicColors.forest,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Citizen Portal ID',
                               style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: CivicColors.forest,
+                                fontSize: 11,
+                                color: CivicColors.slateGreen,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
+                            const SizedBox(height: 2),
+                            Text(
+                              user.id.isNotEmpty
+                                  ? (user.id.length > 22
+                                      ? '${user.id.substring(0, 22)}...'
+                                      : user.id)
+                                  : '—',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: CivicColors.charcoal,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (user.id.isNotEmpty)
+                        IconButton.filledTonal(
+                          icon: const Icon(Icons.copy_rounded, size: 16),
+                          tooltip: 'Copy ID',
+                          style: IconButton.styleFrom(
+                            backgroundColor: CivicColors.mintTint,
+                            foregroundColor: CivicColors.forest,
+                            minimumSize: const Size(36, 36),
+                            padding: EdgeInsets.zero,
+                          ),
+                          onPressed: () => _copyToClipboard(user.id, 'Citizen ID'),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 5. Municipal Citizen Support Hotline Banner
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFEBF6F0), Color(0xFFF3FAF6)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: CivicColors.mintPip.withValues(alpha: 0.35),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: CivicColors.forest.withValues(alpha: 0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.headset_mic_rounded,
+                      size: 24,
+                      color: CivicColors.forest,
+                    ),
+                  ),
+                  SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Municipal Citizen Helpdesk',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: CivicColors.forest,
+                          ),
+                        ),
+                        SizedBox(height: 3),
+                        Text(
+                          'Toll-Free Hotline: 1910 • Office: +94 11 269 1111 (24/7)',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: CivicColors.slateGreen,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                  ),
+                ],
+              ),
+            ),
 
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            _buildProfileRow(
-                              icon: Icons.badge_outlined,
-                              label: 'Full Registered Name',
-                              value: user.name,
-                            ),
-                            const Divider(height: 18),
-                            _buildProfileRow(
-                              icon: Icons.email_outlined,
-                              label: 'Registered Email Address',
-                              value: user.email,
-                            ),
-                            const Divider(height: 18),
-                            _buildProfileRow(
-                              icon: Icons.phone_outlined,
-                              label: 'Direct Mobile Contact',
-                              value: user.phoneNumber?.isNotEmpty == true
-                                  ? user.phoneNumber!
-                                  : 'Not specified (Tap edit to add)',
-                            ),
-                            const Divider(height: 18),
-                            _buildProfileRow(
-                              icon: Icons.account_circle_outlined,
-                              label: 'Municipal Portal Role',
-                              value: (user.role ?? 'RESIDENT').toUpperCase(),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+            const SizedBox(height: 24),
 
-                    const SizedBox(height: 18),
-
-                    // 4. CIVIC PROFILE & MUNICIPAL WARD
-                    const Text(
-                      'CIVIC PROFILE & MUNICIPAL WARD',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textSecondary,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            _buildProfileRow(
-                              icon: Icons.account_balance_outlined,
-                              label: 'Assigned Municipal Council',
-                              value: 'Colombo Municipal Council (CMC)',
-                            ),
-                            const Divider(height: 18),
-                            _buildProfileRow(
-                              icon: Icons.location_city_outlined,
-                              label: 'Administrative District',
-                              value: 'Colombo District — Western Province',
-                            ),
-                            const Divider(height: 18),
-                            _buildProfileRow(
-                              icon: Icons.map_outlined,
-                              label: 'Residency Ward / Zone',
-                              value: 'Ward 07 — Cinnamon Gardens (Central Colombo)',
-                            ),
-                            const Divider(height: 18),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.fingerprint_rounded,
-                                  size: 18,
-                                  color: AppColors.textSecondary,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Citizen Portal ID',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: AppColors.textMuted,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        user.id.isNotEmpty
-                                            ? (user.id.length > 22
-                                                ? '${user.id.substring(0, 22)}...'
-                                                : user.id)
-                                            : '—',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: AppColors.textPrimary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (user.id.isNotEmpty)
-                                  IconButton(
-                                    icon: const Icon(Icons.copy_rounded, size: 16),
-                                    tooltip: 'Copy ID',
-                                    color: CivicColors.slateGreen,
-                                    onPressed: () => _copyToClipboard(user.id, 'Citizen ID'),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // 5. CITIZEN SERVICES & CIVIC RIGHTS
-                    const Text(
-                      'CITIZEN SERVICES & CIVIC RIGHTS',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textSecondary,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            for (final item in const [
-                              'File road, drainage, electrical & waste incidents directly',
-                              'Real-time municipal dispatch & field crew status tracking',
-                              'AI-assisted severity classification & priority routing',
-                              'Direct community resolution proof with photographic evidence',
-                            ])
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.check_circle_rounded,
-                                      size: 15,
-                                      color: CivicColors.mintPip,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        item,
-                                        style: const TextStyle(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.textPrimary,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // 6. Municipal Citizen Support Hotline
-                    Card(
-                      color: CivicColors.mintTint.withValues(alpha: 0.5),
-                      child: const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.headset_mic_outlined,
-                              size: 26,
-                              color: CivicColors.forest,
-                            ),
-                            SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Colombo Municipal Council — Citizen Support',
-                                    style: TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: CivicColors.forest,
-                                    ),
-                                  ),
-                                  SizedBox(height: 3),
-                                  Text(
-                                    'Toll-Free Civic Helpdesk: 1910 / Direct: +94 11 269 1111 (24/7)',
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      color: CivicColors.slateGreen,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // 7. Actions: Edit Details & Log Out
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _openEditModal,
-                        icon: const Icon(Icons.edit_note_rounded, size: 18),
-                        label: const Text('Update Profile Details'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: CivicColors.forest,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: _logout,
-                        icon: const Icon(
-                          Icons.logout,
-                          size: 16,
-                          color: AppColors.priorityCritical,
-                        ),
-                        label: const Text(
-                          'Log Out / Switch Account',
-                          style: TextStyle(
-                            color: AppColors.priorityCritical,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.statusUnavailableBorder),
-                          backgroundColor: AppColors.statusUnavailableBg,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-                  ],
+            // 6. Action Buttons: Update Details & Sign Out
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: FilledButton.icon(
+                onPressed: _openEditModal,
+                icon: const Icon(Icons.edit_note_rounded, size: 20),
+                label: const Text(
+                  'Update Profile Details',
+                  style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: CivicColors.forest,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 2,
                 ),
               ),
             ),
-          ),
+
+            const SizedBox(height: 12),
+
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: _logout,
+                icon: const Icon(
+                  Icons.logout_rounded,
+                  size: 18,
+                  color: AppColors.priorityCritical,
+                ),
+                label: const Text(
+                  'Sign Out / Switch Account',
+                  style: TextStyle(
+                    color: AppColors.priorityCritical,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(
+                    color: Color(0xFFFCA5A5),
+                    width: 1.2,
+                  ),
+                  backgroundColor: const Color(0xFFFEF2F2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildInitialsAvatar(ResidentUser user) {
-    return Container(
-      color: CivicColors.mintTint,
-      alignment: Alignment.center,
-      child: Text(
-        _initials(user.name),
-        style: const TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w800,
-          color: CivicColors.forest,
+  Widget _buildSectionHeader({required String title, required IconData icon}) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: CivicColors.forest),
+        const SizedBox(width: 6),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w800,
+            color: CivicColors.slateGreen,
+            letterSpacing: 0.7,
+          ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildMetricTile({
+    required String title,
+    required String value,
+    required String subtitle,
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+  }) {
+    return CivicSurfaceCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 18, color: iconColor),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: value.length > 7 ? 16 : 22,
+                  fontWeight: FontWeight.w900,
+                  color: CivicColors.charcoal,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: CivicColors.charcoal,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 11,
+              color: CivicColors.slateGreen,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -694,13 +895,19 @@ class _ResidentProfileScreenState extends State<ResidentProfileScreen> {
     required IconData icon,
     required String label,
     required String value,
+    bool isMuted = false,
   }) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: Icon(icon, size: 18, color: AppColors.textSecondary),
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: CivicColors.mintTint,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 18, color: CivicColors.forest),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -711,18 +918,17 @@ class _ResidentProfileScreenState extends State<ResidentProfileScreen> {
                 label,
                 style: const TextStyle(
                   fontSize: 11,
-                  color: AppColors.textMuted,
+                  color: CivicColors.slateGreen,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                  height: 1.3,
+                  color: isMuted ? AppColors.textMuted : CivicColors.charcoal,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -733,37 +939,42 @@ class _ResidentProfileScreenState extends State<ResidentProfileScreen> {
   }
 }
 
-/// Rich bottom sheet enabling residents to update first name, last name, phone, and photo
+/// Slide-up sheet to update resident names, phone number, and avatar photo
 class _EditProfileSheet extends StatefulWidget {
   final ResidentUser user;
   final AuthService auth;
 
-  const _EditProfileSheet({required this.user, required this.auth});
+  const _EditProfileSheet({
+    required this.user,
+    required this.auth,
+  });
 
   @override
   State<_EditProfileSheet> createState() => _EditProfileSheetState();
 }
 
 class _EditProfileSheetState extends State<_EditProfileSheet> {
-  final _form = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _firstName;
+  late TextEditingController _lastName;
+  late TextEditingController _phone;
   final _picker = ImagePicker();
 
-  late final TextEditingController _firstName;
-  late final TextEditingController _lastName;
-  late final TextEditingController _phone;
-
-  bool _saving = false;
-  bool _uploadingPhoto = false;
-  String? _error;
+  bool _isSaving = false;
+  bool _isUploadingPhoto = false;
+  String? _sheetError;
   late ResidentUser _currentUser;
 
   @override
   void initState() {
     super.initState();
     _currentUser = widget.user;
-    _firstName = TextEditingController(text: widget.user.firstName);
-    _lastName = TextEditingController(text: widget.user.lastName);
-    _phone = TextEditingController(text: widget.user.phoneNumber ?? '');
+    final parts = _currentUser.name.trim().split(RegExp(r'\s+'));
+    final first = parts.isNotEmpty ? parts[0] : '';
+    final last = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    _firstName = TextEditingController(text: first);
+    _lastName = TextEditingController(text: last);
+    _phone = TextEditingController(text: _currentUser.phoneNumber ?? '');
   }
 
   @override
@@ -774,61 +985,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     super.dispose();
   }
 
-  Future<void> _pickAndUploadPhoto() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined, color: CivicColors.forest),
-              title: const Text('Choose photo from gallery'),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined, color: CivicColors.forest),
-              title: const Text('Take a new photo'),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
-            ),
-            if (_currentUser.profilePhotoUrl != null)
-              ListTile(
-                leading: const Icon(Icons.delete_outline, color: AppColors.priorityCritical),
-                title: const Text('Remove current photo', style: TextStyle(color: AppColors.priorityCritical)),
-                onTap: () => Navigator.pop(ctx, null),
-              ),
-          ],
-        ),
-      ),
-    );
-
-    if (!mounted) return;
-
-    if (source == null) {
-      // Remove photo requested if it was on
-      if (_currentUser.profilePhotoUrl != null) {
-        setState(() => _uploadingPhoto = true);
-        try {
-          final updated = await widget.auth.removeProfilePhoto();
-          if (mounted) {
-            setState(() {
-              _currentUser = updated;
-              _uploadingPhoto = false;
-            });
-          }
-        } catch (e) {
-          if (mounted) {
-            setState(() {
-              _error = e.toString();
-              _uploadingPhoto = false;
-            });
-          }
-        }
-      }
-      return;
-    }
-
+  Future<void> _pickAndUploadPhoto(ImageSource source) async {
     try {
       final picked = await _picker.pickImage(
         source: source,
@@ -836,108 +993,214 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         maxHeight: 800,
         imageQuality: 85,
       );
-      if (picked == null || !mounted) return;
+      if (picked == null) return;
 
-      setState(() => _uploadingPhoto = true);
-      final updated = await widget.auth.uploadProfilePhoto(picked.path);
+      setState(() {
+        _isUploadingPhoto = true;
+        _sheetError = null;
+      });
+
+      final updated = await widget.auth.uploadProfilePhoto(picked);
       if (mounted) {
         setState(() {
           _currentUser = updated;
-          _uploadingPhoto = false;
+          _isUploadingPhoto = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Failed to upload photo: $e';
-          _uploadingPhoto = false;
+          _sheetError = 'Photo upload failed: $e';
+          _isUploadingPhoto = false;
         });
       }
     }
   }
 
-  Future<void> _save() async {
-    if (!_form.currentState!.validate()) return;
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-
+  Future<void> _removePhoto() async {
     try {
-      final updated = await widget.auth.updateProfile(
-        firstName: _firstName.text,
-        lastName: _lastName.text,
-        phoneNumber: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-      );
-      if (mounted) Navigator.of(context).pop(updated);
-    } catch (error) {
+      setState(() {
+        _isUploadingPhoto = true;
+        _sheetError = null;
+      });
+      final updated = await widget.auth.removeProfilePhoto();
       if (mounted) {
-        setState(() => _error = error.toString());
+        setState(() {
+          _currentUser = updated;
+          _isUploadingPhoto = false;
+        });
       }
-    } finally {
+    } catch (e) {
       if (mounted) {
-        setState(() => _saving = false);
+        setState(() {
+          _sheetError = 'Photo removal failed: $e';
+          _isUploadingPhoto = false;
+        });
       }
     }
   }
 
+  Future<void> _saveDetails() async {
+    FocusScope.of(context).unfocus();
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isSaving = true;
+      _sheetError = null;
+    });
+
+    try {
+      final updated = await widget.auth.updateProfile(
+        firstName: _firstName.text.trim(),
+        lastName: _lastName.text.trim(),
+        phoneNumber: _phone.text.trim(),
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop(updated);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _sheetError = e.toString();
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  void _showPhotoOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Change Profile Photo',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: CivicColors.forest),
+                title: const Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _pickAndUploadPhoto(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: CivicColors.forest),
+                title: const Text('Take a Photo with Camera'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _pickAndUploadPhoto(ImageSource.camera);
+                },
+              ),
+              if (_currentUser.profilePhotoUrl != null &&
+                  _currentUser.profilePhotoUrl!.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline_rounded, color: AppColors.priorityCritical),
+                  title: const Text(
+                    'Remove Current Photo',
+                    style: TextStyle(color: AppColors.priorityCritical),
+                  ),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _removePhoto();
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts[0].isEmpty) return 'R';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        8,
-        24,
-        MediaQuery.viewInsetsOf(context).bottom + 24,
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 8,
+        bottom: bottomInset + 20,
       ),
-      child: Form(
-        key: _form,
-        child: SingleChildScrollView(
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Edit Profile Details',
-                    style: TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                      color: CivicColors.charcoal,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(_currentUser),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
+              // Header title
+              const Text(
+                'Update Profile Details',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: CivicColors.charcoal,
+                  letterSpacing: -0.3,
+                ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 4),
+              const Text(
+                'Keep your municipal contact information up to date.',
+                style: TextStyle(fontSize: 12.5, color: CivicColors.slateGreen),
+              ),
+              const SizedBox(height: 18),
 
-              // Profile Photo Preview & Edit
+              // Inline error banner
+              if (_sheetError != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: AuthInlineMessage(
+                    text: _sheetError!,
+                    isError: true,
+                  ),
+                ),
+
+              // Avatar Editor
               Center(
                 child: Stack(
                   children: [
                     Container(
-                      width: 76,
-                      height: 76,
+                      width: 86,
+                      height: 86,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: CivicColors.mintTint,
                         border: Border.all(
-                          color: CivicColors.mintPip,
-                          width: 2,
+                          color: CivicColors.mintPip.withValues(alpha: 0.5),
+                          width: 3,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: CivicColors.forest.withValues(alpha: 0.1),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: ClipOval(
-                        child: _uploadingPhoto
+                        child: _isUploadingPhoto
                             ? const Center(
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: CivicColors.forest,
                                 ),
                               )
                             : (_currentUser.profilePhotoUrl != null &&
@@ -956,11 +1219,13 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                                       ),
                                     ),
                                   )
-                                : Center(
+                                : Container(
+                                    color: CivicColors.mintTint,
+                                    alignment: Alignment.center,
                                     child: Text(
                                       _initials(_currentUser.name),
                                       style: const TextStyle(
-                                        fontSize: 26,
+                                        fontSize: 28,
                                         fontWeight: FontWeight.w800,
                                         color: CivicColors.forest,
                                       ),
@@ -971,18 +1236,26 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                     Positioned(
                       bottom: 0,
                       right: 0,
-                      child: InkWell(
-                        onTap: _uploadingPhoto ? null : _pickAndUploadPhoto,
+                      child: GestureDetector(
+                        onTap: _isUploadingPhoto ? null : _showPhotoOptions,
                         child: Container(
-                          padding: const EdgeInsets.all(6),
+                          width: 32,
+                          height: 32,
                           decoration: BoxDecoration(
-                            color: CivicColors.forest,
                             shape: BoxShape.circle,
+                            color: CivicColors.forest,
                             border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: const Icon(
-                            Icons.camera_alt,
-                            size: 14,
+                            Icons.camera_alt_rounded,
+                            size: 16,
                             color: Colors.white,
                           ),
                         ),
@@ -991,112 +1264,139 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                   ],
                 ),
               ),
+              const SizedBox(height: 6),
+              Center(
+                child: TextButton.icon(
+                  onPressed: _isUploadingPhoto ? null : _showPhotoOptions,
+                  icon: const Icon(Icons.photo_camera_outlined, size: 16),
+                  label: const Text(
+                    'Change Photo',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: CivicColors.forest,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
 
-              const SizedBox(height: 18),
-
-              // First Name
+              // First Name Field
               TextFormField(
                 controller: _firstName,
                 textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   labelText: 'First Name',
-                  prefixIcon: const Icon(Icons.person_outline),
+                  prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
                   filled: true,
-                  fillColor: const Color(0xFFFAFCFA),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  fillColor: const Color(0xFFF9FBF9),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color(0xFFDDE2DE)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color(0xFFDDE2DE)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: CivicColors.forest, width: 1.5),
+                  ),
                 ),
-                validator: (val) =>
-                    val == null || val.trim().isEmpty ? 'First name is required.' : null,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Please enter your first name.';
+                  }
+                  return null;
+                },
               ),
+              const SizedBox(height: 14),
 
-              const SizedBox(height: 12),
-
-              // Last Name
+              // Last Name Field
               TextFormField(
                 controller: _lastName,
                 textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   labelText: 'Last Name',
-                  prefixIcon: const Icon(Icons.person_outline),
+                  prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
                   filled: true,
-                  fillColor: const Color(0xFFFAFCFA),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  fillColor: const Color(0xFFF9FBF9),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color(0xFFDDE2DE)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color(0xFFDDE2DE)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: CivicColors.forest, width: 1.5),
+                  ),
                 ),
-                validator: (val) =>
-                    val == null || val.trim().isEmpty ? 'Last name is required.' : null,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Please enter your last name.';
+                  }
+                  return null;
+                },
               ),
+              const SizedBox(height: 14),
 
-              const SizedBox(height: 12),
-
-              // Phone Number
+              // Phone Number Field
               TextFormField(
                 controller: _phone,
                 keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
-                  labelText: 'Mobile Phone Number',
-                  prefixIcon: const Icon(Icons.phone_outlined),
-                  hintText: '07X XXXXXXX',
+                  labelText: 'Phone Number',
+                  hintText: '+94 77 123 4567',
+                  prefixIcon: const Icon(Icons.phone_outlined, size: 20),
                   filled: true,
-                  fillColor: const Color(0xFFFAFCFA),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // Read-only Email Notice
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F6F4),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.lock_outline, size: 14, color: CivicColors.slateGreen),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Email (${widget.user.email}) is linked to your civic identity and cannot be changed here.',
-                        style: const TextStyle(fontSize: 11, color: CivicColors.slateGreen),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  style: const TextStyle(
-                    color: CivicColors.badgeCriticalText,
-                    fontSize: 12,
+                  fillColor: const Color(0xFFF9FBF9),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color(0xFFDDE2DE)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color(0xFFDDE2DE)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: CivicColors.forest, width: 1.5),
                   ),
                 ),
-              ],
-
-              const SizedBox(height: 20),
+              ),
+              const SizedBox(height: 24),
 
               // Save Button
               SizedBox(
-                height: 48,
+                height: 50,
                 child: FilledButton(
-                  onPressed: _saving ? null : _save,
+                  onPressed: _isSaving ? null : _saveDetails,
                   style: FilledButton.styleFrom(
                     backgroundColor: CivicColors.forest,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: _saving
-                      ? const SizedBox.square(
-                          dimension: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text(
                           'Save Changes',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                 ),
               ),
@@ -1106,10 +1406,4 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
       ),
     );
   }
-}
-
-String _initials(String name) {
-  final parts = name.trim().split(RegExp(r'\s+')).where((part) => part.isNotEmpty).take(2);
-  final value = parts.map((part) => part[0].toUpperCase()).join();
-  return value.isEmpty ? 'R' : value;
 }
