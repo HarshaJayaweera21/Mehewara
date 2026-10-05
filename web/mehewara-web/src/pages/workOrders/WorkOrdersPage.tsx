@@ -143,7 +143,7 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
         onOpenProfile={goToProfile}
         onBrandClick={goToProblems}
         roleBadgeText={admin ? "Municipal Coordinator" : "Crew Leader"}
-        showName={admin}
+        showName={true}
         showMenuButton={admin}
         onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
         isMenuOpen={isNavDrawerOpen}

@@ -888,17 +888,6 @@
   .problems-filter-select-wrap {
     width: 100%;
   }
-
-  .problems-top-nav {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-
-  .problems-nav-user {
-    width: 100%;
-    justify-content: space-between;
-  }
 }
 
 /* ==========================================================================

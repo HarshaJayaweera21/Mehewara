@@ -26,7 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
   onBrandClick,
   onLoginClick,
   roleBadgeText = 'Municipal Coordinator',
-  showName = false,
+  showName = true,
   className = '',
   showMenuButton = false,
   onMenuClick,

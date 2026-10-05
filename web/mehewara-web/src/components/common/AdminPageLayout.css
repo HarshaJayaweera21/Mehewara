@@ -4,9 +4,11 @@
 
 .mw-admin-layout {
   min-height: 100vh;
-  background-color: var(--mw-bg-canvas, #F7FAF8);
+  background-color: var(--mw-page-bg, #F7F7F2);
   display: flex;
   flex-direction: column;
+  padding: 2.25rem 2.5rem 4rem;
+  box-sizing: border-box;
 }
 
 .mw-admin-content {
@@ -14,7 +16,7 @@
   width: 100%;
   max-width: 100%;
   margin: 0;
-  padding: 2.25rem 2.5rem 4rem;
+  padding-top: 1.5rem;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -22,8 +24,12 @@
 }
 
 @media (max-width: 768px) {
-  .mw-admin-content {
+  .mw-admin-layout {
     padding: 1.25rem 1rem 3rem;
+  }
+
+  .mw-admin-content {
+    padding-top: 1.25rem;
     gap: 1.25rem;
   }
 }
