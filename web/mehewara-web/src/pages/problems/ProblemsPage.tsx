@@ -10,7 +10,7 @@ import type {
 import { getProblems, getUncertainReports } from '../../services/problemApi';
 import { getRecommendations } from '../../services/dispatchApi';
 import { Header, MetricsStrip } from '../../components/common';
-import { OpsNavStrip } from '../../components/common/OpsNavStrip';
+import { OpsNavDrawer } from '../../components/common/OpsNavDrawer';
 import { CoordinatorWelcomeBanner } from '../../components/problems/CoordinatorWelcomeBanner';
 import { ProblemDetailModal } from './ProblemDetailModal';
 import { ROUTES } from '../../routes/paths';
@@ -70,6 +70,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
   const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
   const goToLanding = onNavigateToLanding || (() => navigate(ROUTES.HOME));
@@ -344,14 +345,20 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
           onLogout={onLogout}
           onOpenProfile={goToProfile}
           onBrandClick={goToLanding}
+          showMenuButton={true}
+          onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+          isMenuOpen={isNavDrawerOpen}
         />
 
-        {/* Operations Navigation Strip */}
-        <OpsNavStrip
+        {/* Operations Navigation Drawer */}
+        <OpsNavDrawer
+          isOpen={isNavDrawerOpen}
+          onClose={() => setIsNavDrawerOpen(false)}
           activePage="problems"
           pendingDispatchCount={pendingDispatchCount}
           onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
           onNavigateToProblems={() => {}}
+          onNavigateToUncertainReports={goToUncertainReports}
           onNavigateToDispatch={goToDispatch}
           onNavigateToCrews={goToCrews}
           onNavigateToWorkOrders={goToWorkOrders}

@@ -14,7 +14,7 @@ import {
 } from '../../services/problemApi';
 import { useNavigate } from 'react-router-dom';
 import { Header, HeroBanner } from '../../components/common';
-import { OpsNavStrip } from '../../components/common/OpsNavStrip';
+import { OpsNavDrawer } from '../../components/common/OpsNavDrawer';
 import { ProblemDetailModal } from './ProblemDetailModal';
 import { ROUTES } from '../../routes/paths';
 import './UncertainReportsPage.css';
@@ -41,6 +41,7 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
   onOpenProfile,
 }) => {
   const navigate = useNavigate();
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
   const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
   const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
@@ -237,12 +238,18 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
           onBrandClick={goToProblems}
           onLogout={onLogout}
           onOpenProfile={goToProfile}
+          showMenuButton={true}
+          onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+          isMenuOpen={isNavDrawerOpen}
         />
 
-        <OpsNavStrip
-          activePage="problems"
+        <OpsNavDrawer
+          isOpen={isNavDrawerOpen}
+          onClose={() => setIsNavDrawerOpen(false)}
+          activePage="uncertain-reports"
           onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
           onNavigateToProblems={goToProblems}
+          onNavigateToUncertainReports={() => {}}
           onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
           onNavigateToCrews={() => navigate(ROUTES.CREWS)}
           onNavigateToWorkOrders={() => navigate(ROUTES.WORK_ORDERS)}

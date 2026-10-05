@@ -7,7 +7,7 @@ import { ReportCard } from '../../components/reports/ReportCard';
 import { CreateReportModal } from '../../components/reports/CreateReportModal';
 import { ReportDetailModal } from '../../components/reports/ReportDetailModal';
 import { Header, HeroBanner, MetricsStrip } from '../../components/common';
-import { OpsNavStrip } from '../../components/common/OpsNavStrip';
+import { OpsNavDrawer } from '../../components/common/OpsNavDrawer';
 import { ROUTES } from '../../routes/paths';
 import './ReportsPage.css';
 
@@ -36,6 +36,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
   const handleNavigateToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
 
   const isAdmin = currentUser.role === 'ADMIN';
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
   const tabParam = searchParams.get('tab');
   const initialTab = tabParam === 'coordinator-reports' && isAdmin ? 'coordinator-reports' : 'my-reports';
@@ -182,21 +183,26 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
         onBrandClick={() => navigate(isAdmin ? ROUTES.OPERATIONS : ROUTES.HOME)}
         roleBadgeText={isAdmin ? 'Municipal Coordinator' : 'Resident'}
         showName={true}
+        showMenuButton={isAdmin}
+        onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+        isMenuOpen={isNavDrawerOpen}
       />
 
+      {isAdmin && (
+        <OpsNavDrawer
+          isOpen={isNavDrawerOpen}
+          onClose={() => setIsNavDrawerOpen(false)}
+          activePage="reports"
+          onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
+          onNavigateToProblems={handleNavigateToProblems}
+          onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
+          onNavigateToCrews={() => navigate(ROUTES.CREWS)}
+          onNavigateToWorkOrders={() => navigate(ROUTES.WORK_ORDERS)}
+          onNavigateToReports={() => {}}
+        />
+      )}
+
       <div className="reports-content-wrap">
-        {/* Operations Navigation Strip for Coordinators */}
-        {isAdmin && (
-          <OpsNavStrip
-            activePage="reports"
-            onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
-            onNavigateToProblems={handleNavigateToProblems}
-            onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
-            onNavigateToCrews={() => navigate(ROUTES.CREWS)}
-            onNavigateToWorkOrders={() => navigate(ROUTES.WORK_ORDERS)}
-            onNavigateToReports={() => {}}
-          />
-        )}
 
         {/* Hero Welcome Banner */}
         <HeroBanner

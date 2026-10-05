@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../routes/paths';
 import './OpsNavStrip.css';
 
-export type OpsNavPage = 'dashboard' | 'problems' | 'dispatch' | 'crews' | 'work-orders' | 'reports';
+import type { OpsNavPage } from './OpsNavDrawer';
+export type { OpsNavPage };
 
 export interface OpsNavStripProps {
   activePage: OpsNavPage;

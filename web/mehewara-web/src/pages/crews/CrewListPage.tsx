@@ -4,7 +4,7 @@ import type { User } from '../../types/auth';
 import type { CrewListItem, CrewType, CrewStatus } from '../../types/crew';
 import { getCrews } from '../../services/crewApi';
 import { Header, HeroBanner, MetricsStrip } from '../../components/common';
-import { OpsNavStrip } from '../../components/common/OpsNavStrip';
+import { OpsNavDrawer } from '../../components/common/OpsNavDrawer';
 import { CrewDetailModal } from './components/CrewDetailModal';
 import { ROUTES } from '../../routes/paths';
 import './CrewListPage.css';
@@ -42,6 +42,7 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
   onNavigateToWorkOrders,
 }) => {
   const navigate = useNavigate();
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
   const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
   const goToDispatch = onNavigateToDispatch || (() => navigate(ROUTES.DISPATCH));
@@ -105,19 +106,24 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
         onOpenProfile={goToProfile}
         onBrandClick={goToProblems}
         roleBadgeText="Municipal Coordinator"
+        showMenuButton={true}
+        onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+        isMenuOpen={isNavDrawerOpen}
+      />
+
+      <OpsNavDrawer
+        isOpen={isNavDrawerOpen}
+        onClose={() => setIsNavDrawerOpen(false)}
+        activePage="crews"
+        onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
+        onNavigateToProblems={goToProblems}
+        onNavigateToDispatch={goToDispatch}
+        onNavigateToCrews={() => {}}
+        onNavigateToWorkOrders={() => handleWorkOrders()}
+        onNavigateToReports={goToReports}
       />
 
       <main className="crews-content-wrap">
-        {/* Operations Navigation Strip */}
-        <OpsNavStrip
-          activePage="crews"
-          onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
-          onNavigateToProblems={goToProblems}
-          onNavigateToDispatch={goToDispatch}
-          onNavigateToCrews={() => {}}
-          onNavigateToWorkOrders={() => handleWorkOrders()}
-          onNavigateToReports={goToReports}
-        />
 
         {/* 2. Operations Welcome Banner */}
         <HeroBanner

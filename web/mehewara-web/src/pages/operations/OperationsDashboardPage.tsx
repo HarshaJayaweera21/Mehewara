@@ -11,7 +11,7 @@ import { getRecommendations } from '../../services/dispatchApi';
 import { getWorkOrders } from '../../services/workOrdersApi';
 import { ROUTES } from '../../routes/paths';
 import { Icon } from '../../design-system/mehewara/Icon';
-import { Header, OpsNavStrip, HeroBanner, MetricsStrip } from '../../components/common';
+import { Header, OpsNavDrawer, HeroBanner, MetricsStrip } from '../../components/common';
 import './OperationsDashboardPage.css';
 
 interface OperationsDashboardPageProps {
@@ -64,6 +64,7 @@ export function OperationsDashboardPage({
   onNavigateToCrews, onNavigateToWorkOrders,
 }: OperationsDashboardPageProps) {
   const navigate = useNavigate();
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
   const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
   const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
@@ -143,19 +144,26 @@ export function OperationsDashboardPage({
         onBrandClick={() => navigate(ROUTES.OPERATIONS)}
         roleBadgeText="Municipal Coordinator"
         showName={true}
+        showMenuButton={true}
+        onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+        isMenuOpen={isNavDrawerOpen}
+      />
+
+      <OpsNavDrawer
+        isOpen={isNavDrawerOpen}
+        onClose={() => setIsNavDrawerOpen(false)}
+        activePage="dashboard"
+        pendingDispatchCount={data.recommendationCount ?? 0}
+        onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
+        onNavigateToProblems={goToProblems}
+        onNavigateToUncertainReports={goToUncertainReports}
+        onNavigateToDispatch={goToDispatch}
+        onNavigateToCrews={goToCrews}
+        onNavigateToWorkOrders={goToWorkOrders}
+        onNavigateToReports={goToReports}
       />
 
       <div className="ops-content-wrap">
-        <OpsNavStrip
-          activePage="dashboard"
-          pendingDispatchCount={data.recommendationCount ?? 0}
-          onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
-          onNavigateToProblems={goToProblems}
-          onNavigateToDispatch={goToDispatch}
-          onNavigateToCrews={goToCrews}
-          onNavigateToWorkOrders={goToWorkOrders}
-          onNavigateToReports={goToReports}
-        />
 
         {/* 2. Operations Welcome Banner */}
         <HeroBanner

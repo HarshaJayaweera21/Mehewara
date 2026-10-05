@@ -14,6 +14,9 @@ export interface HeaderProps {
   roleBadgeText?: string;
   showName?: boolean;
   className?: string;
+  showMenuButton?: boolean;
+  onMenuClick?: () => void;
+  isMenuOpen?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,6 +28,9 @@ export const Header: React.FC<HeaderProps> = ({
   roleBadgeText = 'Municipal Coordinator',
   showName = false,
   className = '',
+  showMenuButton = false,
+  onMenuClick,
+  isMenuOpen = false,
 }) => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -90,21 +96,40 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className={`app-header ${className}`.trim()}>
-      {/* Brand Identity: Logo Image + Sinhala Title */}
-      <div
-        className="header-brand"
-        onClick={handleBrandClick}
-        role="button"
-        tabIndex={0}
-        style={{ cursor: 'pointer' }}
-      >
-        <img
-          src={mehewaraLogo}
-          alt="Mehewara Logo"
-          className="header-brand-logo"
-        />
-        <div>
-          <div className="header-brand-name">මෙහෙවර</div>
+      {/* Brand Identity with optional left navigation drawer trigger */}
+      <div className="header-left">
+        {showMenuButton && (
+          <button
+            type="button"
+            className={`header-hamburger-btn ${isMenuOpen ? 'open' : ''}`}
+            onClick={onMenuClick}
+            aria-label={isMenuOpen ? 'Close Navigation Menu' : 'Open Operations Menu'}
+            aria-expanded={isMenuOpen}
+            title="Open Operations Menu"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        )}
+
+        <div
+          className="header-brand"
+          onClick={handleBrandClick}
+          role="button"
+          tabIndex={0}
+          style={{ cursor: 'pointer' }}
+        >
+          <img
+            src={mehewaraLogo}
+            alt="Mehewara Logo"
+            className="header-brand-logo"
+          />
+          <div>
+            <div className="header-brand-name">මෙහෙවර</div>
+          </div>
         </div>
       </div>
 

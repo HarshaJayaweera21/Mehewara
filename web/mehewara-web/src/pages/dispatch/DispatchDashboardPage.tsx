@@ -13,7 +13,7 @@ import {
 } from '../../services/dispatchApi';
 import { getCrewAvailability } from '../../services/crewApi';
 import { Header, HeroBanner, MetricsStrip } from '../../components/common';
-import { OpsNavStrip } from '../../components/common/OpsNavStrip';
+import { OpsNavDrawer } from '../../components/common/OpsNavDrawer';
 import { ApproveRecommendationModal } from './components/ApproveRecommendationModal';
 import { EditRecommendationModal } from './components/EditRecommendationModal';
 import { RejectRecommendationModal } from './components/RejectRecommendationModal';
@@ -55,6 +55,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
   const goToOperations = onNavigateToOperations || (() => navigate(ROUTES.OPERATIONS));
   const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
@@ -286,19 +287,25 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
         onBrandClick={goToOperations}
         roleBadgeText="Municipal Coordinator"
         showName
+        showMenuButton={true}
+        onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+        isMenuOpen={isNavDrawerOpen}
+      />
+
+      <OpsNavDrawer
+        isOpen={isNavDrawerOpen}
+        onClose={() => setIsNavDrawerOpen(false)}
+        activePage="dispatch"
+        pendingDispatchCount={recommendations.length}
+        onNavigateToDashboard={goToOperations}
+        onNavigateToProblems={goToProblems}
+        onNavigateToDispatch={() => {}}
+        onNavigateToCrews={goToCrews}
+        onNavigateToWorkOrders={() => handleOpenWorkOrder('')}
+        onNavigateToReports={goToReports}
       />
 
       <main className="dispatch-content-wrap">
-        {/* Secondary Navigation Breadcrumbs / Module Switcher */}
-        <OpsNavStrip
-          activePage="dispatch"
-          onNavigateToDashboard={goToOperations}
-          onNavigateToProblems={goToProblems}
-          onNavigateToDispatch={() => {}}
-          onNavigateToCrews={goToCrews}
-          onNavigateToWorkOrders={() => handleOpenWorkOrder('')}
-          onNavigateToReports={goToReports}
-        />
 
         {/* 2. Operations Welcome Banner */}
         <HeroBanner

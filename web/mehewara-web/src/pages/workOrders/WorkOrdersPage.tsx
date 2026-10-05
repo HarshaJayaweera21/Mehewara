@@ -7,7 +7,7 @@ import type { PagedResult } from '../../types/problems';
 import { ApiRequestError } from '../../services/api';
 import { getWorkOrders, getWorkOrder, startWorkOrder, completeWorkOrder } from '../../services/workOrdersApi';
 import { Header, HeroBanner } from '../../components/common';
-import { OpsNavStrip } from '../../components/common/OpsNavStrip';
+import { OpsNavDrawer } from '../../components/common/OpsNavDrawer';
 import { ROUTES } from '../../routes/paths';
 import './WorkOrdersPage.css';
 
@@ -24,6 +24,7 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
 }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
   const goToProblems = onNavigateToProblems || onCoordinator || (() => navigate(ROUTES.PROBLEMS));
   const goToDispatch = onNavigateToDispatch || (() => navigate(ROUTES.DISPATCH));
@@ -141,23 +142,28 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
       onOpenProfile={goToProfile}
       onBrandClick={goToProblems}
       roleBadgeText={admin ? "Municipal Coordinator" : "Crew Leader"}
+      showMenuButton={admin}
+      onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+      isMenuOpen={isNavDrawerOpen}
     />
+    {admin && (
+      <OpsNavDrawer
+        isOpen={isNavDrawerOpen}
+        onClose={() => setIsNavDrawerOpen(false)}
+        activePage="work-orders"
+        onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
+        onNavigateToProblems={goToProblems}
+        onNavigateToDispatch={goToDispatch}
+        onNavigateToCrews={goToCrews}
+        onNavigateToWorkOrders={() => {}}
+        onNavigateToReports={() => navigate(ROUTES.REPORTS)}
+      />
+    )}
     <main className="jobs-main">
       {!admin && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-0.5rem' }}>
           <button type="button" onClick={goToProfile} style={{ fontSize: '0.85rem' }}>My profile</button>
         </div>
-      )}
-      {admin && (
-        <OpsNavStrip
-          activePage="work-orders"
-          onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
-          onNavigateToProblems={goToProblems}
-          onNavigateToDispatch={goToDispatch}
-          onNavigateToCrews={goToCrews}
-          onNavigateToWorkOrders={() => {}}
-          onNavigateToReports={() => navigate(ROUTES.REPORTS)}
-        />
       )}
       <HeroBanner
         badge={admin ? 'AI AGENT 4 : EXECUTION TELEMETRY' : 'FIELD OPERATIONS'}
