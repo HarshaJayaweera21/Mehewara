@@ -33,7 +33,7 @@ export const RegenerateRecommendationModal: React.FC<RegenerateRecommendationMod
       });
       onSuccess();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Failed to re-trigger AI Agent 3.');
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to regenerate dispatch recommendation.');
     } finally {
       setIsSubmitting(false);
     }
@@ -44,7 +44,7 @@ export const RegenerateRecommendationModal: React.FC<RegenerateRecommendationMod
       <div className="dispatch-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="dispatch-modal-header regenerate-header">
           <div className="dispatch-modal-title-wrap">
-            <span className="dispatch-modal-tag tag-regenerate">Agent 3 Orchestration</span>
+            <span className="dispatch-modal-tag tag-regenerate">Dispatch Optimization</span>
             <h3 className="dispatch-modal-title">Regenerate AI Recommendation</h3>
           </div>
           <button type="button" className="dispatch-modal-close" onClick={onClose} aria-label="Close">

@@ -334,6 +334,7 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({ token, onC
             <button
               type="submit"
               className="submit-btn"
+              style={{ justifyContent: 'center', textAlign: 'center' }}
               disabled={isSubmitting || uploadingCount > 0}
             >
               {isSubmitting ? (

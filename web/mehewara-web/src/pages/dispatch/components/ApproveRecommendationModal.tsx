@@ -45,7 +45,7 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
       <div className="dispatch-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="dispatch-modal-header">
           <div className="dispatch-modal-title-wrap">
-            <span className="dispatch-modal-tag">Human-in-the-Loop Dispatch Approval</span>
+            <span className="dispatch-modal-tag">Coordinator Dispatch Approval</span>
             <h3 className="dispatch-modal-title">Authorize Municipal Work Order</h3>
           </div>
           <button type="button" className="dispatch-modal-close" onClick={onClose} aria-label="Close">
@@ -131,7 +131,7 @@ export const ApproveRecommendationModal: React.FC<ApproveRecommendationModalProp
             <label className="dispatch-form-label">
               <input type="checkbox" checked={responsibilityAcknowledged} onChange={e => setResponsibilityAcknowledged(e.target.checked)} required />{' '}
               I reviewed this human override and accept responsibility for approving the edited recommendation.
-              Agent 4 has not validated this revision.
+              Automated safety checks have not validated this revision.
             </label>
           )}
 

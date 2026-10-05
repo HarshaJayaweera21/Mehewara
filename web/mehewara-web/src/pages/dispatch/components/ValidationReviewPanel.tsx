@@ -99,10 +99,10 @@ export function ValidationReviewPanel({ detail, token, onChange }: {
     {error && <p role="alert">{error}</p>}
     <button type="button" className="dispatch-btn-primary" onClick={validate}
       disabled={submitting || running || !detail.allowedActions.includes('VALIDATE')}>
-      {submitting ? 'Queuing validation…' : ['ERROR', 'INVALID', 'NOT_RUN', 'REVISION_REQUIRED'].includes(detail.validation.status) ? 'Retry Agent 4 validation' : 'Validate current revision'}
+      {submitting ? 'Queuing validation…' : ['ERROR', 'INVALID', 'NOT_RUN', 'REVISION_REQUIRED'].includes(detail.validation.status) ? 'Retry safety validation' : 'Validate current revision'}
     </button>
     <p>{detail.requiresResponsibilityAcknowledgement
-      ? 'Human override: approval requires your responsibility acknowledgement and current backend business checks. Agent 4 is not rerun.'
+      ? 'Human override: approval requires your responsibility acknowledgement and current backend business checks. Safety checks are not rerun.'
       : 'AI recommendations require passing validation. Crew availability is checked again when you approve.'}</p>
     <details><summary>Recommendation history and changes</summary>
       {detail.originalOutputData && <details><summary>Original AI output for this recommendation</summary>

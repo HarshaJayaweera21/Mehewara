@@ -34,7 +34,7 @@ const shapes = {
   'list': <><path d="M8 5h13M8 12h13M8 19h13M3 5h.1M3 12h.1M3 19h.1"/></>,
 };
 export type IconName = keyof typeof shapes;
-export interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name' | 'children'> { name: IconName; size?: 16 | 20 | 24; title?: string; }
+export interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name' | 'children'> { name: IconName; size?: number; title?: string; }
 /** Decorative by default. Supply title for a standalone meaningful icon. */
 export function Icon({ name, size = 24, title, color = 'var(--mehewara-forest, #123C32)', className = '', ...props }: IconProps) {
   const id = useId();

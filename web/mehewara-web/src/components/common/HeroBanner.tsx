@@ -6,6 +6,7 @@ export interface HeroBannerProps {
   title: React.ReactNode;
   subtitle: React.ReactNode;
   actions?: React.ReactNode;
+  topRight?: React.ReactNode;
   ariaLabel?: string;
   className?: string;
 }
@@ -15,9 +16,12 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   title,
   subtitle,
   actions,
+  topRight,
   ariaLabel,
   className = '',
 }) => {
+  const rightSlot = actions ?? topRight;
+
   return (
     <section
       className={`mw-hero-banner ${className}`.trim()}
@@ -28,7 +32,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         <h1 className="mw-hero-banner-heading">{title}</h1>
         <p className="mw-hero-banner-subtitle">{subtitle}</p>
       </div>
-      {actions && <div className="mw-hero-banner-actions">{actions}</div>}
+      {rightSlot && <div className="mw-hero-banner-actions">{rightSlot}</div>}
     </section>
   );
 };

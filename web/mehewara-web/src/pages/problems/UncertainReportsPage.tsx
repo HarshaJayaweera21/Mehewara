@@ -14,7 +14,7 @@ import {
 } from '../../services/problemApi';
 import { useNavigate } from 'react-router-dom';
 import { Header, HeroBanner } from '../../components/common';
-import { OpsNavStrip } from '../../components/common/OpsNavStrip';
+import { OpsNavDrawer } from '../../components/common/OpsNavDrawer';
 import { ProblemDetailModal } from './ProblemDetailModal';
 import { ROUTES } from '../../routes/paths';
 import './UncertainReportsPage.css';
@@ -23,7 +23,6 @@ export interface UncertainReportsPageProps {
   currentUser?: User | null;
   token?: string | null;
   onNavigateToProblems?: () => void;
-  onNavigateToReports?: () => void;
   onLogout?: () => void;
   onOpenProfile?: () => void;
 }
@@ -36,14 +35,13 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
   currentUser,
   token,
   onNavigateToProblems,
-  onNavigateToReports,
   onLogout,
   onOpenProfile,
 }) => {
   const navigate = useNavigate();
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
   const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
-  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
   const goToProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
   const [reports, setReports] = useState<UncertainReportResponse[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -230,30 +228,36 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
   };
 
   return (
-    <div className="problems-dashboard-container urp-container">
-      <div className="problems-content-wrap">
+    <div className="urp-container">
+      <div className="urp-content-wrap">
         <Header
           currentUser={currentUser}
+          showName={true}
           onBrandClick={goToProblems}
           onLogout={onLogout}
           onOpenProfile={goToProfile}
+          showMenuButton={true}
+          onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+          isMenuOpen={isNavDrawerOpen}
         />
 
-        <OpsNavStrip
-          activePage="problems"
+        <OpsNavDrawer
+          isOpen={isNavDrawerOpen}
+          onClose={() => setIsNavDrawerOpen(false)}
+          activePage="uncertain-reports"
           onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
           onNavigateToProblems={goToProblems}
+          onNavigateToUncertainReports={() => {}}
           onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
           onNavigateToCrews={() => navigate(ROUTES.CREWS)}
           onNavigateToWorkOrders={() => navigate(ROUTES.WORK_ORDERS)}
-          onNavigateToReports={goToReports}
         />
 
         {/* Hero Welcome Banner */}
         <HeroBanner
-          badge="AI AGENT 2 : HUMAN-IN-THE-LOOP"
+          badge="VERIFICATION & TRIAGE"
           title="Uncertain Reports Triage"
-          subtitle="Consolidation desk for borderline or ambiguous citizen defect submissions. Verify photo evidence, merge into existing problems, or spawn new problem records."
+          subtitle="Review and verify ambiguous citizen submissions. Inspect photo evidence, confirm locations, and merge or create official problem records."
           ariaLabel="Uncertain Reports Triage Banner"
         />
 
@@ -295,7 +299,7 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
               </svg>
             </div>
             <h2>All Reports Consolidated</h2>
-            <p>No uncertain reports awaiting coordinator triage. AI Agent 2 has autonomously clustered all clear reports into municipal problems.</p>
+            <p>No uncertain reports awaiting coordinator triage. All submissions have been verified and linked into municipal problems.</p>
             <button className="urp-empty-btn" onClick={goToProblems}>
               Return to Problems Dashboard
             </button>

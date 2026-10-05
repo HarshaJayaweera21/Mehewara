@@ -3,7 +3,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  margin: 14px 0;
+  margin: 0;
 }
 .dispatch-review-tabs button, .dispatch-pagination button, .checklist-section details button {
   background: #fff;
