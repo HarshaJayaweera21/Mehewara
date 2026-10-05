@@ -66,6 +66,12 @@ class AuthBrand extends StatelessWidget {
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.4,
                 height: 1.1,
+                fontFamilyFallback: [
+                  'Noto Sans Sinhala',
+                  'Iskoola Pota',
+                  'Segoe UI',
+                  'sans-serif',
+                ],
               ),
             ),
             SizedBox(height: 2),
