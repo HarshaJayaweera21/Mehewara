@@ -167,10 +167,10 @@ export function OperationsDashboardPage({
 
         {/* 2. Operations Welcome Banner */}
         <HeroBanner
-          badge="MUNICIPAL COMMAND DESK"
-          title="Municipal Operations Command Desk"
-          subtitle="Live operational telemetry across municipal infrastructure defects, AI consolidation, crew readiness, and active field execution."
-          ariaLabel="Municipal Operations Banner"
+          badge="OPERATIONS SUITE"
+          title="Operations Command Desk"
+          subtitle="Centralized operational overview across municipal defects, crew deployments, and active field resolutions."
+          ariaLabel="Operations Command Desk Banner"
         />
 
         {/* 3. Operational Metrics Strip */}

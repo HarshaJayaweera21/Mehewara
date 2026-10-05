@@ -29,6 +29,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  background: var(--mw-surface, #FFFFFF);
+  border: 1px solid var(--mw-line, #DDE2DE);
+  border-radius: 10px;
+  padding: 0.75rem 1.25rem;
+  box-shadow: var(--mw-shadow-sm);
 }
 
 .crews-search-box {

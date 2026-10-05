@@ -6,7 +6,7 @@ import type { WorkOrder, WorkOrderQuery } from '../../types/workOrders';
 import type { PagedResult } from '../../types/problems';
 import { ApiRequestError } from '../../services/api';
 import { getWorkOrders, getWorkOrder, startWorkOrder, completeWorkOrder } from '../../services/workOrdersApi';
-import { Header, HeroBanner } from '../../components/common';
+import { Header, HeroBanner, MetricsStrip } from '../../components/common';
 import { OpsNavDrawer } from '../../components/common/OpsNavDrawer';
 import { ROUTES } from '../../routes/paths';
 import './WorkOrdersPage.css';
@@ -142,6 +142,7 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
       onOpenProfile={goToProfile}
       onBrandClick={goToProblems}
       roleBadgeText={admin ? "Municipal Coordinator" : "Crew Leader"}
+      showName={admin}
       showMenuButton={admin}
       onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
       isMenuOpen={isNavDrawerOpen}
@@ -166,11 +167,43 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
         </div>
       )}
       <HeroBanner
-        badge={admin ? 'AI AGENT 4 : EXECUTION TELEMETRY' : 'FIELD OPERATIONS'}
+        badge={admin ? 'WORK ORDERS' : 'FIELD OPERATIONS'}
         title={admin ? 'Municipal Work Orders' : 'My Jobs'}
-        subtitle={admin ? 'Monitor real-time crew job execution, completion notes, and location telemetry across all municipal units.' : `Welcome back, ${user.firstName || user.name}. View assigned maintenance tasks and submit execution completion notes.`}
-        ariaLabel={admin ? 'Municipal Work Orders' : 'My Jobs'}
+        subtitle={admin ? 'Track real-time crew job execution, site updates, completion evidence, and remediation telemetry across municipal units.' : 'Assigned field tasks, location details, remediation instructions, and completion notes for your municipal crew.'}
+        ariaLabel={admin ? 'Municipal Work Orders Banner' : 'My Jobs Banner'}
       />
+      {admin && (
+        <MetricsStrip
+          items={[
+            {
+              id: 'total',
+              label: 'Total Orders',
+              value: page?.totalItems ?? (page?.items?.length || 0),
+              descriptor: 'Registered municipal work orders',
+              hasPip: true,
+            },
+            {
+              id: 'assigned',
+              label: 'Assigned',
+              value: page?.items?.filter(item => item.status === 'ASSIGNED').length || 0,
+              descriptor: 'Awaiting crew kickoff',
+            },
+            {
+              id: 'in-progress',
+              label: 'In Progress',
+              value: page?.items?.filter(item => item.status === 'IN_PROGRESS').length || 0,
+              descriptor: 'Active field remediation',
+            },
+            {
+              id: 'completed',
+              label: 'Completed',
+              value: page?.items?.filter(item => item.status === 'COMPLETED').length || 0,
+              descriptor: 'Resolved and verified',
+            },
+          ]}
+          ariaLabel="Municipal Work Orders Overview"
+        />
+      )}
       <form className="jobs-filters" onSubmit={applyFilters}>
         <label>Status<select name="status"><option value="">All jobs</option>{['ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].map(s => <option key={s} value={s}>{label(s)}</option>)}</select></label>
         <label>Priority<select name="priority"><option value="">All priorities</option>{['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(s => <option key={s}>{s}</option>)}</select></label>

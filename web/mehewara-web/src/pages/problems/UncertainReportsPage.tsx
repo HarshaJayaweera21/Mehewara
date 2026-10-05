@@ -231,10 +231,11 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
   };
 
   return (
-    <div className="problems-dashboard-container urp-container">
-      <div className="problems-content-wrap">
+    <div className="urp-container">
+      <div className="urp-content-wrap">
         <Header
           currentUser={currentUser}
+          showName={true}
           onBrandClick={goToProblems}
           onLogout={onLogout}
           onOpenProfile={goToProfile}
@@ -258,9 +259,9 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
 
         {/* Hero Welcome Banner */}
         <HeroBanner
-          badge="AI AGENT 2 : HUMAN-IN-THE-LOOP"
+          badge="VERIFICATION & TRIAGE"
           title="Uncertain Reports Triage"
-          subtitle="Consolidation desk for borderline or ambiguous citizen defect submissions. Verify photo evidence, merge into existing problems, or spawn new problem records."
+          subtitle="Review and verify ambiguous citizen submissions. Inspect photo evidence, confirm locations, and merge or create official problem records."
           ariaLabel="Uncertain Reports Triage Banner"
         />
 
@@ -302,7 +303,7 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
               </svg>
             </div>
             <h2>All Reports Consolidated</h2>
-            <p>No uncertain reports awaiting coordinator triage. AI Agent 2 has autonomously clustered all clear reports into municipal problems.</p>
+            <p>No uncertain reports awaiting coordinator triage. All submissions have been verified and linked into municipal problems.</p>
             <button className="urp-empty-btn" onClick={goToProblems}>
               Return to Problems Dashboard
             </button>

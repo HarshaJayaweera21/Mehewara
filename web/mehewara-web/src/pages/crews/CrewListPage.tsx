@@ -5,6 +5,7 @@ import type { CrewListItem, CrewType, CrewStatus } from '../../types/crew';
 import { getCrews } from '../../services/crewApi';
 import { Header, HeroBanner, MetricsStrip } from '../../components/common';
 import { OpsNavDrawer } from '../../components/common/OpsNavDrawer';
+import { Icon } from '../../design-system/mehewara/Icon';
 import { CrewDetailModal } from './components/CrewDetailModal';
 import { ROUTES } from '../../routes/paths';
 import './CrewListPage.css';
@@ -102,6 +103,7 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
       {/* 1. Global Navigation Header */}
       <Header
         currentUser={currentUser}
+        showName={true}
         onLogout={onLogout}
         onOpenProfile={goToProfile}
         onBrandClick={goToProblems}
@@ -127,10 +129,10 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
 
         {/* 2. Operations Welcome Banner */}
         <HeroBanner
-          badge="OPERATIONAL TELEMETRY"
-          title="Municipal Response Crews Directory"
-          subtitle="Real-time readiness telemetry, assigned wards, and active work orders for municipal field squads. Automated dispatch relies on live crew availability."
-          ariaLabel="Municipal Crews Banner"
+          badge="CREWS DIRECTORY"
+          title="Municipal Response Crews"
+          subtitle="Real-time readiness telemetry, assigned municipal wards, and active operational status for all field response squads."
+          ariaLabel="Municipal Response Crews Banner"
         />
 
         {/* 3. Operational Metrics Strip */}
@@ -168,10 +170,7 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
         {/* 4. Filter Toolbar */}
         <section className="crews-toolbar" aria-label="Filter Crews">
           <div className="crews-search-box">
-            <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            <Icon name="search" size={16} className="search-icon" />
             <input
               type="text"
               className="crews-search-input"

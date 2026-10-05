@@ -15,7 +15,7 @@ import type { PagedResult } from '../types/common';
 import { API_BASE, handleResponse, getAuthHeaders, buildQueryString } from './httpClient';
 
 /**
- * Get paginated list of Agent 3 dispatch recommendations
+ * Get paginated list of dispatch recommendations
  */
 export async function getRecommendations(
   token: string,
@@ -47,7 +47,7 @@ export async function getRecommendationById(
 }
 
 /**
- * Human-in-the-Loop Override: Edit priority, score, recommended crew, or notes
+ * Coordinator Override: Edit priority, score, recommended crew, or notes
  */
 // Backend EditRecommendationAsync returns a full RecommendationDetailDto
 export async function editRecommendation(
@@ -99,7 +99,7 @@ export async function rejectRecommendation(
 }
 
 /**
- * Queue a durable Agent 3 + Agent 4 regeneration job
+ * Queue a durable dispatch & safety re-evaluation job
  */
 export async function regenerateRecommendation(
   token: string,

@@ -195,7 +195,7 @@ export const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* 7. Uncertain Reports Triage (Agent 2 HITL - Admin Only) */}
+      {/* 7. Uncertain Reports Triage (Admin Only) */}
       <Route
         path={ROUTES.UNCERTAIN_REPORTS}
         element={
@@ -217,7 +217,7 @@ export const AppRoutes: React.FC = () => {
         element={<Navigate to={ROUTES.UNCERTAIN_REPORTS} replace />}
       />
 
-      {/* 8. Dispatch & AI Recommendation Review (Agent 3 HITL - Admin Only) */}
+      {/* 8. Dispatch & Crew Allocation Review (Admin Only) */}
       <Route
         path={ROUTES.DISPATCH}
         element={

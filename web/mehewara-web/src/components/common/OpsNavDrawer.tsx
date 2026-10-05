@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../routes/paths';
+import { Icon } from '../../design-system/mehewara/Icon';
 import mehewaraLogo from '../../assets/mehewara-logo.png';
 import './OpsNavDrawer.css';
 
@@ -135,12 +136,7 @@ export const OpsNavDrawer: React.FC<OpsNavDrawerProps> = ({
             >
               <div className="ops-drawer-item-left">
                 <div className="ops-drawer-icon-wrap">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="7" height="7" />
-                    <rect x="14" y="3" width="7" height="7" />
-                    <rect x="14" y="14" width="7" height="7" />
-                    <rect x="3" y="14" width="7" height="7" />
-                  </svg>
+                  <Icon name="grid" size={18} color="currentColor" />
                 </div>
                 <div className="ops-drawer-item-text">
                   <span className="ops-drawer-item-label">Operations Dashboard</span>
@@ -159,11 +155,7 @@ export const OpsNavDrawer: React.FC<OpsNavDrawerProps> = ({
             >
               <div className="ops-drawer-item-left">
                 <div className="ops-drawer-icon-wrap">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
+                  <Icon name="warning" size={18} color="currentColor" />
                 </div>
                 <div className="ops-drawer-item-text">
                   <span className="ops-drawer-item-label">Problems Board</span>
@@ -173,7 +165,7 @@ export const OpsNavDrawer: React.FC<OpsNavDrawerProps> = ({
               {activePage === 'problems' && <span className="ops-drawer-active-dot" />}
             </button>
 
-            {/* 3. Uncertain Reports Triage (Agent 2) */}
+            {/* 3. Uncertain Reports Triage */}
             <button
               type="button"
               className={`ops-drawer-item ${activePage === 'uncertain-reports' ? 'active' : ''}`}
@@ -182,14 +174,11 @@ export const OpsNavDrawer: React.FC<OpsNavDrawerProps> = ({
             >
               <div className="ops-drawer-item-left">
                 <div className="ops-drawer-icon-wrap">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
+                  <Icon name="info" size={18} color="currentColor" />
                 </div>
                 <div className="ops-drawer-item-text">
                   <span className="ops-drawer-item-label">Uncertain Reports</span>
-                  <span className="ops-drawer-item-desc">Agent 2 human-in-the-loop triage</span>
+                  <span className="ops-drawer-item-desc">Ambiguous defect verification & triage</span>
                 </div>
               </div>
               {activePage === 'uncertain-reports' && <span className="ops-drawer-active-dot" />}
@@ -204,15 +193,11 @@ export const OpsNavDrawer: React.FC<OpsNavDrawerProps> = ({
             >
               <div className="ops-drawer-item-left">
                 <div className="ops-drawer-icon-wrap">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                    <polyline points="2 17 12 22 22 17" />
-                    <polyline points="2 12 12 17 22 12" />
-                  </svg>
+                  <Icon name="problems" size={18} color="currentColor" />
                 </div>
                 <div className="ops-drawer-item-text">
                   <span className="ops-drawer-item-label">Dispatch Queue</span>
-                  <span className="ops-drawer-item-desc">Agent 3 prioritization & crew assignment</span>
+                  <span className="ops-drawer-item-desc">Priority scoring & crew assignment</span>
                 </div>
               </div>
               {pendingDispatchCount > 0 ? (
@@ -233,12 +218,7 @@ export const OpsNavDrawer: React.FC<OpsNavDrawerProps> = ({
             >
               <div className="ops-drawer-item-left">
                 <div className="ops-drawer-icon-wrap">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
+                  <Icon name="users" size={18} color="currentColor" />
                 </div>
                 <div className="ops-drawer-item-text">
                   <span className="ops-drawer-item-label">Municipal Crews</span>
@@ -257,13 +237,7 @@ export const OpsNavDrawer: React.FC<OpsNavDrawerProps> = ({
             >
               <div className="ops-drawer-item-left">
                 <div className="ops-drawer-icon-wrap">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                    <line x1="16" y1="13" x2="8" y2="13" />
-                    <line x1="16" y1="17" x2="8" y2="17" />
-                    <polyline points="10 9 9 9 8 9" />
-                  </svg>
+                  <Icon name="work-orders" size={18} color="currentColor" />
                 </div>
                 <div className="ops-drawer-item-text">
                   <span className="ops-drawer-item-label">Work Orders</span>
@@ -288,12 +262,7 @@ export const OpsNavDrawer: React.FC<OpsNavDrawerProps> = ({
               >
                 <div className="ops-drawer-item-left">
                   <div className="ops-drawer-icon-wrap">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                      <polyline points="10 9 9 9 8 9" />
-                    </svg>
+                    <Icon name="reports" size={18} color="currentColor" />
                   </div>
                   <div className="ops-drawer-item-text">
                     <span className="ops-drawer-item-label">Resident Reports</span>

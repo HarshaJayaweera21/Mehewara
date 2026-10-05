@@ -21,46 +21,7 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
-}
-
-/* ==========================================================================
-/* Coordinator Triage Alert Banner */
-
-.metric-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.metric-label {
-  font-size: 0.71875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--mw-text-secondary);
-}
-
-.metric-mint-pip {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--mw-mint-accent);
-}
-
-.metric-value {
-  font-size: 1.75rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--mw-text-primary);
-  line-height: 1.15;
-}
-
-.metric-descriptor {
-  font-size: 0.775rem;
-  font-weight: 400;
-  color: var(--mw-text-muted);
+  gap: 1.5rem;
 }
 
 /* ==========================================================================
@@ -111,7 +72,7 @@
   border: 1px solid var(--mw-border);
   border-radius: 6px;
   padding: 0 0.85rem;
-  height: 44px;
+  height: 40px;
   box-sizing: border-box;
   transition: border-color 140ms ease, background 140ms ease;
 }
@@ -154,7 +115,7 @@
 }
 
 .problems-filter-select {
-  height: 44px;
+  height: 40px;
   background: var(--mw-surface);
   border: 1px solid var(--mw-border);
   border-radius: 6px;
@@ -190,7 +151,7 @@
   font-size: 0.8125rem;
   font-weight: 500;
   padding: 0 0.75rem;
-  height: 44px;
+  height: 40px;
   border-radius: 6px;
   cursor: pointer;
   display: inline-flex;

@@ -206,14 +206,14 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
 
         {/* Hero Welcome Banner */}
         <HeroBanner
-          badge={isAdmin ? 'CITIZEN INTAKE & TELEMETRY' : 'RESIDENT PORTAL'}
-          title={isAdmin ? 'Municipal Infrastructure Reports' : 'Resident Issue Tracker'}
+          badge={isAdmin ? 'CITIZEN REPORTS' : 'RESIDENT PORTAL'}
+          title={isAdmin ? 'Citizen Defect Reports' : 'Resident Issue Tracker'}
           subtitle={
             isAdmin
-              ? 'Centralized registry of citizen-submitted civic infrastructure defects, geocoded reports, triage status, and council repair workflows.'
-              : 'Submit public defects, track council inspection milestones, and monitor municipal repair progress in your local ward.'
+              ? 'Centralized intake registry of citizen-submitted civic infrastructure defects, geocoded locations, triage statuses, and council workflows.'
+              : 'Submit public infrastructure concerns, track council review milestones, and monitor municipal remediation progress in your community.'
           }
-          ariaLabel="Municipal Reports Banner"
+          ariaLabel={isAdmin ? 'Citizen Defect Reports Banner' : 'Resident Issue Tracker Banner'}
         />
 
         {/* Operational Metrics Strip for Coordinators */}

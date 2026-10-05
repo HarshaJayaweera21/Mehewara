@@ -8,7 +8,6 @@ export interface CoordinatorWelcomeBannerProps {
 
 export const CoordinatorWelcomeBanner: React.FC<CoordinatorWelcomeBannerProps> = ({
   roleName = 'Coordinator',
-  activeProblemsCount,
 }) => {
   // Determine appropriate greeting based on actual local time of day
   const timeGreeting = useMemo(() => {
@@ -24,11 +23,9 @@ export const CoordinatorWelcomeBanner: React.FC<CoordinatorWelcomeBannerProps> =
 
   return (
     <HeroBanner
-      badge="AI Agent 2 : Consolidation & Geo-Clustering"
+      badge="PROBLEMS BOARD"
       title={`${timeGreeting}, ${roleName} — Municipal Problems Board`}
-      subtitle={`Consolidated public infrastructure problems, spatial clustering, priority assessment, and automated dispatch triage.${
-        activeProblemsCount != null ? ` Currently tracking ${activeProblemsCount} active problems across wards.` : ''
-      }`}
+      subtitle="Consolidated municipal infrastructure defects, spatial clustering, priority evaluation, and resolution tracking across all wards."
       ariaLabel="Coordinator Welcome Workspace"
     />
   );
