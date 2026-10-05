@@ -23,7 +23,6 @@ export interface UncertainReportsPageProps {
   currentUser?: User | null;
   token?: string | null;
   onNavigateToProblems?: () => void;
-  onNavigateToReports?: () => void;
   onLogout?: () => void;
   onOpenProfile?: () => void;
 }
@@ -36,7 +35,6 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
   currentUser,
   token,
   onNavigateToProblems,
-  onNavigateToReports,
   onLogout,
   onOpenProfile,
 }) => {
@@ -44,7 +42,6 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
   const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
   const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
-  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
   const goToProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
   const [reports, setReports] = useState<UncertainReportResponse[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -254,7 +251,6 @@ export const UncertainReportsPage: React.FC<UncertainReportsPageProps> = ({
           onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
           onNavigateToCrews={() => navigate(ROUTES.CREWS)}
           onNavigateToWorkOrders={() => navigate(ROUTES.WORK_ORDERS)}
-          onNavigateToReports={goToReports}
         />
 
         {/* Hero Welcome Banner */}

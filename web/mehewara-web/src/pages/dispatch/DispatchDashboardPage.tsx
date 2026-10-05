@@ -32,7 +32,6 @@ export interface DispatchDashboardPageProps {
   onOpenProfile?: () => void;
   onNavigateToProblems?: () => void;
   onNavigateToCrews?: () => void;
-  onNavigateToReports?: () => void;
   onNavigateToOperations?: () => void;
   onOpenWorkOrder?: (id: string) => void;
 }
@@ -50,7 +49,6 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   onOpenProfile,
   onNavigateToProblems,
   onNavigateToCrews,
-  onNavigateToReports,
   onNavigateToOperations,
   onOpenWorkOrder,
 }) => {
@@ -59,7 +57,6 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
   const goToOperations = onNavigateToOperations || (() => navigate(ROUTES.OPERATIONS));
-  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
   const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
   const goToCrews = onNavigateToCrews || (() => navigate(ROUTES.CREWS));
   const goToProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
@@ -304,7 +301,6 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
           onNavigateToDispatch={() => {}}
           onNavigateToCrews={goToCrews}
           onNavigateToWorkOrders={() => handleOpenWorkOrder('')}
-          onNavigateToReports={goToReports}
         />
 
         {/* 2. Operations Welcome Banner */}

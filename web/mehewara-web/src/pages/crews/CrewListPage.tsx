@@ -17,7 +17,6 @@ export interface CrewListPageProps {
   onOpenProfile?: () => void;
   onNavigateToProblems?: () => void;
   onNavigateToDispatch?: () => void;
-  onNavigateToReports?: () => void;
   onNavigateToWorkOrders?: (workOrderId?: string) => void;
 }
 
@@ -39,7 +38,6 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
   onOpenProfile,
   onNavigateToProblems,
   onNavigateToDispatch,
-  onNavigateToReports,
   onNavigateToWorkOrders,
 }) => {
   const navigate = useNavigate();
@@ -47,7 +45,6 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
 
   const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
   const goToDispatch = onNavigateToDispatch || (() => navigate(ROUTES.DISPATCH));
-  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
   const goToProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
   const handleWorkOrders = onNavigateToWorkOrders || ((id?: string) => navigate(id ? `${ROUTES.WORK_ORDERS}?id=${id}` : ROUTES.WORK_ORDERS));
 
@@ -123,7 +120,6 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
           onNavigateToDispatch={goToDispatch}
           onNavigateToCrews={() => {}}
           onNavigateToWorkOrders={() => handleWorkOrders()}
-          onNavigateToReports={goToReports}
         />
 
         {/* 2. Operations Welcome Banner */}

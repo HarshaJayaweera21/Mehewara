@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import type { User } from '../../types/auth';
 import type { ReportSummaryResponse } from '../../types/reports';
-import { getResidentReports, getAllReports } from '../../services/reportApi';
+import { getResidentReports } from '../../services/reportApi';
 import { ReportCard } from '../../components/reports/ReportCard';
 import { CreateReportModal } from '../../components/reports/CreateReportModal';
 import { ReportDetailModal } from '../../components/reports/ReportDetailModal';
-import { Header, HeroBanner, MetricsStrip } from '../../components/common';
-import { OpsNavDrawer } from '../../components/common/OpsNavDrawer';
+import { Header, HeroBanner } from '../../components/common';
 import { ROUTES } from '../../routes/paths';
 import './ReportsPage.css';
 
@@ -16,7 +15,6 @@ interface ReportsPageProps {
   token: string;
   onLogout?: () => void;
   onOpenProfile?: () => void;
-  onNavigateToProblems?: () => void;
 }
 
 const STATUS_FILTERS = ['ALL', 'PENDING', 'PROCESSING', 'ASSIGNED', 'RESOLVED', 'CANCELLED'];
@@ -26,42 +24,14 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
   token,
   onLogout,
   onOpenProfile,
-  onNavigateToProblems,
 }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const handleLogout = onLogout || (() => navigate(ROUTES.LOGIN));
   const handleOpenProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
-  const handleNavigateToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
 
   const isAdmin = currentUser.role === 'ADMIN';
-  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
-
-  const tabParam = searchParams.get('tab');
-  const initialTab = tabParam === 'coordinator-reports' && isAdmin ? 'coordinator-reports' : 'my-reports';
-  const [activeTab, setActiveTab] = useState<'my-reports' | 'coordinator-reports'>(initialTab);
-
-  useEffect(() => {
-    const p = searchParams.get('tab');
-    if (p === 'coordinator-reports' && isAdmin) {
-      setActiveTab('coordinator-reports');
-    } else if (p === 'my-reports') {
-      setActiveTab('my-reports');
-    }
-  }, [searchParams, isAdmin]);
-
-  const handleTabChange = (tab: 'my-reports' | 'coordinator-reports') => {
-    setActiveTab(tab);
-    setPage(1);
-    try {
-      const next = new URLSearchParams(searchParams);
-      next.set('tab', tab);
-      setSearchParams(Object.fromEntries(next.entries()));
-    } catch {
-      // outside router
-    }
-  };
 
   const [reports, setReports] = useState<ReportSummaryResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -70,7 +40,6 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
 
   // Filters
   const [selectedStatus, setSelectedStatus] = useState('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -110,38 +79,27 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
   };
 
   const fetchReports = useCallback(async () => {
+    if (isAdmin) return;
     try {
       setLoading(true);
       setError(null);
 
       const statusParam = selectedStatus !== 'ALL' ? selectedStatus : undefined;
 
-      if (activeTab === 'my-reports') {
-        const result = await getResidentReports(token, {
-          page,
-          pageSize: 12,
-          status: statusParam,
-        });
-        setReports(result.items || []);
-        setTotalPages(result.totalPages || 1);
-        setTotalItems(result.totalItems || 0);
-      } else {
-        const result = await getAllReports(token, {
-          page,
-          pageSize: 12,
-          status: statusParam,
-          search: searchQuery.trim() || undefined,
-        });
-        setReports(result.items || []);
-        setTotalPages(result.totalPages || 1);
-        setTotalItems(result.totalItems || 0);
-      }
+      const result = await getResidentReports(token, {
+        page,
+        pageSize: 12,
+        status: statusParam,
+      });
+      setReports(result.items || []);
+      setTotalPages(result.totalPages || 1);
+      setTotalItems(result.totalItems || 0);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to fetch reports from backend.');
     } finally {
       setLoading(false);
     }
-  }, [token, activeTab, page, selectedStatus, searchQuery, setLoading, setError, setReports, setTotalPages, setTotalItems]);
+  }, [token, isAdmin, page, selectedStatus]);
 
   useEffect(() => {
     fetchReports();
@@ -156,22 +114,10 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
     fetchReports();
   };
 
-  const reportMetrics = useMemo(() => {
-    const total = totalItems || reports.length;
-    const pending = reports.filter((r) => {
-      const s = (r.status || '').toUpperCase();
-      return s === 'SUBMITTED' || s === 'PENDING';
-    }).length;
-    const inProgress = reports.filter((r) => {
-      const s = (r.status || '').toUpperCase();
-      return s === 'IN_PROGRESS' || s === 'ASSIGNED' || s === 'PROCESSING';
-    }).length;
-    const resolved = reports.filter((r) => {
-      const s = (r.status || '').toUpperCase();
-      return s === 'RESOLVED' || s === 'CLOSED';
-    }).length;
-    return { total, pending, inProgress, resolved };
-  }, [reports, totalItems]);
+  // Coordinators inspect defect reports grouped by problem on the Municipal Problems Board
+  if (isAdmin) {
+    return <Navigate to={ROUTES.PROBLEMS} replace />;
+  }
 
   return (
     <div className="reports-page-container">
@@ -181,101 +127,23 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
           currentUser={currentUser}
           onLogout={handleLogout}
           onOpenProfile={handleOpenProfile}
-          onBrandClick={() => navigate(isAdmin ? ROUTES.OPERATIONS : ROUTES.HOME)}
-          roleBadgeText={isAdmin ? 'Municipal Coordinator' : 'Resident'}
+          onBrandClick={() => navigate(ROUTES.HOME)}
+          roleBadgeText="Resident"
           showName={true}
-          showMenuButton={isAdmin}
-          onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
-          isMenuOpen={isNavDrawerOpen}
+          showMenuButton={false}
         />
-
-        {isAdmin && (
-          <OpsNavDrawer
-            isOpen={isNavDrawerOpen}
-            onClose={() => setIsNavDrawerOpen(false)}
-            activePage="reports"
-            onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
-            onNavigateToProblems={handleNavigateToProblems}
-            onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
-            onNavigateToCrews={() => navigate(ROUTES.CREWS)}
-            onNavigateToWorkOrders={() => navigate(ROUTES.WORK_ORDERS)}
-            onNavigateToReports={() => {}}
-          />
-        )}
 
         {/* Hero Welcome Banner */}
         <HeroBanner
-          badge={isAdmin ? 'CITIZEN REPORTS' : 'RESIDENT PORTAL'}
-          title={isAdmin ? 'Citizen Defect Reports' : 'Resident Issue Tracker'}
-          subtitle={
-            isAdmin
-              ? 'Centralized intake registry of citizen-submitted civic infrastructure defects, geocoded locations, triage statuses, and council workflows.'
-              : 'Submit public infrastructure concerns, track council review milestones, and monitor municipal remediation progress in your community.'
-          }
-          ariaLabel={isAdmin ? 'Citizen Defect Reports Banner' : 'Resident Issue Tracker Banner'}
+          badge="RESIDENT PORTAL"
+          title="Resident Issue Tracker"
+          subtitle="Submit public infrastructure concerns, track council review milestones, and monitor municipal remediation progress in your community."
+          ariaLabel="Resident Issue Tracker Banner"
         />
-
-        {/* Operational Metrics Strip for Coordinators */}
-        {isAdmin && (
-          <MetricsStrip
-            items={[
-              {
-                id: 'total',
-                label: 'Total Reports',
-                value: reportMetrics.total,
-                descriptor: 'Citizen defect submissions',
-                hasPip: true,
-              },
-              {
-                id: 'pending',
-                label: 'Awaiting Triage',
-                value: reportMetrics.pending,
-                descriptor: 'New reports requiring evaluation',
-                hasPip: true,
-              },
-              {
-                id: 'in-progress',
-                label: 'In Progress',
-                value: reportMetrics.inProgress,
-                descriptor: 'Active investigation or repair',
-              },
-              {
-                id: 'resolved',
-                label: 'Resolved / Closed',
-                value: reportMetrics.resolved,
-                descriptor: 'Defects verified resolved',
-              },
-            ]}
-            ariaLabel="Key Reports Metrics"
-          />
-        )}
 
         {/* Consolidated Reports Toolbar */}
         <div className="reports-toolbar">
-          <div className="reports-toolbar-left">
-            {isAdmin && (
-              <div className="reports-view-tabs" role="tablist" aria-label="Reports Views">
-                <button
-                  type="button"
-                  className={`reports-tab-btn ${activeTab === 'my-reports' ? 'active' : ''}`}
-                  onClick={() => handleTabChange('my-reports')}
-                  role="tab"
-                  aria-selected={activeTab === 'my-reports'}
-                >
-                  📋 My Reports
-                </button>
-                <button
-                  type="button"
-                  className={`reports-tab-btn ${activeTab === 'coordinator-reports' ? 'active' : ''}`}
-                  onClick={() => handleTabChange('coordinator-reports')}
-                  role="tab"
-                  aria-selected={activeTab === 'coordinator-reports'}
-                >
-                  🏢 Coordinator All Reports
-                </button>
-              </div>
-            )}
-          </div>
+          <div className="reports-toolbar-left" />
 
           <div className="reports-toolbar-right">
             <button
@@ -334,23 +202,6 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
           </div>
 
           <div className="filter-group">
-            {activeTab === 'coordinator-reports' && (
-              <div className="search-input-wrapper">
-                <input
-                  type="text"
-                  placeholder="Search description/address..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setPage(1);
-                      fetchReports();
-                    }
-                  }}
-                />
-              </div>
-            )}
-
             <button
               type="button"
               className="refresh-btn"

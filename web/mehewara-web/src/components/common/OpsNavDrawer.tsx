@@ -25,8 +25,6 @@ export interface OpsNavDrawerProps {
   onNavigateToDispatch?: () => void;
   onNavigateToCrews?: () => void;
   onNavigateToWorkOrders?: () => void;
-  onNavigateToReports?: () => void;
-  showReportsLink?: boolean;
 }
 
 export const OpsNavDrawer: React.FC<OpsNavDrawerProps> = ({
@@ -40,8 +38,6 @@ export const OpsNavDrawer: React.FC<OpsNavDrawerProps> = ({
   onNavigateToDispatch,
   onNavigateToCrews,
   onNavigateToWorkOrders,
-  onNavigateToReports,
-  showReportsLink = true,
 }) => {
   const navigate = useNavigate();
 
@@ -247,32 +243,6 @@ export const OpsNavDrawer: React.FC<OpsNavDrawerProps> = ({
               {activePage === 'work-orders' && <span className="ops-drawer-active-dot" />}
             </button>
           </div>
-
-          {/* Section 2: Public & Resident Portals */}
-          {showReportsLink && (
-            <div className="ops-drawer-section">
-              <span className="ops-drawer-section-title">Portals & Public</span>
-
-              {/* Resident Reports Portal */}
-              <button
-                type="button"
-                className={`ops-drawer-item ${activePage === 'reports' ? 'active' : ''}`}
-                onClick={() => handleNav(onNavigateToReports, ROUTES.REPORTS)}
-                aria-current={activePage === 'reports' ? 'page' : undefined}
-              >
-                <div className="ops-drawer-item-left">
-                  <div className="ops-drawer-icon-wrap">
-                    <Icon name="reports" size={18} color="currentColor" />
-                  </div>
-                  <div className="ops-drawer-item-text">
-                    <span className="ops-drawer-item-label">Resident Reports</span>
-                    <span className="ops-drawer-item-desc">Citizen defect intake & tracking</span>
-                  </div>
-                </div>
-                {activePage === 'reports' && <span className="ops-drawer-active-dot" />}
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Drawer Footer */}

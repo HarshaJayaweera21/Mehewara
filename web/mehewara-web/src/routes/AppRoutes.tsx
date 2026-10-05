@@ -137,7 +137,7 @@ export const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* 4. Resident & Admin Reports Portal */}
+      {/* 4. Resident Issue Tracker */}
       <Route
         path={ROUTES.REPORTS}
         element={
@@ -147,7 +147,6 @@ export const AppRoutes: React.FC = () => {
               token={token!}
               onLogout={logout}
               onOpenProfile={() => navigate(ROUTES.PROFILE)}
-              onNavigateToProblems={() => navigate(ROUTES.PROBLEMS)}
             />
           </ProtectedRoute>
         }
@@ -163,7 +162,6 @@ export const AppRoutes: React.FC = () => {
               token={token!}
               onLogout={logout}
               onOpenProfile={() => navigate(ROUTES.PROFILE)}
-              onNavigateToReports={() => navigate(ROUTES.REPORTS)}
               onNavigateToProblems={() => navigate(ROUTES.PROBLEMS)}
               onNavigateToUncertainReports={() => navigate(ROUTES.UNCERTAIN_REPORTS)}
               onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
@@ -185,7 +183,6 @@ export const AppRoutes: React.FC = () => {
               onLogout={logout}
               onOpenProfile={() => navigate(ROUTES.PROFILE)}
               onNavigateToLanding={() => navigate(ROUTES.HOME)}
-              onNavigateToReports={() => navigate(ROUTES.REPORTS)}
               onNavigateToUncertainReports={() => navigate(ROUTES.UNCERTAIN_REPORTS)}
               onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
               onNavigateToCrews={() => navigate(ROUTES.CREWS)}
@@ -206,7 +203,6 @@ export const AppRoutes: React.FC = () => {
               onLogout={logout}
               onOpenProfile={() => navigate(ROUTES.PROFILE)}
               onNavigateToProblems={() => navigate(ROUTES.PROBLEMS)}
-              onNavigateToReports={() => navigate(ROUTES.REPORTS)}
             />
           </ProtectedRoute>
         }
@@ -228,7 +224,6 @@ export const AppRoutes: React.FC = () => {
               onLogout={logout}
               onOpenProfile={() => navigate(ROUTES.PROFILE)}
               onNavigateToOperations={() => navigate(ROUTES.OPERATIONS)}
-              onNavigateToReports={() => navigate(ROUTES.REPORTS)}
               onNavigateToProblems={() => navigate(ROUTES.PROBLEMS)}
               onNavigateToCrews={() => navigate(ROUTES.CREWS)}
               onOpenWorkOrder={(id) =>
@@ -251,7 +246,6 @@ export const AppRoutes: React.FC = () => {
               onOpenProfile={() => navigate(ROUTES.PROFILE)}
               onNavigateToProblems={() => navigate(ROUTES.PROBLEMS)}
               onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
-              onNavigateToReports={() => navigate(ROUTES.REPORTS)}
               onNavigateToWorkOrders={(id) =>
                 navigate(id ? `${ROUTES.WORK_ORDERS}?id=${id}` : ROUTES.WORK_ORDERS)
               }

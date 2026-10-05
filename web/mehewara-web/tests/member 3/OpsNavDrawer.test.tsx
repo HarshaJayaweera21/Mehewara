@@ -27,9 +27,9 @@ describe('OpsNavDrawer Component (Light Theme)', () => {
     expect(screen.getByRole('button', { name: /Problems Board/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Uncertain Reports/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Dispatch Queue/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Municipal Crews/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Work Orders/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Resident Reports/i })).toBeInTheDocument();
+    // Verify Portals & Public / Resident Reports is completely removed for coordinators
+    expect(screen.queryByRole('button', { name: /Resident Reports/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('Portals & Public')).not.toBeInTheDocument();
 
     // Check dispatch counter badge
     expect(screen.getByText('5')).toBeInTheDocument();

@@ -158,7 +158,6 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
           onNavigateToDispatch={goToDispatch}
           onNavigateToCrews={goToCrews}
           onNavigateToWorkOrders={() => {}}
-          onNavigateToReports={() => navigate(ROUTES.REPORTS)}
         />
       )}
       {!admin && (

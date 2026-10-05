@@ -15,8 +15,6 @@ export interface OpsNavStripProps {
   onNavigateToDispatch?: () => void;
   onNavigateToCrews?: () => void;
   onNavigateToWorkOrders?: () => void;
-  onNavigateToReports?: () => void;
-  showReportsLink?: boolean;
 }
 
 export const OpsNavStrip: React.FC<OpsNavStripProps> = ({
@@ -27,8 +25,6 @@ export const OpsNavStrip: React.FC<OpsNavStripProps> = ({
   onNavigateToDispatch,
   onNavigateToCrews,
   onNavigateToWorkOrders,
-  onNavigateToReports,
-  showReportsLink = true,
 }) => {
   const navigate = useNavigate();
 
@@ -37,7 +33,6 @@ export const OpsNavStrip: React.FC<OpsNavStripProps> = ({
   const goToDispatch = onNavigateToDispatch || (() => navigate(ROUTES.DISPATCH));
   const goToCrews = onNavigateToCrews || (() => navigate(ROUTES.CREWS));
   const goToWorkOrders = onNavigateToWorkOrders || (() => navigate(ROUTES.WORK_ORDERS));
-  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
 
   return (
     <nav className="operations-nav-strip" aria-label="Operations Navigation">
@@ -113,18 +108,6 @@ export const OpsNavStrip: React.FC<OpsNavStripProps> = ({
           <span>Work Orders</span>
         </button>
       </div>
-
-      {showReportsLink && (
-        <div className="nav-strip-right">
-          <button
-            type="button"
-            className="nav-strip-subtle-link"
-            onClick={goToReports}
-          >
-            Resident Reports Portal →
-          </button>
-        </div>
-      )}
     </nav>
   );
 };

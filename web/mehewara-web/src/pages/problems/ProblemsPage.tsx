@@ -21,7 +21,6 @@ export interface ProblemsPageProps {
   currentUser?: User | null;
   token?: string | null;
   onLogout?: () => void;
-  onNavigateToReports?: () => void;
   onOpenProfile?: () => void;
   onNavigateToLanding?: () => void;
   onSelectProblem?: (problemId: string) => void;
@@ -60,7 +59,6 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   currentUser,
   token,
   onLogout,
-  onNavigateToReports,
   onOpenProfile,
   onNavigateToLanding,
   onSelectProblem,
@@ -73,7 +71,6 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
-  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
   const goToLanding = onNavigateToLanding || (() => navigate(ROUTES.HOME));
   const goToUncertainReports = onNavigateToUncertainReports || (() => navigate(ROUTES.UNCERTAIN_REPORTS));
   const goToDispatch = onNavigateToDispatch || (() => navigate(ROUTES.DISPATCH));
@@ -364,7 +361,6 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
           onNavigateToDispatch={goToDispatch}
           onNavigateToCrews={goToCrews}
           onNavigateToWorkOrders={goToWorkOrders}
-          onNavigateToReports={goToReports}
         />
 
         {/* 1. Coordinator Welcome Banner (Stitch Generated with Real Time Greeting) */}
@@ -685,15 +681,13 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
               <p className="state-description">
                 Problems created from resident reports will appear here.
               </p>
-              {onNavigateToReports && (
-                <button
-                  type="button"
-                  className="state-action-secondary-btn"
-                  onClick={onNavigateToReports}
-                >
-                  View Resident Reports
-                </button>
-              )}
+              <button
+                type="button"
+                className="state-action-secondary-btn"
+                onClick={goToUncertainReports}
+              >
+                Review Uncertain Reports
+              </button>
             </div>
           </div>
         )}
