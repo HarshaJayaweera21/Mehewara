@@ -162,8 +162,8 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
         />
       )}
       {!admin && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-0.5rem' }}>
-          <button type="button" onClick={goToProfile} style={{ fontSize: '0.85rem' }}>My profile</button>
+        <div style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', border: 0 }}>
+          <button type="button" onClick={goToProfile}>My profile</button>
         </div>
       )}
       <HeroBanner

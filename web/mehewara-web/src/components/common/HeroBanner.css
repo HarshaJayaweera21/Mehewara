@@ -29,6 +29,8 @@
   box-shadow: 0 1px 3px rgba(18, 60, 50, 0.04);
   box-sizing: border-box;
   overflow: hidden;
+  margin: 0;
+  width: 100%;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 

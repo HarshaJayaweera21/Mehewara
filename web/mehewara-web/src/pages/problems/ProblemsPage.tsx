@@ -370,7 +370,39 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
         {/* 1. Coordinator Welcome Banner (Stitch Generated with Real Time Greeting) */}
         <CoordinatorWelcomeBanner roleName="Coordinator" activeProblemsCount={metrics.totalActive} />
 
-        {/* 1.5. Coordinator Triage Alert Banner */}
+        {/* 2. Top Metrics Strip (Unified Component) */}
+        <MetricsStrip
+          items={[
+            {
+              id: 'active',
+              label: 'Active Problems',
+              value: metrics.totalActive,
+              descriptor: 'Across municipal wards',
+              hasPip: true,
+            },
+            {
+              id: 'high-critical',
+              label: 'High / Critical',
+              value: metrics.highCritical,
+              descriptor: 'Requiring urgent crew dispatch',
+            },
+            {
+              id: 'in-progress',
+              label: 'In Progress',
+              value: metrics.inProgress,
+              descriptor: 'Active site remediation',
+            },
+            {
+              id: 'linked-reports',
+              label: 'Linked Reports',
+              value: metrics.linkedReports,
+              descriptor: 'Consolidated resident submissions',
+            },
+          ]}
+          ariaLabel="Key Operational Metrics"
+        />
+
+        {/* 2.5. Coordinator Triage Alert Banner */}
         {uncertainCount > 0 && (
           <div
             className="problems-uncertain-alert-banner"
@@ -414,38 +446,6 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
             </button>
           </div>
         )}
-
-        {/* 2. Top Metrics Strip (Unified Component) */}
-        <MetricsStrip
-          items={[
-            {
-              id: 'active',
-              label: 'Active Problems',
-              value: metrics.totalActive,
-              descriptor: 'Across municipal wards',
-              hasPip: true,
-            },
-            {
-              id: 'high-critical',
-              label: 'High / Critical',
-              value: metrics.highCritical,
-              descriptor: 'Requiring urgent crew dispatch',
-            },
-            {
-              id: 'in-progress',
-              label: 'In Progress',
-              value: metrics.inProgress,
-              descriptor: 'Active site remediation',
-            },
-            {
-              id: 'linked-reports',
-              label: 'Linked Reports',
-              value: metrics.linkedReports,
-              descriptor: 'Consolidated resident submissions',
-            },
-          ]}
-          ariaLabel="Key Operational Metrics"
-        />
 
         {/* 3. Problems Section (Title & Filter / Search Toolbar) */}
         <div className="problems-search-filter-section">

@@ -316,7 +316,6 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
         />
 
         {/* 3. Operational Metrics Strip */}
-        <div className="review-simulation-strip"><span>☷ &nbsp; Recommendation review queue</span><strong>{reviewBucket === 'READY' ? 'Active queue' : reviewBucket.replace(/_/g, ' ')}</strong></div>
         <MetricsStrip
           items={[
             {
@@ -347,6 +346,9 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
           ]}
           ariaLabel="Key Dispatch Metrics"
         />
+
+        {/* Queue Status & Review Views */}
+        <div className="review-simulation-strip"><span>☷ &nbsp; Recommendation review queue</span><strong>{reviewBucket === 'READY' ? 'Active queue' : reviewBucket.replace(/_/g, ' ')}</strong></div>
 
         {/* 4. Filter Toolbar */}
         <nav className="dispatch-review-tabs" aria-label="Recommendation review views">
