@@ -134,24 +134,21 @@ describe('ProfilePage Component', () => {
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
 
-    it('triggers back navigation callback when clicking Back button', () => {
-      const onNavigateBack = vi.fn();
-
+    it('renders verified officer badge and active status pill in hero banner without action bar', () => {
       render(
         <AuthProvider>
           <MemoryRouter>
             <ProfilePage
               currentUser={mockCoordinatorUser}
               token="test-token"
-              onNavigateBack={onNavigateBack}
             />
           </MemoryRouter>
         </AuthProvider>
       );
 
-      const backButton = screen.getByRole('button', { name: /Return from profile/i });
-      fireEvent.click(backButton);
-      expect(onNavigateBack).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('Verified Officer')).toBeInTheDocument();
+      expect(screen.getByText('Duty Roster: Active')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Return from profile/i })).not.toBeInTheDocument();
     });
   });
 
@@ -217,24 +214,21 @@ describe('ProfilePage Component', () => {
       });
     });
 
-    it('triggers back navigation to resident reports when clicking Back button', () => {
-      const onNavigateBack = vi.fn();
-
+    it('renders verified citizen badge and active account pill in hero banner without action bar', () => {
       render(
         <AuthProvider>
           <MemoryRouter>
             <ProfilePage
               currentUser={mockResidentUser}
               token="test-token"
-              onNavigateBack={onNavigateBack}
             />
           </MemoryRouter>
         </AuthProvider>
       );
 
-      const backButton = screen.getByRole('button', { name: /Return from profile/i });
-      fireEvent.click(backButton);
-      expect(onNavigateBack).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('Verified Citizen')).toBeInTheDocument();
+      expect(screen.getByText('Active Account')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Return from profile/i })).not.toBeInTheDocument();
     });
   });
 });

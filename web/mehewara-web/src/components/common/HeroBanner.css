@@ -95,6 +95,55 @@
   align-items: center;
   gap: 0.75rem;
   flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 0.15rem;
+}
+
+.mw-hero-banner-actions .profile-status-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.mw-hero-banner-actions .profile-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #eef2ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(18, 60, 50, 0.04);
+}
+
+.mw-hero-banner-actions .profile-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--mw-sage, #e5f6ee);
+  color: var(--mw-forest, #123c32);
+  border: 1px solid #c4ecd8;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(18, 60, 50, 0.04);
+}
+
+.mw-hero-banner-actions .profile-status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--mw-mint, #4fd1a1);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(79, 209, 161, 0.4);
+  animation: pulse-dot 2s infinite ease-in-out;
 }
 
 @media (max-width: 768px) {
@@ -110,5 +159,11 @@
   .mw-hero-banner-heading {
     font-size: 1.35rem;
     white-space: normal;
+  }
+
+  .mw-hero-banner-actions {
+    align-self: flex-start;
+    width: 100%;
+    margin-top: 0.5rem;
   }
 }

@@ -26,7 +26,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   currentUser: propsUser,
   token: propsToken,
   onLogout,
-  onNavigateBack,
 }) => {
   const { currentUser: authUser, token: authToken, logout, login, updateCurrentUser } = useAuth();
   const navigate = useNavigate();
@@ -94,21 +93,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     }
   };
 
-  const handleBackToOps = () => {
-    if (onNavigateBack) {
-      onNavigateBack();
-    } else {
-      navigate(ROUTES.OPERATIONS);
-    }
-  };
-
-  const handleBackToReports = () => {
-    if (onNavigateBack) {
-      onNavigateBack();
-    } else {
-      navigate(ROUTES.REPORTS);
-    }
-  };
 
   const handleCopy = (text: string, key: string) => {
     if (navigator?.clipboard?.writeText) {
@@ -322,45 +306,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             showMenuButton={false}
           />
 
-          {/* 2. Hero Welcome Banner */}
+          {/* 2. Hero Welcome Banner with Top-Right Verified Badge & Status Pill */}
           <HeroBanner
             badge="RESIDENT PROFILE"
             title="Citizen Profile & Municipal Account"
             subtitle="Manage your personal contact details, review municipal ward registration, and track citizen services."
             ariaLabel="Resident Profile Banner"
+            actions={
+              <div className="profile-status-group">
+                <span className="profile-verified-badge">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <polyline points="9 12 11 14 15 10" />
+                  </svg>
+                  <span>Verified Citizen</span>
+                </span>
+
+                <span className="profile-status-pill">
+                  <span className="profile-status-dot" />
+                  <span>Active Account</span>
+                </span>
+              </div>
+            }
           />
-
-          {/* 3. Action Bar / Breadcrumb */}
-          <div className="profile-action-bar">
-            <button
-              type="button"
-              className="profile-back-btn"
-              onClick={handleBackToReports}
-              aria-label="Return from profile"
-              title="Return to Resident Issue Tracker"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="19" y1="12" x2="5" y2="12" />
-                <polyline points="12 19 5 12 12 5" />
-              </svg>
-              <span>Back to Resident Issue Tracker</span>
-            </button>
-
-            <div className="profile-status-group">
-              <span className="profile-verified-badge">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  <polyline points="9 12 11 14 15 10" />
-                </svg>
-                <span>Verified Citizen</span>
-              </span>
-
-              <span className="profile-status-pill">
-                <span className="profile-status-dot" />
-                <span>Active Account</span>
-              </span>
-            </div>
-          </div>
 
           {/* Success / Error Banners */}
           {saveSuccess && (
@@ -780,45 +748,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           onNavigateToWorkOrders={() => navigate(ROUTES.WORK_ORDERS)}
         />
 
-        {/* 3. Hero Welcome Banner (Fixed Height, Uniform Across Suite) */}
+        {/* 3. Hero Welcome Banner with Top-Right Verified Badge & Status Pill */}
         <HeroBanner
           badge="OFFICIAL PERSONNEL DOSSIER"
           title="Municipal Coordinator Profile"
           subtitle="Official personnel record, authorized command authorities, and Colombo Municipal Council administrative registry."
           ariaLabel="Municipal Coordinator Profile Banner"
+          actions={
+            <div className="profile-status-group">
+              <span className="profile-verified-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <polyline points="9 12 11 14 15 10" />
+                </svg>
+                <span>Verified Officer</span>
+              </span>
+
+              <span className="profile-status-pill">
+                <span className="profile-status-dot" />
+                <span>Duty Roster: Active</span>
+              </span>
+            </div>
+          }
         />
-
-        {/* 4. Action Bar / Breadcrumb */}
-        <div className="profile-action-bar">
-          <button
-            type="button"
-            className="profile-back-btn"
-            onClick={handleBackToOps}
-            aria-label="Return from profile"
-            title="Return to Municipal Operations Command Desk"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-            <span>Back to Operations Command Desk</span>
-          </button>
-
-          <div className="profile-status-group">
-            <span className="profile-verified-badge">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <polyline points="9 12 11 14 15 10" />
-              </svg>
-              <span>Verified Officer</span>
-            </span>
-
-            <span className="profile-status-pill">
-              <span className="profile-status-dot" />
-              <span>Duty Roster: Active</span>
-            </span>
-          </div>
-        </div>
 
         {/* 5. Read-Only Administrative Advisory Notice */}
         <div className="profile-advisory-banner">
