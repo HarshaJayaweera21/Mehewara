@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/report_model.dart';
 import '../../../services/reports/report_service.dart';
+import '../../../widgets/common/civic_header.dart';
 import '../../auth/auth_widgets.dart';
 
 class ResidentReportDetailScreen extends StatefulWidget {
@@ -54,26 +55,16 @@ class _ResidentReportDetailScreenState extends State<ResidentReportDetailScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F4),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: const Text(
-          'Report Progress',
-          style: TextStyle(
-            color: CivicColors.forest,
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
-            letterSpacing: -0.3,
-          ),
-        ),
+      appBar: CivicHeader(
+        title: 'Report Progress',
+        subtitle: 'INCIDENT TRACKING',
         actions: [
           IconButton(
             onPressed: _refresh,
             icon: const Icon(Icons.refresh_rounded, color: CivicColors.forest),
             tooltip: 'Refresh Status',
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
         ],
       ),
       body: CivicAtmosphericBackground(

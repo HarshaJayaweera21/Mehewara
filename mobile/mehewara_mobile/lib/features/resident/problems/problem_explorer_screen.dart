@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../widgets/common/civic_bottom_nav_bar.dart';
+import '../../../widgets/common/civic_header.dart';
 import '../../../widgets/problems/category_filter_bar.dart';
 import '../../../widgets/problems/problem_pin_marker.dart';
 import '../../../widgets/problems/problem_preview_card.dart';
@@ -42,6 +43,21 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
         builder: (context, provider, _) {
           return Scaffold(
             backgroundColor: const Color(0xFFF4F7F4),
+            appBar: CivicHeader(
+              title: 'Community Incidents',
+              subtitle: 'Live Municipal Map & Directory',
+              actions: [
+                IconButton(
+                  tooltip: 'Refresh',
+                  icon: const Icon(Icons.refresh_rounded, color: CivicColors.forest),
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    provider.loadProblems();
+                  },
+                ),
+                const SizedBox(width: 4),
+              ],
+            ),
             body: SafeArea(
               child: Stack(
                 children: [
@@ -122,81 +138,7 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 1. Title Row with Live Indicator
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: CivicColors.mintTint,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.radar_rounded,
-                          size: 16,
-                          color: CivicColors.forest,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Community Incidents',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: CivicColors.charcoal,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                  decoration: BoxDecoration(
-                    color: CivicColors.mintTint,
-                    borderRadius: BorderRadius.circular(100),
-                    border: Border.all(
-                      color: CivicColors.mintPip.withValues(alpha: 0.4),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: CivicColors.mintPip,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      const Text(
-                        'LIVE MAP',
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800,
-                          color: CivicColors.forest,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // 2. Search Input
+          // 1. Search Input
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(

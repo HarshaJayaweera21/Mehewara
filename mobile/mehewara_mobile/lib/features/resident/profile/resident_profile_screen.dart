@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../models/user.dart';
 import '../../../services/auth/auth_service.dart';
 import '../../../services/reports/report_service.dart';
+import '../../../widgets/common/civic_header.dart';
 import '../../auth/auth_widgets.dart';
 
 class ResidentProfileScreen extends StatefulWidget {
@@ -200,24 +201,9 @@ class _ResidentProfileScreenState extends State<ResidentProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F4),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        title: const Row(
-          children: [
-            Text(
-              'Resident Profile',
-              style: TextStyle(
-                color: CivicColors.forest,
-                fontWeight: FontWeight.w800,
-                fontSize: 20,
-                letterSpacing: -0.3,
-              ),
-            ),
-          ],
-        ),
+      appBar: CivicHeader(
+        title: 'Resident Profile',
+        subtitle: 'Civic Member Account',
         actions: [
           IconButton(
             onPressed: _loadProfileData,
@@ -230,7 +216,7 @@ class _ResidentProfileScreenState extends State<ResidentProfileScreen> {
               icon: const Icon(Icons.edit_outlined, color: CivicColors.forest),
               tooltip: 'Edit Profile',
             ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
         ],
       ),
       body: CivicAtmosphericBackground(

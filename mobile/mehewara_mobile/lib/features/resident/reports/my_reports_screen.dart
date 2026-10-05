@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../models/report_model.dart';
 import '../../../services/reports/report_service.dart';
+import '../../../widgets/common/civic_header.dart';
 import '../../auth/auth_widgets.dart';
 import 'resident_report_detail_screen.dart';
 
@@ -47,6 +49,21 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F4),
+      appBar: CivicHeader(
+        title: 'My Reports',
+        subtitle: 'Community Issue Tracking',
+        actions: [
+          IconButton(
+            tooltip: 'Refresh reports',
+            icon: const Icon(Icons.refresh_rounded, color: CivicColors.forest),
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              _refresh();
+            },
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
       floatingActionButton: widget.onCreateReport != null
           ? FloatingActionButton.extended(
               backgroundColor: CivicColors.forest,

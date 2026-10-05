@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../models/report_model.dart';
 import '../../../services/location/location_service.dart';
 import '../../../services/reports/report_service.dart';
+import '../../../widgets/common/civic_header.dart';
 import '../../auth/auth_widgets.dart';
 
 class ReportIssueScreen extends StatefulWidget {
@@ -221,6 +222,10 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F4),
+      appBar: const CivicHeader(
+        title: 'Report Community Issue',
+        subtitle: 'Municipal Public Works',
+      ),
       body: CivicAtmosphericBackground(
         child: SafeArea(
           child: LayoutBuilder(

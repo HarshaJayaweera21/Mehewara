@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../models/problem.dart';
 import '../../../models/problem_lifecycle.dart';
 import '../../../services/problems/problem_service.dart';
+import '../../../widgets/common/civic_header.dart';
 import '../../auth/auth_widgets.dart';
 
 class ProblemDetailScreen extends StatefulWidget {
@@ -125,11 +126,23 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F4),
+      appBar: CivicHeader(
+        title: 'Incident Scope & Details',
+        subtitle: 'INCIDENT #${_getShortIncidentId()}',
+        actions: [
+          IconButton(
+            tooltip: 'Refresh details',
+            icon: const Icon(Icons.refresh_rounded, size: 20, color: CivicColors.forest),
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              _fetchFullDetails();
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            // 1. Sticky Navigation Header
-            _buildStickyHeader(),
             if (_isLoading)
               const LinearProgressIndicator(
                 minHeight: 2.5,
@@ -137,7 +150,7 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
                 backgroundColor: Colors.transparent,
               ),
 
-            // 2. Main Scrollable Content wrapped in atmospheric background
+            // Main Scrollable Content wrapped in atmospheric background
             Expanded(
               child: CivicAtmosphericBackground(
                 child: RefreshIndicator(
@@ -168,120 +181,6 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // 1. STICKY TOP APP BAR
-  // ===========================================================================
-  Widget _buildStickyHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F7F4).withValues(alpha: 0.95),
-        border: const Border(
-          bottom: BorderSide(color: Color(0x99DCE5DF), width: 1.2),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Circular Back Button
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                Navigator.of(context).pop();
-              },
-              borderRadius: BorderRadius.circular(100),
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: CivicColors.cardSurface,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFDCE5DF), width: 1.2),
-                  boxShadow: const [CivicShadows.subtle],
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    size: 15,
-                    color: CivicColors.charcoal,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Incident Center Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: CivicColors.mintTint,
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(
-                color: CivicColors.mintPip.withValues(alpha: 0.35),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: CivicColors.mintPip,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'INCIDENT #${_getShortIncidentId()}',
-                  style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: CivicColors.forest,
-                    letterSpacing: 0.6,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Refresh Button
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                _fetchFullDetails();
-              },
-              borderRadius: BorderRadius.circular(100),
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: CivicColors.cardSurface,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFDCE5DF), width: 1.2),
-                  boxShadow: const [CivicShadows.subtle],
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.refresh_rounded,
-                    size: 18,
-                    color: CivicColors.forest,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
