@@ -36,7 +36,9 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _reports = _service.getMyReports());
+    setState(() {
+      _reports = _service.getMyReports();
+    });
     await _reports;
   }
 
@@ -44,6 +46,19 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: CivicColors.alabaster,
+      floatingActionButton: widget.onCreateReport != null
+          ? FloatingActionButton.extended(
+              backgroundColor: CivicColors.forest,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text(
+                'Report issue',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              onPressed: widget.onCreateReport,
+            )
+          : null,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -137,6 +152,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                               total: reports.length,
                               active: activeCount,
                               resolved: resolvedCount,
+                              onCreateReport: widget.onCreateReport,
                             );
                           }
                           if (index == 1) {
@@ -210,11 +226,13 @@ class _ReportsHero extends StatelessWidget {
   final int total;
   final int active;
   final int resolved;
+  final VoidCallback? onCreateReport;
 
   const _ReportsHero({
     required this.total,
     required this.active,
     required this.resolved,
+    this.onCreateReport,
   });
 
   @override
@@ -226,37 +244,55 @@ class _ReportsHero extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: const [CivicShadows.card],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'My reports',
-                  style: TextStyle(
-                    fontSize: 23,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                'My reports',
+                style: TextStyle(
+                  fontSize: 23,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+              if (onCreateReport != null)
+                FilledButton.icon(
+                  onPressed: onCreateReport,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: CivicColors.mintPip,
+                    foregroundColor: CivicColors.forest,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 9,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text(
+                    'Report issue',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _Count(label: 'Active', value: active),
-                    const SizedBox(width: 18),
-                    _Count(label: 'Resolved', value: resolved),
-                    const SizedBox(width: 18),
-                    _Count(label: 'Total', value: total),
-                  ],
-                ),
-              ],
-            ),
+            ],
           ),
-          const Icon(
-            Icons.folder_shared_outlined,
-            size: 34,
-            color: CivicColors.mintPip,
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _Count(label: 'Active', value: active),
+              const SizedBox(width: 22),
+              _Count(label: 'Resolved', value: resolved),
+              const SizedBox(width: 22),
+              _Count(label: 'Total', value: total),
+            ],
           ),
         ],
       ),

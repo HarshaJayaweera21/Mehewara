@@ -8,14 +8,26 @@ import 'report_issue/report_issue_screen.dart';
 import 'reports/my_reports_screen.dart';
 
 class ResidentShellScreen extends StatefulWidget {
-  const ResidentShellScreen({super.key});
+  final CivicNavTab initialTab;
+
+  const ResidentShellScreen({
+    super.key,
+    this.initialTab = CivicNavTab.myReports,
+  });
 
   @override
   State<ResidentShellScreen> createState() => _ResidentShellScreenState();
 }
 
 class _ResidentShellScreenState extends State<ResidentShellScreen> {
-  int _index = 0;
+  late int _index;
+
+  @override
+  void initState() {
+    super.initState();
+    final tabIndex = CivicNavTab.values.indexOf(widget.initialTab);
+    _index = tabIndex >= 0 ? tabIndex : CivicNavTab.values.indexOf(CivicNavTab.myReports);
+  }
 
   void _select(CivicNavTab tab) {
     setState(() => _index = CivicNavTab.values.indexOf(tab));

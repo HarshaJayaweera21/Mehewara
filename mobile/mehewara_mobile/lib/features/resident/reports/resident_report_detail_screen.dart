@@ -29,7 +29,9 @@ class _ResidentReportDetailScreenState extends State<ResidentReportDetailScreen>
   }
 
   Future<void> _refresh() async {
-    setState(() => _report = _service.getReport(widget.reportId));
+    setState(() {
+      _report = _service.getReport(widget.reportId);
+    });
     await _report;
   }
 

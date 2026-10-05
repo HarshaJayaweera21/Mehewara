@@ -24,7 +24,9 @@ class _ResidentProfileScreenState extends State<ResidentProfileScreen> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _user = _auth.getCurrentUser());
+    setState(() {
+      _user = _auth.getCurrentUser();
+    });
     await _user;
   }
 
@@ -35,7 +37,11 @@ class _ResidentProfileScreenState extends State<ResidentProfileScreen> {
       showDragHandle: true,
       builder: (_) => _EditProfileSheet(user: user, auth: _auth),
     );
-    if (result != null && mounted) setState(() => _user = Future.value(result));
+    if (result != null && mounted) {
+      setState(() {
+        _user = Future.value(result);
+      });
+    }
   }
 
   Future<void> _logout() async {
