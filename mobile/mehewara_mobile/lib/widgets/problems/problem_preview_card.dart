@@ -12,11 +12,62 @@ class ProblemPreviewCard extends StatelessWidget {
     required this.onTrackProgress,
   });
 
+  IconData _getCategoryIcon() {
+    switch (problem.category) {
+      case 'DRAINAGE':
+        return Icons.water_drop_rounded;
+      case 'ROAD':
+        return Icons.construction_rounded;
+      case 'ELECTRICAL':
+        return Icons.bolt_rounded;
+      case 'WASTE':
+        return Icons.delete_outline_rounded;
+      case 'ENVIRONMENT':
+        return Icons.eco_rounded;
+      default:
+        return Icons.warning_amber_rounded;
+    }
+  }
+
+  Color _getCategoryColor() {
+    switch (problem.category) {
+      case 'DRAINAGE':
+        return const Color(0xFF0284C7);
+      case 'ROAD':
+        return const Color(0xFFD97706);
+      case 'ELECTRICAL':
+        return const Color(0xFFCA8A04);
+      case 'WASTE':
+        return const Color(0xFF7C3AED);
+      case 'ENVIRONMENT':
+        return const Color(0xFF059669);
+      default:
+        return CivicColors.forest;
+    }
+  }
+
+  Color _getCategoryBg() {
+    switch (problem.category) {
+      case 'DRAINAGE':
+        return const Color(0xFFE0F2FE);
+      case 'ROAD':
+        return const Color(0xFFFEF3C7);
+      case 'ELECTRICAL':
+        return const Color(0xFFFEF9C3);
+      case 'WASTE':
+        return const Color(0xFFF3E8FF);
+      case 'ENVIRONMENT':
+        return const Color(0xFFD1FAE5);
+      default:
+        return CivicColors.mintTint;
+    }
+  }
+
   Widget _buildPriorityBadge() {
     Color bg = CivicColors.badgeHighBg;
     Color text = CivicColors.badgeHighText;
     Color border = CivicColors.badgeHighBorder;
-    String label = '${problem.priority ?? 'HIGH'} PRIORITY';
+    String label = problem.priority ?? 'HIGH';
 
     switch (problem.priority) {
       case 'CRITICAL':
@@ -38,7 +89,7 @@ class ProblemPreviewCard extends StatelessWidget {
         bg = CivicColors.mintTint;
         text = CivicColors.forest;
         border = CivicColors.mintPip.withValues(alpha: 0.4);
-        label = problem.priority != null ? '${problem.priority} PRIORITY' : 'ACTIVE INCIDENT';
+        label = problem.priority ?? 'HIGH';
         break;
     }
 
@@ -50,12 +101,12 @@ class ProblemPreviewCard extends StatelessWidget {
         border: Border.all(color: border, width: 1),
       ),
       child: Text(
-        label,
+        '$label PRIORITY',
         style: TextStyle(
           fontSize: 9.5,
           fontWeight: FontWeight.w700,
           color: text,
-          letterSpacing: 0.5,
+          letterSpacing: 0.4,
         ),
       ),
     );
@@ -78,7 +129,7 @@ class ProblemPreviewCard extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(100),
@@ -112,14 +163,17 @@ class ProblemPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final catColor = _getCategoryColor();
+    final catBg = _getCategoryBg();
+
     return Container(
       decoration: BoxDecoration(
         color: CivicColors.cardSurface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: CivicColors.borderSubtle, width: 1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFDCE5DF), width: 1.2),
         boxShadow: const [CivicShadows.card],
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(15),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,35 +181,60 @@ class ProblemPreviewCard extends StatelessWidget {
           // Drag handle bar
           Center(
             child: Container(
-              width: 36,
+              width: 38,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: const Color(0xFFCBD5CE),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
-          // Meta Row: Priority Badge + Category Tag + Status Badge
+          // Meta Row: Category Squircle + Category & Priority + Status Badge
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  _buildPriorityBadge(),
-                  const SizedBox(width: 8),
-                  Text(
-                    problem.category,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: CivicColors.slateGreen,
-                      letterSpacing: 0.8,
-                    ),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: catBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: catColor.withValues(alpha: 0.25),
+                    width: 1,
                   ),
-                ],
+                ),
+                child: Center(
+                  child: Icon(
+                    _getCategoryIcon(),
+                    size: 16,
+                    color: catColor,
+                  ),
+                ),
               ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _buildPriorityBadge(),
+                    Text(
+                      problem.category,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: CivicColors.slateGreen,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
               _buildStatusBadge(),
             ],
           ),
@@ -167,7 +246,7 @@ class ProblemPreviewCard extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 15.5,
+              fontSize: 15,
               fontWeight: FontWeight.w700,
               color: CivicColors.charcoal,
               letterSpacing: -0.2,
@@ -187,7 +266,7 @@ class ProblemPreviewCard extends StatelessWidget {
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
-                  '${problem.address ?? 'Ward 4'} • Centroid: ${problem.latitude.toStringAsFixed(4)}, ${problem.longitude.toStringAsFixed(4)}',
+                  '${problem.address ?? 'Ward 4'} • ${problem.latitude.toStringAsFixed(4)}, ${problem.longitude.toStringAsFixed(4)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -199,14 +278,14 @@ class ProblemPreviewCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           // Community Consolidation Impact Badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
               color: CivicColors.mintTint,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: CivicColors.mintPip.withValues(alpha: 0.4),
                 width: 1,
@@ -215,16 +294,16 @@ class ProblemPreviewCard extends StatelessWidget {
             child: Row(
               children: [
                 const Icon(
-                  Icons.groups_outlined,
-                  size: 18,
+                  Icons.groups_rounded,
+                  size: 16,
                   color: CivicColors.forest,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 7),
                 Expanded(
                   child: Text(
-                    '${problem.reportCount} community reports consolidated into this incident',
+                    '${problem.reportCount} community ${problem.reportCount == 1 ? 'report' : 'reports'} consolidated into this incident',
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w600,
                       color: CivicColors.forest,
                       height: 1.2,
@@ -239,7 +318,7 @@ class ProblemPreviewCard extends StatelessWidget {
           // Primary CTA Button
           SizedBox(
             width: double.infinity,
-            height: 44,
+            height: 42,
             child: ElevatedButton(
               onPressed: onTrackProgress,
               style: ElevatedButton.styleFrom(
@@ -263,7 +342,7 @@ class ProblemPreviewCard extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 8),
-                  Icon(Icons.arrow_forward_rounded, size: 16),
+                  Icon(Icons.arrow_forward_rounded, size: 15),
                 ],
               ),
             ),
