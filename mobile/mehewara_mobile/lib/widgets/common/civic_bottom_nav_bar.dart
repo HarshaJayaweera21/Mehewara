@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
 
 enum CivicNavTab {
-  incidents,
-  reportIssue,
   myReports,
+  reportIssue,
+  incidents,
   profile,
 }
 
@@ -17,7 +17,7 @@ class CivicBottomNavBar extends StatelessWidget {
 
   const CivicBottomNavBar({
     super.key,
-    this.currentTab = CivicNavTab.incidents,
+    this.currentTab = CivicNavTab.myReports,
     this.onTabSelected,
     this.onReportIssuePressed,
   });
@@ -51,29 +51,7 @@ class CivicBottomNavBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              // Tab 1: Incidents Map & Feed
-              _buildNavItem(
-                icon: Icons.map_outlined,
-                activeIcon: Icons.map_rounded,
-                label: 'Incidents',
-                isActive: currentTab == CivicNavTab.incidents,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onTabSelected?.call(CivicNavTab.incidents);
-                },
-              ),
-
-              // Tab 2: Report Issue (Prominent Center Action)
-              _buildCenterActionItem(
-                label: 'Report Issue',
-                onTap: () {
-                  HapticFeedback.mediumImpact();
-                  onReportIssuePressed?.call();
-                  onTabSelected?.call(CivicNavTab.reportIssue);
-                },
-              ),
-
-              // Tab 3: My Reports
+              // Tab 1: My Reports
               _buildNavItem(
                 icon: Icons.assignment_outlined,
                 activeIcon: Icons.assignment_rounded,
@@ -82,6 +60,31 @@ class CivicBottomNavBar extends StatelessWidget {
                 onTap: () {
                   HapticFeedback.selectionClick();
                   onTabSelected?.call(CivicNavTab.myReports);
+                },
+              ),
+
+              // Tab 2: Report Issue (Standard uniform nav item)
+              _buildNavItem(
+                icon: Icons.add_circle_outline_rounded,
+                activeIcon: Icons.add_circle_rounded,
+                label: 'Report Issue',
+                isActive: currentTab == CivicNavTab.reportIssue,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onReportIssuePressed?.call();
+                  onTabSelected?.call(CivicNavTab.reportIssue);
+                },
+              ),
+
+              // Tab 3: Incidents Map & Feed
+              _buildNavItem(
+                icon: Icons.map_outlined,
+                activeIcon: Icons.map_rounded,
+                label: 'Incidents',
+                isActive: currentTab == CivicNavTab.incidents,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onTabSelected?.call(CivicNavTab.incidents);
                 },
               ),
 
@@ -143,66 +146,6 @@ class CivicBottomNavBar extends StatelessWidget {
                 fontSize: 10.5,
                 fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
                 color: isActive ? CivicColors.forest : CivicColors.slateGreen,
-                letterSpacing: 0.1,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCenterActionItem({
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    CivicColors.forest,
-                    Color(0xFF1B4E41),
-                  ],
-                ),
-                border: Border.all(
-                  color: Colors.white,
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: CivicColors.forest.withValues(alpha: 0.28),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.add_rounded,
-                size: 22,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w800,
-                color: CivicColors.forest,
                 letterSpacing: 0.1,
               ),
             ),

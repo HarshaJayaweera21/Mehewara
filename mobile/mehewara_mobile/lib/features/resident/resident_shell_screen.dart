@@ -35,9 +35,9 @@ class _ResidentShellScreenState extends State<ResidentShellScreen> {
   }
 
   List<Widget> get _pages => [
-        const ProblemExplorerScreen(embedded: true),
-        ReportIssueScreen(onReportCreated: () => _select(CivicNavTab.myReports)),
         MyReportsScreen(onCreateReport: () => _select(CivicNavTab.reportIssue)),
+        ReportIssueScreen(onReportCreated: () => _select(CivicNavTab.myReports)),
+        const ProblemExplorerScreen(embedded: true),
         const ResidentProfileScreen(),
       ];
 
@@ -74,17 +74,17 @@ class _ResidentRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const labels = ['Incidents', 'Report issue', 'My reports', 'Profile'];
+    const labels = ['My reports', 'Report issue', 'Incidents', 'Profile'];
     const icons = [
-      Icons.map_outlined,
-      Icons.add_location_alt_outlined,
       Icons.assignment_outlined,
+      Icons.add_circle_outline_rounded,
+      Icons.map_outlined,
       Icons.person_outline_rounded,
     ];
     const activeIcons = [
-      Icons.map_rounded,
-      Icons.add_location_alt_rounded,
       Icons.assignment_rounded,
+      Icons.add_circle_rounded,
+      Icons.map_rounded,
       Icons.person_rounded,
     ];
 
