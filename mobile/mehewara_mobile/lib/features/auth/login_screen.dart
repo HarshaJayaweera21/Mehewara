@@ -38,12 +38,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _selectStaffPreset(String email) {
-    _email.text = email;
-    _password.text = 'Crew@123';
-    _submit();
-  }
-
   @override
   Widget build(BuildContext context) {
     return AuthWatermarkBackground(
@@ -211,14 +205,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // 7. Notice message
-              const AuthInlineMessage(
-                text: 'Google sign-in is not connected in this app yet.',
-                isError: false,
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
 
               // 8. Create account link
               Wrap(
@@ -250,13 +237,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 24),
 
-              // 9. Staff Access Accordion Drawer
-              _StaffAccess(onPresetSelected: _selectStaffPreset),
-              const SizedBox(height: 14),
-
-              // 10. Watermark Civic Footer
+              // 9. Watermark Civic Footer
               const Text(
                 'MEHEWARA • COMMUNITY WORKS',
                 textAlign: TextAlign.center,
@@ -269,112 +252,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StaffAccess extends StatelessWidget {
-  const _StaffAccess({required this.onPresetSelected});
-
-  final ValueChanged<String> onPresetSelected;
-
-  static const _presets = <(String, String, String)>[
-    ('Drainage crew', 'Culvert & stormwater response', 'crew.drainage@mehewara.gov.lk'),
-    ('Road crew', 'Pavement & asphalt restoration', 'crew.road@mehewara.gov.lk'),
-    ('Environment crew', 'Tree and pathway maintenance', 'crew.environment@mehewara.gov.lk'),
-    ('Electrical crew', 'Streetlight & grid maintenance', 'crew.electrical@mehewara.gov.lk'),
-    ('Waste crew', 'Solid waste response', 'crew.waste@mehewara.gov.lk'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7FAF8),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFE2EBE5),
-          width: 1,
-        ),
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-          childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-          leading: const Icon(
-            Icons.badge_outlined,
-            size: 20,
-            color: CivicColors.forest,
-          ),
-          title: const Text(
-            'Municipal staff sign-in',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-              color: CivicColors.charcoal,
-            ),
-          ),
-          subtitle: const Text(
-            'Crew workspace and evaluation shortcuts',
-            style: TextStyle(
-              fontSize: 11,
-              color: CivicColors.slateGreen,
-            ),
-          ),
-          children: [
-            for (final preset in _presets)
-              ListTile(
-                dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                leading: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: CivicColors.mintTint,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.engineering_outlined,
-                    size: 18,
-                    color: CivicColors.forest,
-                  ),
-                ),
-                title: Text(
-                  preset.$1,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12.5,
-                  ),
-                ),
-                subtitle: Text(
-                  preset.$2,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: CivicColors.slateGreen,
-                  ),
-                ),
-                trailing: const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 12,
-                  color: CivicColors.slateGreen,
-                ),
-                onTap: () => onPresetSelected(preset.$3),
-              ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(8, 6, 8, 4),
-              child: Text(
-                'Evaluation shortcuts use the demo crew credentials.',
-                style: TextStyle(
-                  fontSize: 10.5,
-                  color: CivicColors.slateGreen,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
