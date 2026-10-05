@@ -33,13 +33,15 @@ describe('Coordinator ProfilePage Component', () => {
 
   it('renders coordinator profile details, municipal authority data, and read-only notice', () => {
     render(
-      <MemoryRouter>
-        <ProfilePage
-          currentUser={mockCoordinatorUser}
-          token="test-token"
-          onNavigateBack={vi.fn()}
-        />
-      </MemoryRouter>
+      <AuthProvider>
+        <MemoryRouter>
+          <ProfilePage
+            currentUser={mockCoordinatorUser}
+            token="test-token"
+            onNavigateBack={vi.fn()}
+          />
+        </MemoryRouter>
+      </AuthProvider>
     );
 
     // Hero banner and titles
@@ -62,7 +64,8 @@ describe('Coordinator ProfilePage Component', () => {
     ).toBeInTheDocument();
 
     // Municipal Council Authority information
-    expect(screen.getByText(/Colombo Municipal Council Authority/i)).toBeInTheDocument();
+    expect(screen.getByText(/Municipal Council Authority/i)).toBeInTheDocument();
+    expect(screen.getByText(/Colombo Municipal Council \(CMC\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Town Hall, F. R. Senanayake Mawatha, Colombo 07/i)).toBeInTheDocument();
     expect(screen.getByText(/47 Wards across 5 Electoral Districts/i)).toBeInTheDocument();
     expect(screen.getByText(/1919 \(Toll-Free 24\/7\)/i)).toBeInTheDocument();
@@ -87,13 +90,15 @@ describe('Coordinator ProfilePage Component', () => {
     const onNavigateBack = vi.fn();
 
     render(
-      <MemoryRouter>
-        <ProfilePage
-          currentUser={mockCoordinatorUser}
-          token="test-token"
-          onNavigateBack={onNavigateBack}
-        />
-      </MemoryRouter>
+      <AuthProvider>
+        <MemoryRouter>
+          <ProfilePage
+            currentUser={mockCoordinatorUser}
+            token="test-token"
+            onNavigateBack={onNavigateBack}
+          />
+        </MemoryRouter>
+      </AuthProvider>
     );
 
     const backButton = screen.getByRole('button', { name: /Return from profile/i });
