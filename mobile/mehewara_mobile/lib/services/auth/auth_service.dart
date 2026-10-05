@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
 import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
@@ -126,10 +128,58 @@ class AuthService {
 
     final response = await _api.patch('/auth/profile', body: body);
     if (response is Map<String, dynamic>) {
-      return ResidentUser.fromJson(response);
+      final updated = ResidentUser.fromJson(response);
+      await TokenStorage.saveSession(
+        token: (await TokenStorage.getToken()) ?? '',
+        userId: updated.id,
+        userName: updated.name,
+        email: updated.email,
+        role: updated.role ?? 'RESIDENT',
+      );
+      return updated;
     }
     throw ApiException.named(
       message: 'Failed to update profile.',
+      statusCode: 500,
+    );
+  }
+
+  /// Uploads profile photo to backend / Cloudinary
+  Future<ResidentUser> uploadProfilePhoto(String filePath) async {
+    final uri = Uri.parse('${_api.baseUrl.replaceFirst(RegExp(r'/$'), '')}/auth/profile/photo');
+    final request = http.MultipartRequest('POST', uri);
+
+    final token = await TokenStorage.getToken();
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final json = jsonDecode(response.body);
+      if (json is Map<String, dynamic>) {
+        return ResidentUser.fromJson(json);
+      }
+    }
+
+    throw ApiException.named(
+      message: 'Failed to upload profile photo (Status: ${response.statusCode}).',
+      statusCode: response.statusCode,
+    );
+  }
+
+  /// Removes profile photo
+  Future<ResidentUser> removeProfilePhoto() async {
+    final response = await _api.delete('/auth/profile/photo');
+    if (response is Map<String, dynamic>) {
+      return ResidentUser.fromJson(response);
+    }
+    throw ApiException.named(
+      message: 'Failed to remove profile photo.',
       statusCode: 500,
     );
   }
