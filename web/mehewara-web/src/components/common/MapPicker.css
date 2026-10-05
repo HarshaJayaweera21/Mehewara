@@ -1,15 +1,17 @@
 /* =========================================================
    LEAFLET MAP PICKER STYLES
+   Unified with Mehewara Light Theme (Forest & Sage)
    ========================================================= */
 
 .map-picker-container {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: #ffffff;
+  border: 1px solid var(--mw-line, #dde2de);
   border-radius: 12px;
   padding: 0.85rem;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.04);
 }
 
 .map-picker-controls {
@@ -27,64 +29,82 @@
 
 .map-search-input {
   flex: 1;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: var(--mw-surface-subtle, #fbfbfa);
+  border: 1px solid var(--mw-line, #dde2de);
   border-radius: 8px;
-  padding: 0.45rem 0.8rem;
-  color: #f8fafc;
+  padding: 0.5rem 0.85rem;
+  color: var(--mw-ink, #18211e);
   font-size: 0.825rem;
+  font-family: var(--mw-font, Inter, sans-serif);
   outline: none;
+  transition: all 0.15s ease;
+}
+
+.map-search-input::placeholder {
+  color: var(--mw-faint, #8f9995);
 }
 
 .map-search-input:focus {
-  border-color: #38bdf8;
+  border-color: var(--mw-forest, #123c32);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(79, 209, 161, 0.2);
 }
 
 .map-search-btn {
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #38bdf8;
+  background: #ffffff;
+  border: 1px solid var(--mw-line, #dde2de);
+  color: var(--mw-forest, #123c32);
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.45rem 0.8rem;
+  font-family: var(--mw-font, Inter, sans-serif);
+  padding: 0.5rem 0.85rem;
   border-radius: 8px;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
 }
 
-.map-search-btn:hover {
-  background: #334155;
-  color: #f8fafc;
+.map-search-btn:hover:not(:disabled) {
+  background: var(--mw-sage, #e5f6ee);
+  border-color: var(--mw-mint, #4fd1a1);
+  color: var(--mw-forest-hover, #0d3028);
+}
+
+.map-search-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .map-locate-me-btn {
-  background: #059669;
-  border: none;
+  background: var(--mw-forest, #123c32);
+  border: 1px solid var(--mw-forest, #123c32);
   color: #ffffff;
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.45rem 0.85rem;
+  font-family: var(--mw-font, Inter, sans-serif);
+  padding: 0.5rem 0.9rem;
   border-radius: 8px;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.12);
 }
 
 .map-locate-me-btn:hover {
-  background: #10b981;
+  background: var(--mw-forest-hover, #0d3028);
+  border-color: var(--mw-forest-hover, #0d3028);
 }
 
 .map-viewport {
-  border: 1px solid #334155;
+  border: 1px solid var(--mw-line, #dde2de);
   border-radius: 10px;
   z-index: 10;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .map-selected-location-box {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: var(--mw-surface-subtle, #fbfbfa);
+  border: 1px solid var(--mw-line, #dde2de);
   border-radius: 8px;
   padding: 0.75rem 0.85rem;
   display: flex;
@@ -103,17 +123,17 @@
 .pin-indicator {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #10b981;
+  color: var(--mw-forest, #123c32);
 }
 
 .coords-display {
-  font-family: monospace;
-  font-size: 0.825rem;
-  color: #38bdf8;
-  background: #0f172a;
-  padding: 0.2rem 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+  color: var(--mw-forest, #123c32);
+  background: var(--mw-sage, #e5f6ee);
+  padding: 0.2rem 0.55rem;
   border-radius: 5px;
-  border: 1px solid #334155;
+  border: 1px solid #c4ecd8;
 }
 
 .detected-address-row {
@@ -124,21 +144,23 @@
 
 .address-label {
   font-size: 0.725rem;
-  color: #94a3b8;
+  color: var(--mw-muted, #68736e);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  font-weight: 600;
 }
 
 .address-value {
   font-size: 0.85rem;
-  color: #f1f5f9;
+  color: var(--mw-ink, #18211e);
+  font-weight: 500;
   line-height: 1.4;
 }
 
 .map-instructions {
   font-size: 0.75rem;
-  color: #64748b;
-  border-top: 1px solid #334155;
+  color: var(--mw-muted, #68736e);
+  border-top: 1px solid var(--mw-line-subtle, #ebefea);
   padding-top: 0.35rem;
   margin-top: 0.2rem;
 }
