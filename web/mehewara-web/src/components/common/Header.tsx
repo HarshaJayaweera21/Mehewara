@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { User } from '../../types/auth';
 import { ROUTES } from '../../routes/paths';
 import mehewaraLogo from '../../assets/mehewara-logo.png';
@@ -17,6 +17,8 @@ export interface HeaderProps {
   showMenuButton?: boolean;
   onMenuClick?: () => void;
   isMenuOpen?: boolean;
+  showReportsButton?: boolean;
+  onNavigateToReports?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,11 +33,14 @@ export const Header: React.FC<HeaderProps> = ({
   showMenuButton = false,
   onMenuClick,
   isMenuOpen = false,
+  showReportsButton,
+  onNavigateToReports,
 }) => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleBrandClick = () => {
     if (onBrandClick) {
@@ -70,6 +75,22 @@ export const Header: React.FC<HeaderProps> = ({
       navigate(ROUTES.LOGIN);
     }
   };
+
+  const handleReportsClick = () => {
+    if (onNavigateToReports) {
+      onNavigateToReports();
+    } else {
+      navigate(ROUTES.REPORTS);
+    }
+  };
+
+  // Determine if reports button should be displayed next to profile trigger
+  const isResident = currentUser?.role?.toUpperCase() === 'RESIDENT';
+  const isProfilePage =
+    location.pathname === ROUTES.PROFILE ||
+    location.pathname === '/profile' ||
+    location.pathname.startsWith('/profile');
+  const shouldShowReportsButton = showReportsButton ?? (isResident && isProfilePage);
 
   // Close profile dropdown when clicking outside or pressing Escape
   useEffect(() => {
@@ -135,87 +156,116 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Top Right: Profile Icon (Logged in) or Sign In / Sign Up button (Guest) */}
       {currentUser ? (
-        <div className="header-profile-wrap" ref={profileMenuRef}>
-          <button
-            type="button"
-            className={`header-profile-trigger ${isProfileMenuOpen ? 'active' : ''}`}
-            onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-            aria-haspopup="true"
-            aria-expanded={isProfileMenuOpen}
-            title="User Account Menu"
-          >
-            <div className="header-profile-avatar">
-              {currentUser?.profileImageUrl ? (
-                <img src={currentUser.profileImageUrl} alt="" className="header-avatar-img" />
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-              )}
-            </div>
-            {showName && <span className="header-profile-name">{currentUser.name}</span>}
-            <svg
-              className={`header-profile-chevron ${isProfileMenuOpen ? 'rotated' : ''}`}
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
+        <div className="header-right">
+          {shouldShowReportsButton && (
+            <button
+              type="button"
+              className="header-reports-btn"
+              onClick={handleReportsClick}
+              title="Go to Reports Portal"
             >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              <span>Reports</span>
+            </button>
+          )}
 
-          {isProfileMenuOpen && (
-            <div className="header-profile-dropdown" role="menu">
-              <div className="profile-dropdown-header">
-                <div className="dropdown-user-name">{currentUser?.name || 'Municipal Coordinator'}</div>
-                <div className="dropdown-user-role-badge">{roleBadgeText}</div>
-                {currentUser?.email && (
-                  <div className="dropdown-user-email">{currentUser.email}</div>
-                )}
-              </div>
-
-              <div className="profile-dropdown-divider" />
-
-              <div className="profile-dropdown-actions">
-                <button
-                  type="button"
-                  className="profile-dropdown-item"
-                  onClick={() => {
-                    setIsProfileMenuOpen(false);
-                    handleOpenProfile();
-                  }}
-                  role="menuitem"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <div className="header-profile-wrap" ref={profileMenuRef}>
+            <button
+              type="button"
+              className={`header-profile-trigger ${isProfileMenuOpen ? 'active' : ''}`}
+              onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+              aria-haspopup="true"
+              aria-expanded={isProfileMenuOpen}
+              title="User Account Menu"
+            >
+              <div className="header-profile-avatar">
+                {currentUser?.profileImageUrl ? (
+                  <img src={currentUser.profileImageUrl} alt="" className="header-avatar-img" />
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
-                  <span>View Profile</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="profile-dropdown-item logout-item"
-                  onClick={() => {
-                    setIsProfileMenuOpen(false);
-                    handleLogout();
-                  }}
-                  role="menuitem"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <polyline points="16 17 21 12 16 7" />
-                    <line x1="21" y1="12" x2="9" y2="12" />
-                  </svg>
-                  <span>Logout</span>
-                </button>
+                )}
               </div>
-            </div>
-          )}
+              {showName && <span className="header-profile-name">{currentUser.name}</span>}
+              <svg
+                className={`header-profile-chevron ${isProfileMenuOpen ? 'rotated' : ''}`}
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            {isProfileMenuOpen && (
+              <div className="header-profile-dropdown" role="menu">
+                <div className="profile-dropdown-header">
+                  <div className="dropdown-user-name">{currentUser?.name || 'Municipal Coordinator'}</div>
+                  <div className="dropdown-user-role-badge">{roleBadgeText}</div>
+                  {currentUser?.email && (
+                    <div className="dropdown-user-email">{currentUser.email}</div>
+                  )}
+                </div>
+
+                <div className="profile-dropdown-divider" />
+
+                <div className="profile-dropdown-actions">
+                  <button
+                    type="button"
+                    className="profile-dropdown-item"
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      handleOpenProfile();
+                    }}
+                    role="menuitem"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>View Profile</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="profile-dropdown-item logout-item"
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    role="menuitem"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span>Logout</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div className="header-auth-wrap">
@@ -236,3 +286,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

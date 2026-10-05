@@ -66,7 +66,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   // Attempt to refresh profile details from backend /api/auth/me
   useEffect(() => {
     let active = true;
-    if (effectiveToken && (effectiveUser?.role === 'ADMIN' || effectiveUser?.role === 'RESIDENT')) {
+    const userRole = effectiveUser?.role?.toUpperCase();
+    if (effectiveToken && (userRole === 'ADMIN' || userRole === 'COORDINATOR' || userRole === 'RESIDENT')) {
       getCurrentUser(effectiveToken)
         .then((fresh) => {
           if (active && fresh) {
@@ -210,7 +211,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   // --------------------------------------------------------------------------
   // CREW LEADER FALLBACK (Preserves existing crew role behaviors & test mocks)
   // --------------------------------------------------------------------------
-  if (effectiveUser.role !== 'ADMIN' && effectiveUser.role !== 'RESIDENT') {
+  const normalizedUserRole = effectiveUser.role?.toUpperCase();
+  if (normalizedUserRole !== 'ADMIN' && normalizedUserRole !== 'COORDINATOR' && normalizedUserRole !== 'RESIDENT') {
     const destinationLabel =
       returnPath === ROUTES.MY_JOBS ? 'My Jobs' : 'Reports Portal';
 
@@ -273,7 +275,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   // --------------------------------------------------------------------------
   // RESIDENT PROFILE VIEW (Self-Service Editable)
   // --------------------------------------------------------------------------
-  if (effectiveUser.role === 'RESIDENT') {
+  if (normalizedUserRole === 'RESIDENT') {
     const residentName =
       effectiveUser.firstName && effectiveUser.lastName
         ? `${effectiveUser.firstName} ${effectiveUser.lastName}`
@@ -301,6 +303,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             onLogout={handleLogout}
             onOpenProfile={() => {}}
             onBrandClick={() => navigate(ROUTES.HOME)}
+            onNavigateToReports={() => navigate(ROUTES.REPORTS)}
             roleBadgeText="Resident"
             showName={true}
             showMenuButton={false}
