@@ -12,7 +12,8 @@ export type OpsNavPage =
   | 'dispatch'
   | 'crews'
   | 'work-orders'
-  | 'reports';
+  | 'reports'
+  | 'profile';
 
 export interface OpsNavDrawerProps {
   isOpen: boolean;

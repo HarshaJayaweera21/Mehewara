@@ -1,0 +1,576 @@
+/* ==========================================================================
+   Mehewara Municipal Operations - Coordinator Profile Page
+   Unified with Forest & Sage Design System
+   ========================================================================== */
+
+.profile-page-container {
+  min-height: 100vh;
+  background-color: var(--mw-canvas, #f7f7f2);
+  color: var(--mw-ink, #18211e);
+  font-family: var(--mw-font, Inter, "Segoe UI", Arial, sans-serif);
+  padding: 2.25rem 2.5rem 4rem;
+  box-sizing: border-box;
+}
+
+.profile-page-container * {
+  box-sizing: border-box;
+}
+
+.profile-content-wrap {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* 1. Profile Top Action Bar */
+.profile-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: #ffffff;
+  border: 1px solid var(--mw-line, #dde2de);
+  border-radius: 10px;
+  padding: 0.75rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.03);
+}
+
+.profile-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--mw-canvas, #f7f7f2);
+  color: var(--mw-forest, #123c32);
+  border: 1px solid var(--mw-line, #dde2de);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.profile-back-btn:hover {
+  background: var(--mw-sage, #e5f6ee);
+  border-color: var(--mw-mint, #4fd1a1);
+  color: var(--mw-forest-hover, #0d3028);
+}
+
+.profile-status-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #eef2ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.profile-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--mw-sage, #e5f6ee);
+  color: var(--mw-forest, #123c32);
+  border: 1px solid #c4ecd8;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.profile-status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--mw-mint, #4fd1a1);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(79, 209, 161, 0.4);
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(79, 209, 161, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(79, 209, 161, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(79, 209, 161, 0);
+  }
+}
+
+/* 2. Read-Only Administrative Advisory Notice */
+.profile-advisory-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.125rem;
+  background: #ffffff;
+  border: 1px solid #bbf7d0;
+  border-left: 4px solid var(--mw-forest, #123c32);
+  border-radius: 10px;
+  padding: 1.15rem 1.35rem;
+  box-shadow: 0 2px 6px rgba(18, 60, 50, 0.04);
+}
+
+.profile-advisory-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--mw-sage, #e5f6ee);
+  color: var(--mw-forest, #123c32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-advisory-body {
+  flex: 1;
+}
+
+.profile-advisory-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--mw-forest, #123c32);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-advisory-text {
+  margin: 0 0 0.5rem;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--mw-muted, #68736e);
+}
+
+.profile-advisory-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.78rem;
+  color: var(--mw-faint, #8f9995);
+  font-weight: 500;
+}
+
+.profile-advisory-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* 3. Main Grid Layout */
+.profile-grid-layout {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+}
+
+.profile-card {
+  background: #ffffff;
+  border: 1px solid var(--mw-line, #dde2de);
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-card-full {
+  grid-column: span 12;
+}
+
+.profile-card-half {
+  grid-column: span 6;
+}
+
+.profile-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--mw-line-subtle, #ebefea);
+}
+
+.profile-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.profile-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--mw-sage, #e5f6ee);
+  color: var(--mw-forest, #123c32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-card-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--mw-forest, #123c32);
+}
+
+.profile-card-subtitle {
+  margin: 0.15rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--mw-muted, #68736e);
+}
+
+/* Officer Hero Block within Identity Card */
+.officer-hero-block {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: linear-gradient(135deg, rgba(229, 246, 238, 0.4) 0%, rgba(247, 247, 242, 0.6) 100%);
+  border: 1px solid var(--mw-line-subtle, #ebefea);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.officer-avatar-wrap {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+}
+
+.officer-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(18, 60, 50, 0.15);
+}
+
+.officer-avatar-initials {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--mw-forest, #123c32);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(18, 60, 50, 0.15);
+}
+
+.officer-verified-seal {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 22px;
+  height: 22px;
+  background: var(--mw-mint, #4fd1a1);
+  color: var(--mw-forest, #123c32);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.officer-meta-block {
+  flex: 1;
+}
+
+.officer-name {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--mw-forest, #123c32);
+}
+
+.officer-designation {
+  margin: 0.2rem 0 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--mw-mint, #4fd1a1);
+  filter: brightness(0.75);
+}
+
+.officer-department {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mw-muted, #68736e);
+}
+
+/* Key-Value Details Table */
+.profile-details-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profile-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: background 0.15s ease;
+}
+
+.profile-detail-row:nth-child(even) {
+  background: #fafaf7;
+}
+
+.profile-detail-label {
+  color: var(--mw-muted, #68736e);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.profile-detail-value {
+  color: var(--mw-ink, #18211e);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: right;
+}
+
+.profile-detail-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+  background: var(--mw-canvas, #f7f7f2);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--mw-line, #dde2de);
+  color: var(--mw-forest, #123c32);
+}
+
+.profile-copy-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--mw-muted, #68736e);
+  border-radius: 4px;
+  padding: 0.2rem 0.35rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.profile-copy-btn:hover {
+  background: var(--mw-sage, #e5f6ee);
+  border-color: var(--mw-mint, #4fd1a1);
+  color: var(--mw-forest, #123c32);
+}
+
+.profile-copy-btn.copied {
+  color: #166534;
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+/* Authority Check List */
+.authorities-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.authority-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  background: #fafaf7;
+  border: 1px solid var(--mw-line-subtle, #ebefea);
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.authority-item:hover {
+  background: #ffffff;
+  border-color: var(--mw-mint, #4fd1a1);
+  box-shadow: 0 2px 4px rgba(18, 60, 50, 0.04);
+}
+
+.authority-check-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  background: var(--mw-sage, #e5f6ee);
+  color: var(--mw-forest, #123c32);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.1rem;
+}
+
+.authority-content {
+  flex: 1;
+}
+
+.authority-name {
+  margin: 0 0 0.2rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--mw-forest, #123c32);
+}
+
+.authority-desc {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--mw-muted, #68736e);
+}
+
+/* Depots Grid */
+.depots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.depot-card {
+  background: #fafaf7;
+  border: 1px solid var(--mw-line-subtle, #ebefea);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: all 0.15s ease;
+}
+
+.depot-card:hover {
+  background: #ffffff;
+  border-color: var(--mw-mint, #4fd1a1);
+  box-shadow: 0 2px 6px rgba(18, 60, 50, 0.04);
+}
+
+.depot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.depot-name {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--mw-forest, #123c32);
+}
+
+.depot-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.depot-badge.drainage {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.depot-badge.road {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.depot-badge.waste {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.depot-badge.electrical {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.depot-badge.environment {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.depot-detail {
+  font-size: 0.78125rem;
+  color: var(--mw-muted, #68736e);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.depot-detail-value {
+  color: var(--mw-ink, #18211e);
+  font-weight: 600;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+  .profile-page-container {
+    padding: 1.5rem 1.25rem 3rem;
+  }
+
+  .profile-card-half {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-action-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .officer-hero-block {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .profile-detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .profile-detail-value {
+    text-align: left;
+  }
+}
