@@ -120,10 +120,8 @@ describe('ProfilePage Component', () => {
       expect(screen.getByText(/47 Wards across 5 Electoral Districts/i)).toBeInTheDocument();
       expect(screen.getByText(/1919 \(Toll-Free 24\/7\)/i)).toBeInTheDocument();
 
-      // Operational Scope
-      expect(screen.getByText(/Coordinator Operational Scope & Powers/i)).toBeInTheDocument();
-      expect(screen.getByText(/Municipal Defect Triage & Categorization/i)).toBeInTheDocument();
-      expect(screen.getByText(/Crew Mobilization & Dispatch Assignment/i)).toBeInTheDocument();
+      // Operational Scope card removed as requested
+      expect(screen.queryByText(/Coordinator Operational Scope & Powers/i)).not.toBeInTheDocument();
 
       // Regional Depots
       expect(screen.getByText(/Regional Municipal Depots & Fleet Stations/i)).toBeInTheDocument();
@@ -185,6 +183,9 @@ describe('ProfilePage Component', () => {
       // Municipal Authority details
       expect(screen.getByText(/Municipal Council Authority/i)).toBeInTheDocument();
       expect(screen.getByText(/Colombo Municipal Council \(CMC\)/i)).toBeInTheDocument();
+
+      // Citizen Infrastructure Services card removed as requested
+      expect(screen.queryByText(/Citizen Infrastructure Services & Reporting Rights/i)).not.toBeInTheDocument();
 
       // Click Edit Profile button
       const editButton = screen.getByRole('button', { name: /Edit Profile/i });
