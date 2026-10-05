@@ -55,11 +55,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.85rem;
-  background: var(--mw-surface);
-  border: 1px solid var(--mw-border);
-  border-radius: 8px;
-  padding: 0.65rem 0.85rem;
-  box-shadow: var(--mw-shadow-card);
+  background: var(--mw-surface, #FFFFFF);
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 10px;
+  padding: 0.75rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.03);
+  margin: 0;
 }
 
 .problems-search-box {
@@ -1057,6 +1058,12 @@
 .problems-crews-nav-btn:hover {
   background: #F7F7F2;
   border-color: #BEE0D1;
+}
+
+@media (max-width: 768px) {
+  .problems-dashboard-container {
+    padding: 1.25rem 1rem 3rem;
+  }
 }
 
 

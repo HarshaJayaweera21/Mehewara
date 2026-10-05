@@ -15,6 +15,7 @@
 
 .crews-content-wrap {
   width: 100%;
+  max-width: 100%;
   margin: 0;
   display: flex;
   flex-direction: column;
@@ -34,6 +35,7 @@
   border-radius: 10px;
   padding: 0.75rem 1.25rem;
   box-shadow: var(--mw-shadow-sm);
+  margin: 0;
 }
 
 .crews-search-box {
@@ -353,5 +355,11 @@
   font-size: 0.85rem;
   color: #8F9995;
   margin: 0;
+}
+
+@media (max-width: 768px) {
+  .crews-page-container {
+    padding: 1.25rem 1rem 3rem;
+  }
 }
 

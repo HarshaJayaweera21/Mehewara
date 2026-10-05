@@ -100,32 +100,31 @@ export const CrewListPage: React.FC<CrewListPageProps> = ({
 
   return (
     <div className="crews-page-container">
-      {/* 1. Global Navigation Header */}
-      <Header
-        currentUser={currentUser}
-        showName={true}
-        onLogout={onLogout}
-        onOpenProfile={goToProfile}
-        onBrandClick={goToProblems}
-        roleBadgeText="Municipal Coordinator"
-        showMenuButton={true}
-        onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
-        isMenuOpen={isNavDrawerOpen}
-      />
-
-      <OpsNavDrawer
-        isOpen={isNavDrawerOpen}
-        onClose={() => setIsNavDrawerOpen(false)}
-        activePage="crews"
-        onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
-        onNavigateToProblems={goToProblems}
-        onNavigateToDispatch={goToDispatch}
-        onNavigateToCrews={() => {}}
-        onNavigateToWorkOrders={() => handleWorkOrders()}
-        onNavigateToReports={goToReports}
-      />
-
       <main className="crews-content-wrap">
+        {/* 1. Global Navigation Header */}
+        <Header
+          currentUser={currentUser}
+          showName={true}
+          onLogout={onLogout}
+          onOpenProfile={goToProfile}
+          onBrandClick={goToProblems}
+          roleBadgeText="Municipal Coordinator"
+          showMenuButton={true}
+          onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+          isMenuOpen={isNavDrawerOpen}
+        />
+
+        <OpsNavDrawer
+          isOpen={isNavDrawerOpen}
+          onClose={() => setIsNavDrawerOpen(false)}
+          activePage="crews"
+          onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
+          onNavigateToProblems={goToProblems}
+          onNavigateToDispatch={goToDispatch}
+          onNavigateToCrews={() => {}}
+          onNavigateToWorkOrders={() => handleWorkOrders()}
+          onNavigateToReports={goToReports}
+        />
 
         {/* 2. Operations Welcome Banner */}
         <HeroBanner

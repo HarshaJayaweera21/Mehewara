@@ -175,34 +175,33 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({
 
   return (
     <div className="reports-page-container">
-      {/* Top Header */}
-      <Header
-        currentUser={currentUser}
-        onLogout={handleLogout}
-        onOpenProfile={handleOpenProfile}
-        onBrandClick={() => navigate(isAdmin ? ROUTES.OPERATIONS : ROUTES.HOME)}
-        roleBadgeText={isAdmin ? 'Municipal Coordinator' : 'Resident'}
-        showName={true}
-        showMenuButton={isAdmin}
-        onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
-        isMenuOpen={isNavDrawerOpen}
-      />
-
-      {isAdmin && (
-        <OpsNavDrawer
-          isOpen={isNavDrawerOpen}
-          onClose={() => setIsNavDrawerOpen(false)}
-          activePage="reports"
-          onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
-          onNavigateToProblems={handleNavigateToProblems}
-          onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
-          onNavigateToCrews={() => navigate(ROUTES.CREWS)}
-          onNavigateToWorkOrders={() => navigate(ROUTES.WORK_ORDERS)}
-          onNavigateToReports={() => {}}
-        />
-      )}
-
       <div className="reports-content-wrap">
+        {/* Top Header */}
+        <Header
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          onOpenProfile={handleOpenProfile}
+          onBrandClick={() => navigate(isAdmin ? ROUTES.OPERATIONS : ROUTES.HOME)}
+          roleBadgeText={isAdmin ? 'Municipal Coordinator' : 'Resident'}
+          showName={true}
+          showMenuButton={isAdmin}
+          onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+          isMenuOpen={isNavDrawerOpen}
+        />
+
+        {isAdmin && (
+          <OpsNavDrawer
+            isOpen={isNavDrawerOpen}
+            onClose={() => setIsNavDrawerOpen(false)}
+            activePage="reports"
+            onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
+            onNavigateToProblems={handleNavigateToProblems}
+            onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
+            onNavigateToCrews={() => navigate(ROUTES.CREWS)}
+            onNavigateToWorkOrders={() => navigate(ROUTES.WORK_ORDERS)}
+            onNavigateToReports={() => {}}
+          />
+        )}
 
         {/* Hero Welcome Banner */}
         <HeroBanner

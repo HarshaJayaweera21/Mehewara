@@ -17,6 +17,7 @@ import './OperationsDashboardPage.css';
 interface OperationsDashboardPageProps {
   currentUser: User;
   token: string;
+  roleName?: string;
   onLogout?: () => void;
   onOpenProfile?: () => void;
   onNavigateToReports?: () => void;
@@ -59,7 +60,7 @@ const relativeTime = (value: string) => {
 };
 
 export function OperationsDashboardPage({
-  currentUser, token, onLogout, onOpenProfile, onNavigateToReports,
+  currentUser, token, roleName = 'Coordinator', onLogout, onOpenProfile, onNavigateToReports,
   onNavigateToProblems, onNavigateToUncertainReports, onNavigateToDispatch,
   onNavigateToCrews, onNavigateToWorkOrders,
 }: OperationsDashboardPageProps) {
@@ -135,40 +136,51 @@ export function OperationsDashboardPage({
   const shownReports = data.reports.filter(report => `${report.description} ${report.address ?? ''} ${report.category}`.toLowerCase().includes(query));
   const shownRecommendations = data.recommendations.filter(item => `${item.problemTitle} ${item.recommendationReason}`.toLowerCase().includes(query));
 
+  // Determine appropriate greeting based on actual local time of day
+  const timeGreeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      return 'Good Morning';
+    } else if (hour >= 12 && hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
+  }, []);
+
   return (
     <div className="ops-page-container">
-      <Header
-        currentUser={currentUser}
-        onLogout={handleSignOut}
-        onOpenProfile={goToProfile}
-        onBrandClick={() => navigate(ROUTES.OPERATIONS)}
-        roleBadgeText="Municipal Coordinator"
-        showName={true}
-        showMenuButton={true}
-        onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
-        isMenuOpen={isNavDrawerOpen}
-      />
-
-      <OpsNavDrawer
-        isOpen={isNavDrawerOpen}
-        onClose={() => setIsNavDrawerOpen(false)}
-        activePage="dashboard"
-        pendingDispatchCount={data.recommendationCount ?? 0}
-        onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
-        onNavigateToProblems={goToProblems}
-        onNavigateToUncertainReports={goToUncertainReports}
-        onNavigateToDispatch={goToDispatch}
-        onNavigateToCrews={goToCrews}
-        onNavigateToWorkOrders={goToWorkOrders}
-        onNavigateToReports={goToReports}
-      />
-
       <div className="ops-content-wrap">
+        <Header
+          currentUser={currentUser}
+          onLogout={handleSignOut}
+          onOpenProfile={goToProfile}
+          onBrandClick={() => navigate(ROUTES.OPERATIONS)}
+          roleBadgeText="Municipal Coordinator"
+          showName={true}
+          showMenuButton={true}
+          onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+          isMenuOpen={isNavDrawerOpen}
+        />
+
+        <OpsNavDrawer
+          isOpen={isNavDrawerOpen}
+          onClose={() => setIsNavDrawerOpen(false)}
+          activePage="dashboard"
+          pendingDispatchCount={data.recommendationCount ?? 0}
+          onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
+          onNavigateToProblems={goToProblems}
+          onNavigateToUncertainReports={goToUncertainReports}
+          onNavigateToDispatch={goToDispatch}
+          onNavigateToCrews={goToCrews}
+          onNavigateToWorkOrders={goToWorkOrders}
+          onNavigateToReports={goToReports}
+        />
 
         {/* 2. Operations Welcome Banner */}
         <HeroBanner
           badge="OPERATIONS SUITE"
-          title="Operations Command Desk"
+          title={`${timeGreeting}, ${roleName} — Operations Command Desk`}
           subtitle="Centralized operational overview across municipal defects, crew deployments, and active field resolutions."
           ariaLabel="Operations Command Desk Banner"
         />

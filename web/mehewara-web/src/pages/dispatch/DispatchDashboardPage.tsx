@@ -280,33 +280,32 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
   return (
     <div className="dispatch-dashboard-container">
-      {/* 1. Global Navigation Header */}
-      <Header
-        currentUser={currentUser}
-        onLogout={onLogout}
-        onOpenProfile={goToProfile}
-        onBrandClick={goToOperations}
-        roleBadgeText="Municipal Coordinator"
-        showName
-        showMenuButton={true}
-        onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
-        isMenuOpen={isNavDrawerOpen}
-      />
-
-      <OpsNavDrawer
-        isOpen={isNavDrawerOpen}
-        onClose={() => setIsNavDrawerOpen(false)}
-        activePage="dispatch"
-        pendingDispatchCount={recommendations.length}
-        onNavigateToDashboard={goToOperations}
-        onNavigateToProblems={goToProblems}
-        onNavigateToDispatch={() => {}}
-        onNavigateToCrews={goToCrews}
-        onNavigateToWorkOrders={() => handleOpenWorkOrder('')}
-        onNavigateToReports={goToReports}
-      />
-
       <main className="dispatch-content-wrap">
+        {/* 1. Global Navigation Header */}
+        <Header
+          currentUser={currentUser}
+          onLogout={onLogout}
+          onOpenProfile={goToProfile}
+          onBrandClick={goToOperations}
+          roleBadgeText="Municipal Coordinator"
+          showName
+          showMenuButton={true}
+          onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+          isMenuOpen={isNavDrawerOpen}
+        />
+
+        <OpsNavDrawer
+          isOpen={isNavDrawerOpen}
+          onClose={() => setIsNavDrawerOpen(false)}
+          activePage="dispatch"
+          pendingDispatchCount={recommendations.length}
+          onNavigateToDashboard={goToOperations}
+          onNavigateToProblems={goToProblems}
+          onNavigateToDispatch={() => {}}
+          onNavigateToCrews={goToCrews}
+          onNavigateToWorkOrders={() => handleOpenWorkOrder('')}
+          onNavigateToReports={goToReports}
+        />
 
         {/* 2. Operations Welcome Banner */}
         <HeroBanner

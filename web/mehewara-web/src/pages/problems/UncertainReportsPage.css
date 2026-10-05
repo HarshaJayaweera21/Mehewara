@@ -1177,9 +1177,9 @@
   }
 }
 
-@media (max-width: 580px) {
+@media (max-width: 768px) {
   .urp-container {
-    padding: 1.25rem 1rem 2.5rem;
+    padding: 1.25rem 1rem 3rem;
   }
 
   .urp-page-title {

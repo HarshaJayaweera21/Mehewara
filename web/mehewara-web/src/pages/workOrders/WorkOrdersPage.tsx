@@ -136,31 +136,31 @@ export function WorkOrdersPage({ user, token, initialId, onLogout, onProfile, on
   }
 
   return <div className="jobs-page">
-    <Header
-      currentUser={user}
-      onLogout={onLogout}
-      onOpenProfile={goToProfile}
-      onBrandClick={goToProblems}
-      roleBadgeText={admin ? "Municipal Coordinator" : "Crew Leader"}
-      showName={admin}
-      showMenuButton={admin}
-      onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
-      isMenuOpen={isNavDrawerOpen}
-    />
-    {admin && (
-      <OpsNavDrawer
-        isOpen={isNavDrawerOpen}
-        onClose={() => setIsNavDrawerOpen(false)}
-        activePage="work-orders"
-        onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
-        onNavigateToProblems={goToProblems}
-        onNavigateToDispatch={goToDispatch}
-        onNavigateToCrews={goToCrews}
-        onNavigateToWorkOrders={() => {}}
-        onNavigateToReports={() => navigate(ROUTES.REPORTS)}
-      />
-    )}
     <main className="jobs-main">
+      <Header
+        currentUser={user}
+        onLogout={onLogout}
+        onOpenProfile={goToProfile}
+        onBrandClick={goToProblems}
+        roleBadgeText={admin ? "Municipal Coordinator" : "Crew Leader"}
+        showName={admin}
+        showMenuButton={admin}
+        onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+        isMenuOpen={isNavDrawerOpen}
+      />
+      {admin && (
+        <OpsNavDrawer
+          isOpen={isNavDrawerOpen}
+          onClose={() => setIsNavDrawerOpen(false)}
+          activePage="work-orders"
+          onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
+          onNavigateToProblems={goToProblems}
+          onNavigateToDispatch={goToDispatch}
+          onNavigateToCrews={goToCrews}
+          onNavigateToWorkOrders={() => {}}
+          onNavigateToReports={() => navigate(ROUTES.REPORTS)}
+        />
+      )}
       {!admin && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-0.5rem' }}>
           <button type="button" onClick={goToProfile} style={{ fontSize: '0.85rem' }}>My profile</button>

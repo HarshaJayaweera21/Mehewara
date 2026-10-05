@@ -12,9 +12,9 @@
 .mw-admin-content {
   flex: 1;
   width: 100%;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 1.75rem 2rem 3.5rem;
+  max-width: 100%;
+  margin: 0;
+  padding: 2.25rem 2.5rem 4rem;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -23,7 +23,7 @@
 
 @media (max-width: 768px) {
   .mw-admin-content {
-    padding: 1rem 1rem 2.5rem;
+    padding: 1.25rem 1rem 3rem;
     gap: 1.25rem;
   }
 }
