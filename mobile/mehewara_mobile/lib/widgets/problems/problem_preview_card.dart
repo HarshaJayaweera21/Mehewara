@@ -5,11 +5,13 @@ import '../../models/problem.dart';
 class ProblemPreviewCard extends StatelessWidget {
   final Problem problem;
   final VoidCallback onTrackProgress;
+  final VoidCallback? onClose;
 
   const ProblemPreviewCard({
     super.key,
     required this.problem,
     required this.onTrackProgress,
+    this.onClose,
   });
 
   IconData _getCategoryIcon() {
@@ -178,16 +180,46 @@ class ProblemPreviewCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Drag handle bar
-          Center(
-            child: Container(
-              width: 38,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFCBD5CE),
-                borderRadius: BorderRadius.circular(2),
+          // Drag handle bar with optional close button
+          Row(
+            children: [
+              const SizedBox(width: 24),
+              Expanded(
+                child: Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCBD5CE),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
               ),
-            ),
+              if (onClose != null)
+                GestureDetector(
+                  onTap: onClose,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: CivicColors.mintTint,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: CivicColors.mintPip.withValues(alpha: 0.35),
+                        width: 1,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 14,
+                      color: CivicColors.forest,
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(width: 24),
+            ],
           ),
           const SizedBox(height: 12),
 

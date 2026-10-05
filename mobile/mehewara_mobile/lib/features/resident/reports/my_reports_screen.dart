@@ -358,26 +358,6 @@ class _ReportsHero extends StatelessWidget {
                 ],
               ),
             ),
-            if (onCreateReport != null) ...[
-              const SizedBox(width: 10),
-              FilledButton.icon(
-                onPressed: onCreateReport,
-                style: FilledButton.styleFrom(
-                  backgroundColor: CivicColors.forest,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 2,
-                ),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text(
-                  'New Report',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5),
-                ),
-              ),
-            ],
           ],
         ),
         const SizedBox(height: 16),

@@ -76,24 +76,33 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
                     child: _buildTopHeaderSection(provider),
                   ),
 
-                  // 3. FLOATING PREVIEW CARD (When Map Mode is active and problem selected)
-                  if (provider.viewMode == ExplorerViewMode.map &&
-                      provider.selectedProblem != null)
+                  // 3. FLOATING PREVIEW CARD OR INITIAL ADVISORY CARD (When Map Mode is active)
+                  if (provider.viewMode == ExplorerViewMode.map)
                     Positioned(
                       left: 14,
                       right: 14,
                       bottom: widget.embedded ? 14 : 76,
-                      child: ProblemPreviewCard(
-                        problem: provider.selectedProblem!,
-                        onTrackProgress: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => ProblemDetailScreen(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child: provider.selectedProblem != null
+                            ? ProblemPreviewCard(
+                                key: ValueKey('preview_${provider.selectedProblem!.id}'),
                                 problem: provider.selectedProblem!,
-                              ),
-                            ),
-                          );
-                        },
+                                onClose: () {
+                                  HapticFeedback.selectionClick();
+                                  provider.selectProblem(null);
+                                },
+                                onTrackProgress: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => ProblemDetailScreen(
+                                        problem: provider.selectedProblem!,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : _buildAdvisoryCard(provider),
                       ),
                     ),
 
@@ -112,6 +121,108 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // INITIAL ADVISORY GUIDE CARD
+  // ===========================================================================
+  Widget _buildAdvisoryCard(ProblemExplorerProvider provider) {
+    return Container(
+      key: const ValueKey('advisory_guide_card'),
+      decoration: BoxDecoration(
+        color: CivicColors.cardSurface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFDCE5DF), width: 1.2),
+        boxShadow: const [CivicShadows.card],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: CivicColors.mintTint,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: CivicColors.mintPip.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.explore_rounded,
+                    size: 22,
+                    color: CivicColors.forest,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Reported Community Incidents',
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: CivicColors.forest,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Here are the problems we have so far. Please check before submitting a new report. Click on an icon on the map to view its details.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: CivicColors.charcoal,
+                        fontWeight: FontWeight.w500,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F7F4),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0x99DCE5DF), width: 1),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.touch_app_rounded,
+                  size: 15,
+                  color: CivicColors.forest,
+                ),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    '${provider.problems.length} reported problems in this area • Tap any icon to inspect',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: CivicColors.forest,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

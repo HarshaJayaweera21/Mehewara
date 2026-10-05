@@ -492,8 +492,9 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
               labelText: 'Detailed Observations',
               alignLabelWithHint: true,
               hintText: 'Describe the danger, exact location cues, and severity.',
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               prefixIcon: const Padding(
-                padding: EdgeInsets.only(bottom: 70),
+                padding: EdgeInsets.only(bottom: 82),
                 child: Icon(Icons.notes_rounded, size: 20),
               ),
               filled: true,

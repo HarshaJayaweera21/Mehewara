@@ -67,18 +67,8 @@ class ProblemExplorerProvider extends ChangeNotifier {
       );
       _applyFilters();
 
-      // Automatically select the primary Drainage problem if available, or first problem
-      if (_selectedProblem == null && _filteredProblems.isNotEmpty) {
-        _selectedProblem = _filteredProblems.firstWhere(
-          (p) => p.category == 'DRAINAGE',
-          orElse: () => _filteredProblems.first,
-        );
-        try {
-          mapController.move(
-            LatLng(_selectedProblem!.latitude, _selectedProblem!.longitude),
-            14.5,
-          );
-        } catch (_) {}
+      if (_selectedProblem != null && !_filteredProblems.contains(_selectedProblem)) {
+        _selectedProblem = null;
       }
     } catch (e) {
       _errorMessage = e.toString();
@@ -107,9 +97,8 @@ class ProblemExplorerProvider extends ChangeNotifier {
     if (_selectedCategory == category) return;
     _selectedCategory = category;
     _applyFilters();
-    if (_filteredProblems.isNotEmpty &&
-        (_selectedProblem == null || !_filteredProblems.contains(_selectedProblem))) {
-      _selectedProblem = _filteredProblems.first;
+    if (_selectedProblem != null && !_filteredProblems.contains(_selectedProblem)) {
+      _selectedProblem = null;
     }
     notifyListeners();
   }
@@ -125,15 +114,17 @@ class ProblemExplorerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void selectProblem(Problem problem) {
+  void selectProblem(Problem? problem) {
     _selectedProblem = problem;
-    // Smoothly pan camera to problem centroid
-    try {
-      mapController.move(
-        LatLng(problem.latitude, problem.longitude),
-        15.5,
-      );
-    } catch (_) {}
+    if (problem != null) {
+      // Smoothly pan camera to problem centroid
+      try {
+        mapController.move(
+          LatLng(problem.latitude, problem.longitude),
+          15.5,
+        );
+      } catch (_) {}
+    }
     notifyListeners();
   }
 
