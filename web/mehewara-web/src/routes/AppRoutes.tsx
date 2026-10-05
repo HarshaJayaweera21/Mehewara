@@ -101,10 +101,10 @@ export const AppRoutes: React.FC = () => {
               <LoginPage
                 onLoginSuccess={(user, accessToken) => {
                   login(user, accessToken);
-                  navigate(getHomePathForRole(user.role));
+                  navigate(getHomePathForRole(user.role), { replace: true });
                 }}
                 onNavigateToLanding={() => navigate(ROUTES.HOME)}
-                onNavigateToReports={() => navigate(ROUTES.REPORTS)}
+                onNavigateToReports={() => navigate(getHomePathForRole(currentUser?.role))}
               />
             </>
           </PublicOnlyRoute>
@@ -118,10 +118,10 @@ export const AppRoutes: React.FC = () => {
             <LoginPage
               onLoginSuccess={(user, accessToken) => {
                 login(user, accessToken);
-                navigate(getHomePathForRole(user.role));
+                navigate(getHomePathForRole(user.role), { replace: true });
               }}
               onNavigateToLanding={() => navigate(ROUTES.HOME)}
-              onNavigateToReports={() => navigate(ROUTES.REPORTS)}
+              onNavigateToReports={() => navigate(getHomePathForRole(currentUser?.role))}
             />
           </PublicOnlyRoute>
         }
@@ -137,7 +137,7 @@ export const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* 4. Resident & Admin Reports Portal */}
+      {/* 4. Resident Issue Tracker */}
       <Route
         path={ROUTES.REPORTS}
         element={
@@ -147,23 +147,21 @@ export const AppRoutes: React.FC = () => {
               token={token!}
               onLogout={logout}
               onOpenProfile={() => navigate(ROUTES.PROFILE)}
-              onNavigateToProblems={() => navigate(ROUTES.PROBLEMS)}
             />
           </ProtectedRoute>
         }
       />
 
-      {/* 5. Municipal Operations Dashboard (Admin Only) */}
+      {/* 5. Municipal Operations Dashboard (Coordinator / Admin Only) */}
       <Route
         path={ROUTES.OPERATIONS}
         element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'COORDINATOR']}>
             <OperationsDashboardPage
               currentUser={currentUser!}
               token={token!}
               onLogout={logout}
               onOpenProfile={() => navigate(ROUTES.PROFILE)}
-              onNavigateToReports={() => navigate(ROUTES.REPORTS)}
               onNavigateToProblems={() => navigate(ROUTES.PROBLEMS)}
               onNavigateToUncertainReports={() => navigate(ROUTES.UNCERTAIN_REPORTS)}
               onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
@@ -174,18 +172,17 @@ export const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* 6. Municipal Problems Board (Admin Only) */}
+      {/* 6. Municipal Problems Board (Coordinator / Admin Only) */}
       <Route
         path={ROUTES.PROBLEMS}
         element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'COORDINATOR']}>
             <ProblemsPage
               currentUser={currentUser!}
               token={token!}
               onLogout={logout}
               onOpenProfile={() => navigate(ROUTES.PROFILE)}
               onNavigateToLanding={() => navigate(ROUTES.HOME)}
-              onNavigateToReports={() => navigate(ROUTES.REPORTS)}
               onNavigateToUncertainReports={() => navigate(ROUTES.UNCERTAIN_REPORTS)}
               onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
               onNavigateToCrews={() => navigate(ROUTES.CREWS)}
@@ -195,18 +192,17 @@ export const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* 7. Uncertain Reports Triage (Agent 2 HITL - Admin Only) */}
+      {/* 7. Uncertain Reports Triage (Coordinator / Admin Only) */}
       <Route
         path={ROUTES.UNCERTAIN_REPORTS}
         element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'COORDINATOR']}>
             <UncertainReportsPage
               currentUser={currentUser!}
               token={token!}
               onLogout={logout}
               onOpenProfile={() => navigate(ROUTES.PROFILE)}
               onNavigateToProblems={() => navigate(ROUTES.PROBLEMS)}
-              onNavigateToReports={() => navigate(ROUTES.REPORTS)}
             />
           </ProtectedRoute>
         }
@@ -217,18 +213,17 @@ export const AppRoutes: React.FC = () => {
         element={<Navigate to={ROUTES.UNCERTAIN_REPORTS} replace />}
       />
 
-      {/* 8. Dispatch & AI Recommendation Review (Agent 3 HITL - Admin Only) */}
+      {/* 8. Dispatch & Crew Allocation Review (Coordinator / Admin Only) */}
       <Route
         path={ROUTES.DISPATCH}
         element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'COORDINATOR']}>
             <DispatchDashboardPage
               currentUser={currentUser!}
               token={token!}
               onLogout={logout}
               onOpenProfile={() => navigate(ROUTES.PROFILE)}
               onNavigateToOperations={() => navigate(ROUTES.OPERATIONS)}
-              onNavigateToReports={() => navigate(ROUTES.REPORTS)}
               onNavigateToProblems={() => navigate(ROUTES.PROBLEMS)}
               onNavigateToCrews={() => navigate(ROUTES.CREWS)}
               onOpenWorkOrder={(id) =>
@@ -239,11 +234,11 @@ export const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* 9. Municipal Crews Management (Admin Only) */}
+      {/* 9. Municipal Crews Management (Coordinator / Admin Only) */}
       <Route
         path={ROUTES.CREWS}
         element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'COORDINATOR']}>
             <CrewListPage
               currentUser={currentUser!}
               token={token!}
@@ -251,7 +246,6 @@ export const AppRoutes: React.FC = () => {
               onOpenProfile={() => navigate(ROUTES.PROFILE)}
               onNavigateToProblems={() => navigate(ROUTES.PROBLEMS)}
               onNavigateToDispatch={() => navigate(ROUTES.DISPATCH)}
-              onNavigateToReports={() => navigate(ROUTES.REPORTS)}
               onNavigateToWorkOrders={(id) =>
                 navigate(id ? `${ROUTES.WORK_ORDERS}?id=${id}` : ROUTES.WORK_ORDERS)
               }
@@ -260,11 +254,11 @@ export const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* 10. Work Orders Management (Admin Only) */}
+      {/* 10. Work Orders Management (Coordinator / Admin Only) */}
       <Route
         path={ROUTES.WORK_ORDERS}
         element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'COORDINATOR']}>
             <WorkOrdersRouteWrapper />
           </ProtectedRoute>
         }

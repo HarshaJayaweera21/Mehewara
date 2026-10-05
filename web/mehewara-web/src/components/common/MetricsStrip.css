@@ -10,6 +10,9 @@
   box-shadow: 0 1px 3px rgba(18, 60, 50, 0.03);
   overflow: hidden;
   box-sizing: border-box;
+  margin: 0;
+  width: 100%;
+  min-height: 108px;
 }
 
 .mw-metric-cell {
@@ -17,8 +20,11 @@
   border-right: 1px solid var(--mw-border-subtle, #EBEFEA);
   display: flex;
   flex-direction: column;
+  justify-content: center;
   transition: background-color 0.15s ease;
   min-width: 0;
+  box-sizing: border-box;
+  height: 100%;
 }
 
 .mw-metric-cell:last-child {

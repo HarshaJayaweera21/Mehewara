@@ -256,7 +256,7 @@ export const MapPicker: React.FC<MapPickerProps> = ({
           <span className="address-label">Auto-Detected Address:</span>
           <span className="address-value">
             {isGeocoding ? (
-              <span style={{ color: '#38bdf8' }}>Fetching street name from map...</span>
+              <span style={{ color: 'var(--mw-forest, #123c32)' }}>Fetching street name from map...</span>
             ) : (
               addressPreview
             )}

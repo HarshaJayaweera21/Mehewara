@@ -244,7 +244,7 @@ export const CrewDetailModal: React.FC<CrewDetailModalProps> = ({
                       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                       <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
-                    <span>This crew is available for immediate automated dispatch assignment via Agent 3 recommendation.</span>
+                    <span>This crew is available for immediate automated dispatch assignment via recommendation queue.</span>
                   </>
                 ) : (
                   <>
@@ -253,7 +253,7 @@ export const CrewDetailModal: React.FC<CrewDetailModalProps> = ({
                       <line x1="12" y1="8" x2="12" y2="12" />
                       <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    <span>Crew is currently deployed on an active remediation work order. AI dispatch prioritizes available units.</span>
+                    <span>Crew is currently deployed on an active remediation work order. Dispatch queue prioritizes available units.</span>
                   </>
                 )}
               </div>

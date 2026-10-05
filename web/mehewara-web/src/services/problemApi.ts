@@ -66,7 +66,7 @@ export async function createProblem(token: string, data: CreateProblemRequest): 
 }
 
 /**
- * Get all uncertain reports flagged by AI Agent 2 for coordinator review
+ * Get all uncertain reports flagged for coordinator review
  */
 export async function getUncertainReports(token: string): Promise<UncertainReportResponse[]> {
   const res = await fetch(`${API_BASE}/problems/uncertain-reports`, {

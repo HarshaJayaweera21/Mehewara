@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../features/auth/login_screen.dart';
+import '../../features/auth/register_screen.dart';
 import '../../features/crew/crew_shell_screen.dart';
-import '../../features/resident/problems/problem_explorer_screen.dart';
+import '../../features/resident/resident_shell_screen.dart';
 
 class AppRoutes {
   static const String initial = '/';
   static const String login = '/login';
+  static const String register = '/register';
   static const String crewShell = '/crew';
   static const String residentHome = '/resident';
 
@@ -15,6 +17,12 @@ class AppRoutes {
       case login:
         return MaterialPageRoute(
           builder: (_) => const LoginScreen(),
+          settings: settings,
+        );
+
+      case register:
+        return MaterialPageRoute(
+          builder: (_) => const RegisterScreen(),
           settings: settings,
         );
 
@@ -30,10 +38,9 @@ class AppRoutes {
 
       case residentHome:
         return MaterialPageRoute(
-          builder: (context) => const ProblemExplorerScreen(),
+          builder: (context) => const ResidentShellScreen(),
           settings: settings,
         );
-
 
       default:
         return MaterialPageRoute(

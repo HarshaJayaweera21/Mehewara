@@ -13,7 +13,8 @@ import {
 } from '../../services/dispatchApi';
 import { getCrewAvailability } from '../../services/crewApi';
 import { Header, HeroBanner, MetricsStrip } from '../../components/common';
-import { OpsNavStrip } from '../../components/common/OpsNavStrip';
+import { OpsNavDrawer } from '../../components/common/OpsNavDrawer';
+import { Icon } from '../../design-system/mehewara/Icon';
 import { ApproveRecommendationModal } from './components/ApproveRecommendationModal';
 import { EditRecommendationModal } from './components/EditRecommendationModal';
 import { RejectRecommendationModal } from './components/RejectRecommendationModal';
@@ -31,7 +32,6 @@ export interface DispatchDashboardPageProps {
   onOpenProfile?: () => void;
   onNavigateToProblems?: () => void;
   onNavigateToCrews?: () => void;
-  onNavigateToReports?: () => void;
   onNavigateToOperations?: () => void;
   onOpenWorkOrder?: (id: string) => void;
 }
@@ -49,15 +49,14 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
   onOpenProfile,
   onNavigateToProblems,
   onNavigateToCrews,
-  onNavigateToReports,
   onNavigateToOperations,
   onOpenWorkOrder,
 }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
   const goToOperations = onNavigateToOperations || (() => navigate(ROUTES.OPERATIONS));
-  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
   const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
   const goToCrews = onNavigateToCrews || (() => navigate(ROUTES.CREWS));
   const goToProfile = onOpenProfile || (() => navigate(ROUTES.PROFILE));
@@ -278,38 +277,41 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
   return (
     <div className="dispatch-dashboard-container">
-      {/* 1. Global Navigation Header */}
-      <Header
-        currentUser={currentUser}
-        onLogout={onLogout}
-        onOpenProfile={goToProfile}
-        onBrandClick={goToOperations}
-        roleBadgeText="Municipal Coordinator"
-        showName
-      />
-
       <main className="dispatch-content-wrap">
-        {/* Secondary Navigation Breadcrumbs / Module Switcher */}
-        <OpsNavStrip
+        {/* 1. Global Navigation Header */}
+        <Header
+          currentUser={currentUser}
+          onLogout={onLogout}
+          onOpenProfile={goToProfile}
+          onBrandClick={goToOperations}
+          roleBadgeText="Municipal Coordinator"
+          showName
+          showMenuButton={true}
+          onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+          isMenuOpen={isNavDrawerOpen}
+        />
+
+        <OpsNavDrawer
+          isOpen={isNavDrawerOpen}
+          onClose={() => setIsNavDrawerOpen(false)}
           activePage="dispatch"
+          pendingDispatchCount={recommendations.length}
           onNavigateToDashboard={goToOperations}
           onNavigateToProblems={goToProblems}
           onNavigateToDispatch={() => {}}
           onNavigateToCrews={goToCrews}
           onNavigateToWorkOrders={() => handleOpenWorkOrder('')}
-          onNavigateToReports={goToReports}
         />
 
         {/* 2. Operations Welcome Banner */}
         <HeroBanner
-          badge="AI AGENT 3 : PRIORITIZATION & DISPATCH"
-          title="Recommendation Review"
-          subtitle="Human-in-the-loop authorization desk. Inspect multi-factor priority scores, examine real-time crew availability, and authorize municipal work orders."
-          ariaLabel="Dispatch Operations Banner"
+          badge="DISPATCH & ALLOCATION"
+          title="Dispatch Recommendations"
+          subtitle="Evaluate multi-factor priority scores, inspect real-time crew readiness, and authorize municipal work orders for deployment."
+          ariaLabel="Dispatch Recommendations Banner"
         />
 
         {/* 3. Operational Metrics Strip */}
-        <div className="review-simulation-strip"><span>☷ &nbsp; Recommendation review queue</span><strong>{reviewBucket === 'READY' ? 'Active queue' : reviewBucket.replace(/_/g, ' ')}</strong></div>
         <MetricsStrip
           items={[
             {
@@ -341,6 +343,9 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
           ariaLabel="Key Dispatch Metrics"
         />
 
+        {/* Queue Status & Review Views */}
+        <div className="review-simulation-strip"><span>☷ &nbsp; Recommendation review queue</span><strong>{reviewBucket === 'READY' ? 'Active queue' : reviewBucket.replace(/_/g, ' ')}</strong></div>
+
         {/* 4. Filter Toolbar */}
         <nav className="dispatch-review-tabs" aria-label="Recommendation review views">
           {REVIEW_TABS.map(([value, label]) => <button key={value} type="button"
@@ -354,10 +359,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
         </div>
         <section className="dispatch-toolbar" aria-label="Filter Dispatch Recommendations">
           <div className="dispatch-search-box">
-            <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            <Icon name="search" size={16} className="search-icon" />
             <input
               type="text"
               className="dispatch-search-input"
@@ -432,11 +434,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
               onClick={() => setRefreshTrigger((prev) => prev + 1)}
               title="Refresh queue"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <polyline points="23 4 23 10 17 10" />
-                <polyline points="1 20 1 14 7 14" />
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-              </svg>
+              <Icon name="refresh" size={14} />
               <span>Refresh</span>
             </button>
           </div>
@@ -476,7 +474,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
               <span className="queue-sort-label">Sorted by Priority & Urgency</span>
             </div>
 
-            <div className="review-table-head" aria-hidden="true"><span>Problem reference &amp; title</span><span>Category</span><span>Location</span><span>Priority &amp; score</span><span>Specialty &amp; recommended crew</span><span>Agent 4 validation</span></div>
+            <div className="review-table-head" aria-hidden="true"><span>Problem reference &amp; title</span><span>Category</span><span>Location</span><span>Priority &amp; score</span><span>Specialty &amp; recommended crew</span><span>Safety validation</span></div>
 
             {isLoadingList && (
               <div className="queue-skeleton-list">
@@ -661,7 +659,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
                   {/* Actions Header Strip */}
                   <div className="detail-action-buttons">
-                    {/* ─── MEMBER 3 SCOPE: Human Override — Edit Priority / Crew ─────── */}
+                    {/* Human Override — Edit Priority / Crew */}
                     <button
                       type="button"
                       className="dispatch-action-btn edit-btn"
@@ -676,7 +674,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       <span>Edit</span>
                     </button>
 
-                    {/* ─── MEMBER 3 SCOPE: Dispatch Optimization — Regenerate Recommendation ─────── */}
+                    {/* Dispatch Optimization — Regenerate Recommendation */}
                     <button
                       type="button"
                       className="dispatch-action-btn regen-btn"
@@ -692,7 +690,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       <span>Regenerate</span>
                     </button>
 
-                    {/* ─── MEMBER 4 SCOPE: Safety Gate — Rejection Authorization ──────── */}
+                    {/* Safety Gate — Rejection Authorization */}
                     <button
                       type="button"
                       className="dispatch-action-btn reject-btn"
@@ -707,7 +705,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                       <span>Reject</span>
                     </button>
 
-                    {/* ─── MEMBER 4 SCOPE: Safety Gate — Approval Authorization ──────── */}
+                    {/* Safety Gate — Approval Authorization */}
                     <button
                       type="button"
                       className="dispatch-action-btn approve-btn"
@@ -761,7 +759,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
 
                 {/* AI Reasoning & Justifications */}
                 <div className="detail-section reasoning-section">
-                  <span className="detail-section-label">Agent 3 Priority Rationale</span>
+                  <span className="detail-section-label">Priority Assessment Rationale</span>
                   {selectedDetail.priorityReasons && selectedDetail.priorityReasons.length > 0 ? (
                     <ul className="reasons-list">
                       {selectedDetail.priorityReasons.map((reason, idx) => (
@@ -813,7 +811,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                   </div>
                 </div>
 
-                {/* ─── MEMBER 4 SCOPE: Agent 4 Validation Review Panel ───────────── */}
+                {/* Safety Validation Review Panel */}
                 <ValidationReviewPanel key={selectedDetail.recommendationId} detail={selectedDetail} token={authToken}
                   onChange={(id, bucket) => { if (id) { requestedSelection.current = id; setReviewBucket('ALL'); setPage(1); setSelectedRecId(id); }
                     if (bucket) { requestedSelection.current = null; setReviewBucket(bucket); setPage(1); } setRefreshTrigger(v => v + 1); }} />
@@ -873,11 +871,11 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                   </div>
                 </div>
 
-                {/* Recorded Agent 4 checks; no frontend assumptions are treated as passing validation. */}
+                {/* Recorded safety checks; no frontend assumptions are treated as passing validation. */}
                 <div className="detail-section checklist-section">
                   <div className="checklist-header">
                     <div>
-                      <span className="detail-section-label">Recorded Agent 4 Checks</span>
+                      <span className="detail-section-label">Recorded Safety Checks</span>
                       <p className="checklist-sub">Checks from the saved review. Approval requires a passing review for the current revision.</p>
                     </div>
                     <span className="checklist-count-badge">
@@ -885,7 +883,7 @@ export const DispatchDashboardPage: React.FC<DispatchDashboardPageProps> = ({
                     </span>
                   </div>
 
-                  {validationChecklist.length === 0 && <p>No Agent 4 checks have been recorded for this review.</p>}
+                  {validationChecklist.length === 0 && <p>No safety checks have been recorded for this review.</p>}
                   <div className="checklist-grid">
                     {validationChecklist.map((item) => (
                       <div

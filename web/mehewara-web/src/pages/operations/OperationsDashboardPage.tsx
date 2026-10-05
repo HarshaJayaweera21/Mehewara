@@ -11,15 +11,15 @@ import { getRecommendations } from '../../services/dispatchApi';
 import { getWorkOrders } from '../../services/workOrdersApi';
 import { ROUTES } from '../../routes/paths';
 import { Icon } from '../../design-system/mehewara/Icon';
-import { Header, OpsNavStrip, HeroBanner, MetricsStrip } from '../../components/common';
+import { Header, OpsNavDrawer, HeroBanner, MetricsStrip } from '../../components/common';
 import './OperationsDashboardPage.css';
 
 interface OperationsDashboardPageProps {
   currentUser: User;
   token: string;
+  roleName?: string;
   onLogout?: () => void;
   onOpenProfile?: () => void;
-  onNavigateToReports?: () => void;
   onNavigateToProblems?: () => void;
   onNavigateToUncertainReports?: () => void;
   onNavigateToDispatch?: () => void;
@@ -59,13 +59,13 @@ const relativeTime = (value: string) => {
 };
 
 export function OperationsDashboardPage({
-  currentUser, token, onLogout, onOpenProfile, onNavigateToReports,
+  currentUser, token, roleName = 'Coordinator', onLogout, onOpenProfile,
   onNavigateToProblems, onNavigateToUncertainReports, onNavigateToDispatch,
   onNavigateToCrews, onNavigateToWorkOrders,
 }: OperationsDashboardPageProps) {
   const navigate = useNavigate();
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
-  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
   const goToProblems = onNavigateToProblems || (() => navigate(ROUTES.PROBLEMS));
   const goToUncertainReports = onNavigateToUncertainReports || (() => navigate(ROUTES.UNCERTAIN_REPORTS));
   const goToDispatch = onNavigateToDispatch || (() => navigate(ROUTES.DISPATCH));
@@ -134,35 +134,52 @@ export function OperationsDashboardPage({
   const shownReports = data.reports.filter(report => `${report.description} ${report.address ?? ''} ${report.category}`.toLowerCase().includes(query));
   const shownRecommendations = data.recommendations.filter(item => `${item.problemTitle} ${item.recommendationReason}`.toLowerCase().includes(query));
 
+  // Determine appropriate greeting based on actual local time of day
+  const timeGreeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      return 'Good Morning';
+    } else if (hour >= 12 && hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
+  }, []);
+
   return (
     <div className="ops-page-container">
-      <Header
-        currentUser={currentUser}
-        onLogout={handleSignOut}
-        onOpenProfile={goToProfile}
-        onBrandClick={() => navigate(ROUTES.OPERATIONS)}
-        roleBadgeText="Municipal Coordinator"
-        showName={true}
-      />
-
       <div className="ops-content-wrap">
-        <OpsNavStrip
+        <Header
+          currentUser={currentUser}
+          onLogout={handleSignOut}
+          onOpenProfile={goToProfile}
+          onBrandClick={() => navigate(ROUTES.OPERATIONS)}
+          roleBadgeText="Municipal Coordinator"
+          showName={true}
+          showMenuButton={true}
+          onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+          isMenuOpen={isNavDrawerOpen}
+        />
+
+        <OpsNavDrawer
+          isOpen={isNavDrawerOpen}
+          onClose={() => setIsNavDrawerOpen(false)}
           activePage="dashboard"
           pendingDispatchCount={data.recommendationCount ?? 0}
           onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
           onNavigateToProblems={goToProblems}
+          onNavigateToUncertainReports={goToUncertainReports}
           onNavigateToDispatch={goToDispatch}
           onNavigateToCrews={goToCrews}
           onNavigateToWorkOrders={goToWorkOrders}
-          onNavigateToReports={goToReports}
         />
 
         {/* 2. Operations Welcome Banner */}
         <HeroBanner
-          badge="MUNICIPAL COMMAND DESK"
-          title="Municipal Operations Command Desk"
-          subtitle="Live operational telemetry across municipal infrastructure defects, AI consolidation, crew readiness, and active field execution."
-          ariaLabel="Municipal Operations Banner"
+          badge="OPERATIONS SUITE"
+          title={`${timeGreeting}, ${roleName} — Operations Command Desk`}
+          subtitle="Centralized operational overview across municipal defects, crew deployments, and active field resolutions."
+          ariaLabel="Operations Command Desk Banner"
         />
 
         {/* 3. Operational Metrics Strip */}
@@ -174,7 +191,7 @@ export function OperationsDashboardPage({
               value: count(data.reportCount, loading),
               descriptor: `${count(data.pendingReportCount, loading)} awaiting processing`,
               hasPip: true,
-              onClick: goToReports,
+              onClick: goToProblems,
             },
             {
               id: 'problems',
@@ -311,7 +328,7 @@ export function OperationsDashboardPage({
               <p className="ops-panel-description">Submissions awaiting review and processing.</p>
               <div className="ops-stack">
                 {shownReports.map(report => (
-                  <button type="button" className="ops-report-card" key={report.id} onClick={goToReports}>
+                  <button type="button" className="ops-report-card" key={report.id} onClick={goToProblems}>
                     <span className="ops-report-photo">
                       {report.firstPhotoUrl ? <img src={report.firstPhotoUrl} alt="" /> : <Icon name="reports" size={24} />}
                     </span>
@@ -332,8 +349,8 @@ export function OperationsDashboardPage({
                   </p>
                 )}
               </div>
-              <button type="button" className="ops-panel-link" onClick={goToReports}>
-                Inspect all reports <Icon name="arrow-right" size={16} />
+              <button type="button" className="ops-panel-link" onClick={goToProblems}>
+                Inspect problems board <Icon name="arrow-right" size={16} />
               </button>
             </section>
             <section className="ops-panel ops-ai">

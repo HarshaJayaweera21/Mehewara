@@ -10,7 +10,8 @@ import type {
 import { getProblems, getUncertainReports } from '../../services/problemApi';
 import { getRecommendations } from '../../services/dispatchApi';
 import { Header, MetricsStrip } from '../../components/common';
-import { OpsNavStrip } from '../../components/common/OpsNavStrip';
+import { OpsNavDrawer } from '../../components/common/OpsNavDrawer';
+import { Icon } from '../../design-system/mehewara/Icon';
 import { CoordinatorWelcomeBanner } from '../../components/problems/CoordinatorWelcomeBanner';
 import { ProblemDetailModal } from './ProblemDetailModal';
 import { ROUTES } from '../../routes/paths';
@@ -20,7 +21,6 @@ export interface ProblemsPageProps {
   currentUser?: User | null;
   token?: string | null;
   onLogout?: () => void;
-  onNavigateToReports?: () => void;
   onOpenProfile?: () => void;
   onNavigateToLanding?: () => void;
   onSelectProblem?: (problemId: string) => void;
@@ -59,7 +59,6 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
   currentUser,
   token,
   onLogout,
-  onNavigateToReports,
   onOpenProfile,
   onNavigateToLanding,
   onSelectProblem,
@@ -70,8 +69,8 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
-  const goToReports = onNavigateToReports || (() => navigate(ROUTES.REPORTS));
   const goToLanding = onNavigateToLanding || (() => navigate(ROUTES.HOME));
   const goToUncertainReports = onNavigateToUncertainReports || (() => navigate(ROUTES.UNCERTAIN_REPORTS));
   const goToDispatch = onNavigateToDispatch || (() => navigate(ROUTES.DISPATCH));
@@ -341,70 +340,31 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
         {/* Navigation Bar (Extracted Reusable Header) */}
         <Header
           currentUser={currentUser}
+          showName={true}
           onLogout={onLogout}
           onOpenProfile={goToProfile}
           onBrandClick={goToLanding}
+          showMenuButton={true}
+          onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+          isMenuOpen={isNavDrawerOpen}
         />
 
-        {/* Operations Navigation Strip */}
-        <OpsNavStrip
+        {/* Operations Navigation Drawer */}
+        <OpsNavDrawer
+          isOpen={isNavDrawerOpen}
+          onClose={() => setIsNavDrawerOpen(false)}
           activePage="problems"
           pendingDispatchCount={pendingDispatchCount}
           onNavigateToDashboard={() => navigate(ROUTES.OPERATIONS)}
           onNavigateToProblems={() => {}}
+          onNavigateToUncertainReports={goToUncertainReports}
           onNavigateToDispatch={goToDispatch}
           onNavigateToCrews={goToCrews}
           onNavigateToWorkOrders={goToWorkOrders}
-          onNavigateToReports={goToReports}
         />
 
         {/* 1. Coordinator Welcome Banner (Stitch Generated with Real Time Greeting) */}
         <CoordinatorWelcomeBanner roleName="Coordinator" activeProblemsCount={metrics.totalActive} />
-
-        {/* 1.5. Coordinator Triage Alert Banner (Agent 2 HITL Queue) */}
-        {uncertainCount > 0 && (
-          <div
-            className="problems-uncertain-alert-banner"
-            onClick={goToUncertainReports}
-            role="button"
-            tabIndex={0}
-          >
-            <div className="uncertain-alert-left">
-              <div className="uncertain-alert-icon-wrap">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
-              </div>
-              <div className="uncertain-alert-body">
-                <div className="uncertain-alert-title-row">
-                  <span className="uncertain-alert-title">
-                    {uncertainCount} Report{uncertainCount > 1 ? 's' : ''} Require Coordinator Review
-                  </span>
-                  <span className="uncertain-alert-badge">Agent 2 Human-in-the-Loop</span>
-                </div>
-                <p className="uncertain-alert-desc">
-                  AI consolidation flagged borderline or ambiguous citizen defect submissions. Open triage to inspect evidence, manually link to existing problems, or create new problem records.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="uncertain-alert-cta-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                goToUncertainReports();
-              }}
-            >
-              <span>Review Uncertain Reports</span>
-              <span className="uncertain-cta-count">{uncertainCount}</span>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
-          </div>
-        )}
 
         {/* 2. Top Metrics Strip (Unified Component) */}
         <MetricsStrip
@@ -438,6 +398,51 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
           ariaLabel="Key Operational Metrics"
         />
 
+        {/* 2.5. Coordinator Triage Alert Banner */}
+        {uncertainCount > 0 && (
+          <div
+            className="problems-uncertain-alert-banner"
+            onClick={goToUncertainReports}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="uncertain-alert-left">
+              <div className="uncertain-alert-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </div>
+              <div className="uncertain-alert-body">
+                <div className="uncertain-alert-title-row">
+                  <span className="uncertain-alert-title">
+                    {uncertainCount} Report{uncertainCount > 1 ? 's' : ''} Require Coordinator Review
+                  </span>
+                  <span className="uncertain-alert-badge">Verification Required</span>
+                </div>
+                <p className="uncertain-alert-desc">
+                  Borderline or ambiguous citizen defect submissions require coordinator verification before consolidation.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="uncertain-alert-cta-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                goToUncertainReports();
+              }}
+            >
+              <span>Review Uncertain Reports</span>
+              <span className="uncertain-cta-count">{uncertainCount}</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* 3. Problems Section (Title & Filter / Search Toolbar) */}
         <div className="problems-search-filter-section">
           <div className="problems-section-header">
@@ -446,10 +451,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
 
           <section className="problems-toolbar" aria-label="Filter and Search Problems">
             <div className="problems-search-box">
-              <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
+              <Icon name="search" size={16} className="search-icon" />
               <input
                 type="text"
                 className="problems-search-input"
@@ -559,7 +561,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
               type="button"
               className="problems-uncertain-nav-btn"
               onClick={goToUncertainReports}
-              title="Review citizen reports flagged by Agent 2 as uncertain"
+              title="Review citizen reports requiring coordinator verification"
             >
               <span className="uncertain-nav-dot" />
               <span>Uncertain Reports</span>
@@ -571,7 +573,7 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
               type="button"
               className="problems-dispatch-nav-btn"
               onClick={goToDispatch}
-              title="Open Agent 3 Dispatch Queue & Recommendation Authorizations"
+              title="Open Dispatch Queue & Work Order Authorizations"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <polygon points="12 2 2 7 12 12 22 7 12 2" />
@@ -679,15 +681,13 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
               <p className="state-description">
                 Problems created from resident reports will appear here.
               </p>
-              {onNavigateToReports && (
-                <button
-                  type="button"
-                  className="state-action-secondary-btn"
-                  onClick={onNavigateToReports}
-                >
-                  View Resident Reports
-                </button>
-              )}
+              <button
+                type="button"
+                className="state-action-secondary-btn"
+                onClick={goToUncertainReports}
+              >
+                Review Uncertain Reports
+              </button>
             </div>
           </div>
         )}
