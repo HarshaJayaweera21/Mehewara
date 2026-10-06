@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import '../../core/storage/token_storage.dart';
 import '../../models/problem.dart';
 
 class ProblemService {
@@ -33,8 +34,14 @@ class ProblemService {
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
 
+      final token = await TokenStorage.getToken();
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
       final response = await http
-          .get(uri, headers: {'Content-Type': 'application/json'})
+          .get(uri, headers: headers)
           .timeout(const Duration(seconds: 4));
 
       if (response.statusCode == 200) {
@@ -56,8 +63,14 @@ class ProblemService {
   Future<Problem> getProblemById(String id) async {
     try {
       final uri = Uri.parse('$baseUrl/problems/$id');
+      final token = await TokenStorage.getToken();
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
       final response = await http
-          .get(uri, headers: {'Content-Type': 'application/json'})
+          .get(uri, headers: headers)
           .timeout(const Duration(seconds: 4));
 
       if (response.statusCode == 200) {

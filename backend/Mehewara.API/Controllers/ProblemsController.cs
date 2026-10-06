@@ -19,7 +19,6 @@ public class ProblemsController : ControllerBase
     }
 
     [HttpGet]
-    [AllowAnonymous]
     public async Task<ActionResult<PagedResult<ProblemResponse>>> GetProblems(
         [FromQuery] GetProblemsQuery query)
     {
@@ -28,7 +27,6 @@ public class ProblemsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [AllowAnonymous]
     public async Task<ActionResult<ProblemDetailResponse>> GetProblemById(Guid id)
     {
         var result = await _problemService.GetProblemByIdAsync(id);
@@ -36,6 +34,7 @@ public class ProblemsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/reports")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult<IEnumerable<ProblemReportResponse>>> GetReportsByProblemId(Guid id)
     {
         var result = await _problemService.GetReportsByProblemIdAsync(id);
@@ -43,6 +42,7 @@ public class ProblemsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult<ProblemResponse>> CreateProblem(
         CreateProblemRequest request)
     {
@@ -55,6 +55,7 @@ public class ProblemsController : ControllerBase
     }
 
     [HttpGet("uncertain-reports")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult<IEnumerable<Mehewara.API.DTOs.Problems.Consolidation.UncertainReportResponse>>> GetUncertainReports()
     {
         var result = await _problemService.GetUncertainReportsAsync();
@@ -62,6 +63,7 @@ public class ProblemsController : ControllerBase
     }
 
     [HttpPost("uncertain-reports/link")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult<ProblemResponse>> LinkUncertainReport(
         [FromBody] Mehewara.API.DTOs.Problems.Consolidation.LinkUncertainReportRequest request)
     {
@@ -70,6 +72,7 @@ public class ProblemsController : ControllerBase
     }
 
     [HttpPost("uncertain-reports/create")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult<ProblemResponse>> CreateProblemFromUncertainReport(
         [FromBody] Mehewara.API.DTOs.Problems.Consolidation.CreateProblemFromUncertainReportRequest request)
     {
@@ -81,6 +84,7 @@ public class ProblemsController : ControllerBase
     }
 
     [HttpPost("uncertain-reports/{id:guid}/cancel")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult> CancelUncertainReport(
         Guid id,
         [FromBody] Mehewara.API.DTOs.Problems.Consolidation.CancelUncertainReportRequest? request = null)
@@ -91,6 +95,7 @@ public class ProblemsController : ControllerBase
     }
 
     [HttpPost("uncertain-reports/cancel")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult> CancelUncertainReportByBody(
         [FromBody] Mehewara.API.DTOs.Problems.Consolidation.CancelUncertainReportRequest request)
     {
