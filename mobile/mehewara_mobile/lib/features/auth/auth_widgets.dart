@@ -54,37 +54,39 @@ class AuthBrand extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 14),
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'මෙහෙවර',
-              style: TextStyle(
-                color: CivicColors.forest,
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.4,
-                height: 1.1,
-                fontFamilyFallback: [
-                  'Noto Sans Sinhala',
-                  'Iskoola Pota',
-                  'Segoe UI',
-                  'sans-serif',
-                ],
+        const Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'මෙහෙවර',
+                style: TextStyle(
+                  color: CivicColors.forest,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.4,
+                  height: 1.1,
+                  fontFamilyFallback: [
+                    'Noto Sans Sinhala',
+                    'Iskoola Pota',
+                    'Segoe UI',
+                    'sans-serif',
+                  ],
+                ),
               ),
-            ),
-            SizedBox(height: 2),
-            Text(
-              'MEHEWARA • CIVIC PORTAL',
-              style: TextStyle(
-                color: CivicColors.slateGreen,
-                fontSize: 10.5,
-                letterSpacing: 1.4,
-                fontWeight: FontWeight.w700,
+              SizedBox(height: 2),
+              Text(
+                'MEHEWARA • CIVIC PORTAL',
+                style: TextStyle(
+                  color: CivicColors.slateGreen,
+                  fontSize: 10.5,
+                  letterSpacing: 1.4,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );

@@ -336,7 +336,7 @@ class _ReportsHero extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'My Reports',
+                    'My reports',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,

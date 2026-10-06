@@ -289,7 +289,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                                     )
                                   : const Icon(Icons.send_rounded, size: 20),
                               label: Text(
-                                _submitting ? 'Submitting Report…' : 'Submit Incident Report',
+                                _submitting ? 'Submitting Report…' : 'Submit report',
                                 style: const TextStyle(
                                   fontSize: 14.5,
                                   fontWeight: FontWeight.w800,
@@ -330,7 +330,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
 
   Widget _buildDetailsCard() {
     const categories = [
-      ('ROAD', 'Road Hazard', Icons.construction_outlined),
+      ('ROAD', 'Road', Icons.construction_outlined),
       ('DRAINAGE', 'Drainage', Icons.water_drop_outlined),
       ('WASTE', 'Waste', Icons.delete_sweep_outlined),
       ('ELECTRICAL', 'Electrical', Icons.electric_bolt_outlined),
@@ -363,7 +363,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Incident Information',
+                      'Tell us what you noticed',
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 15,
@@ -403,47 +403,33 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                 final isSelected = _category == cat.$1;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: Material(
-                    color: isSelected ? CivicColors.mintTint : const Color(0xFFF9FBF9),
-                    borderRadius: BorderRadius.circular(12),
-                    child: InkWell(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setState(() => _category = cat.$1);
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected
-                                ? CivicColors.forest
-                                : const Color(0xFFE2E8E4),
-                            width: isSelected ? 1.5 : 1.0,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              cat.$3,
-                              size: 16,
-                              color: isSelected ? CivicColors.forest : CivicColors.slateGreen,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              cat.$2,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                color: isSelected ? CivicColors.forest : CivicColors.charcoal,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                  child: ChoiceChip(
+                    avatar: Icon(
+                      cat.$3,
+                      size: 16,
+                      color: isSelected ? CivicColors.forest : CivicColors.slateGreen,
                     ),
+                    label: Text(cat.$2),
+                    labelStyle: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      color: isSelected ? CivicColors.forest : CivicColors.charcoal,
+                    ),
+                    selected: isSelected,
+                    onSelected: (_) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _category = cat.$1);
+                    },
+                    selectedColor: CivicColors.mintTint,
+                    backgroundColor: const Color(0xFFF9FBF9),
+                    side: BorderSide(
+                      color: isSelected ? CivicColors.forest : const Color(0xFFE2E8E4),
+                      width: isSelected ? 1.5 : 1.0,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    showCheckmark: false,
                   ),
                 );
               }).toList(),
@@ -514,7 +500,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
             ),
             validator: (value) =>
                 value == null || value.trim().length < 10
-                    ? 'Please enter at least 10 characters describing the issue.'
+                    ? 'Please enter at least 10 characters.'
                     : null,
           ),
           const SizedBox(height: 8),
@@ -576,7 +562,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Pinpoint Location',
+                      'Pin the location',
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 15,

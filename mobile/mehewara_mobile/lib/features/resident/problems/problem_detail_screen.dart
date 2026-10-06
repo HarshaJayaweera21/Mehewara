@@ -619,7 +619,7 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'Resolution Progress',
+                    'Resolution Progress Lifecycle',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -1013,7 +1013,7 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '$totalMerged ${totalMerged == 1 ? 'resident reported' : 'residents reported'} this same civic issue. Multiple submissions elevate municipal priority.',
+                    '$totalMerged ${totalMerged == 1 ? 'resident reported' : 'residents reported'} this same issue.',
                     style: const TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,

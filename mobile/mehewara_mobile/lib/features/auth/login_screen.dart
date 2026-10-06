@@ -241,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // 9. Watermark Civic Footer
               const Text(
-                'MEHEWARA • COMMUNITY WORKS',
+                'MUNICIPAL CIVIC OPERATIONS',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: CivicColors.subdued,
