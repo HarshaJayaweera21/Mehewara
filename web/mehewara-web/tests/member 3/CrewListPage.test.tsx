@@ -3,36 +3,30 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { CrewListPage } from '../../src/pages/crews/CrewListPage';
-import type { CrewListItem } from '../../src/types/crew';
+import type { CrewDetail } from '../../src/types/crew';
 
-const mockCrewsList: CrewListItem[] = [
+const mockCrewsList: CrewDetail[] = [
   {
     id: 'crew-001',
     name: 'Drainage Rapid Response Unit Alpha',
     crewType: 'DRAINAGE',
     status: 'AVAILABLE',
+    crewLeaderUserId: 'user-001',
+    activeWorkOrderId: null,
     crewLeaderName: 'Sunil Perera',
     contactNumber: '+94 11 269 1111',
     description: 'Specialized in storm drain clogs and pump operation',
-    currentLatitude: 6.9271,
-    currentLongitude: 79.8612,
-    activeWorkOrdersCount: 0,
-    completedWorkOrdersCount: 14,
-    createdAt: '2026-09-01T00:00:00Z',
   },
   {
     id: 'crew-002',
     name: 'Road Engineering Unit Beta',
     crewType: 'ROAD',
     status: 'BUSY',
+    crewLeaderUserId: 'user-002',
+    activeWorkOrderId: 'wo-002',
     crewLeaderName: 'Nimal Bandara',
     contactNumber: '+94 11 269 2222',
     description: 'Asphalt paving and emergency pothole remediation',
-    currentLatitude: 6.915,
-    currentLongitude: 79.87,
-    activeWorkOrdersCount: 2,
-    completedWorkOrdersCount: 28,
-    createdAt: '2026-09-01T00:00:00Z',
   },
 ];
 

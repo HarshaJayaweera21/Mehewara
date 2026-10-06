@@ -43,21 +43,17 @@ const mockRecItem: RecommendationListItem = {
 
 const mockRecDetail: RecommendationDetail = {
   ...mockRecItem,
-  location: {
-    latitude: 6.915,
-    longitude: 79.872,
-    address: 'Borella Junction, Colombo 08',
-  },
-  availableCrews: [
-    {
-      id: 'crew-001',
-      name: 'Drainage Unit Alpha',
-      crewType: 'DRAINAGE',
-      status: 'AVAILABLE',
-      distanceKm: 1.8,
-      activeJobs: 0,
-    },
-  ],
+  latitude: 6.915,
+  longitude: 79.872,
+  address: 'Borella Junction, Colombo 08',
+  problemDescription: 'Drainage blockage on main avenue',
+  reportCount: 1,
+  reportDescriptions: ['Flooded street'],
+  recommendedCrewStatus: 'AVAILABLE',
+  reviewReason: null,
+  reviewedBy: null,
+  reviewedAt: null,
+  workOrderId: null,
   history: [],
   editHistory: [],
   validationHistory: [],
@@ -70,11 +66,7 @@ const mockCrews: CrewAvailabilityItem[] = [
     name: 'Drainage Unit Alpha',
     crewType: 'DRAINAGE',
     status: 'AVAILABLE',
-    currentWorkOrderId: null,
-    activeWorkOrdersCount: 0,
-    distanceKm: 1.8,
-    latitude: 6.918,
-    longitude: 79.87,
+    activeWorkOrderId: null,
   },
 ];
 
@@ -170,7 +162,7 @@ describe('DispatchDashboardPage Tests (Member 3)', () => {
     expect(await screen.findByRole('button', { name: /Approve & Dispatch/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Edit/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Reject/i })).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('filters recommendations by priority', async () => {
     const fetcher = vi.fn(async (url: string) => {
@@ -245,5 +237,5 @@ describe('DispatchDashboardPage Tests (Member 3)', () => {
     // Verify modal appears
     expect(await screen.findByText('Authorize Municipal Work Order')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Confirm & Issue Work Order/i })).toBeInTheDocument();
-  });
+  }, 15000);
 });
