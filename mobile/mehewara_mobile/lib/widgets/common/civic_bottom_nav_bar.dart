@@ -9,21 +9,83 @@ enum CivicNavTab {
   profile,
 }
 
+/// Data model for a single tab in a [CivicBottomNavBar.custom] bar.
+class CivicNavItem {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+
+  const CivicNavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+  });
+}
+
 /// Modern civic bottom navigation bar matching Mehewara municipal aesthetic.
 class CivicBottomNavBar extends StatelessWidget {
   final CivicNavTab currentTab;
   final ValueChanged<CivicNavTab>? onTabSelected;
   final VoidCallback? onReportIssuePressed;
 
+  final List<CivicNavItem>? _items;
+  final int? _currentIndex;
+  final ValueChanged<int>? _onSelected;
+
   const CivicBottomNavBar({
     super.key,
     this.currentTab = CivicNavTab.myReports,
     this.onTabSelected,
     this.onReportIssuePressed,
-  });
+  })  : _items = null,
+        _currentIndex = null,
+        _onSelected = null;
+
+  const CivicBottomNavBar.custom({
+    super.key,
+    required int currentIndex,
+    required ValueChanged<int> onSelected,
+    required List<CivicNavItem> items,
+  })  : _items = items, // ignore: prefer_initializing_formals
+        _currentIndex = currentIndex, // ignore: prefer_initializing_formals
+        _onSelected = onSelected, // ignore: prefer_initializing_formals
+        currentTab = CivicNavTab.myReports,
+        onTabSelected = null,
+        onReportIssuePressed = null;
+
+  factory CivicBottomNavBar.crew({
+    Key? key,
+    required int currentIndex,
+    required ValueChanged<int> onTabSelected,
+  }) {
+    return CivicBottomNavBar.custom(
+      key: key,
+      currentIndex: currentIndex,
+      onSelected: onTabSelected,
+      items: const [
+        CivicNavItem(
+          icon: Icons.radar_outlined,
+          activeIcon: Icons.radar_rounded,
+          label: 'Status & Depot',
+        ),
+        CivicNavItem(
+          icon: Icons.assignment_outlined,
+          activeIcon: Icons.assignment_rounded,
+          label: 'Mission Queue',
+        ),
+        CivicNavItem(
+          icon: Icons.person_outline_rounded,
+          activeIcon: Icons.person_rounded,
+          label: 'Squad Profile',
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final items = _items ?? _defaultItems;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -51,59 +113,64 @@ class CivicBottomNavBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              // Tab 1: My Reports
-              _buildNavItem(
-                icon: Icons.assignment_outlined,
-                activeIcon: Icons.assignment_rounded,
-                label: 'My Reports',
-                isActive: currentTab == CivicNavTab.myReports,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onTabSelected?.call(CivicNavTab.myReports);
-                },
-              ),
-
-              // Tab 2: Report Issue (Standard uniform nav item)
-              _buildNavItem(
-                icon: Icons.add_circle_outline_rounded,
-                activeIcon: Icons.add_circle_rounded,
-                label: 'Report Issue',
-                isActive: currentTab == CivicNavTab.reportIssue,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onReportIssuePressed?.call();
-                  onTabSelected?.call(CivicNavTab.reportIssue);
-                },
-              ),
-
-              // Tab 3: Incidents Map & Feed
-              _buildNavItem(
-                icon: Icons.map_outlined,
-                activeIcon: Icons.map_rounded,
-                label: 'Incidents',
-                isActive: currentTab == CivicNavTab.incidents,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onTabSelected?.call(CivicNavTab.incidents);
-                },
-              ),
-
-              // Tab 4: Profile
-              _buildNavItem(
-                icon: Icons.person_outline_rounded,
-                activeIcon: Icons.person_rounded,
-                label: 'Profile',
-                isActive: currentTab == CivicNavTab.profile,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onTabSelected?.call(CivicNavTab.profile);
-                },
-              ),
+              for (var i = 0; i < items.length; i++)
+                _buildNavItem(
+                  icon: items[i].icon,
+                  activeIcon: items[i].activeIcon,
+                  label: items[i].label,
+                  isActive: _isItemActive(i),
+                  onTap: () => _handleTap(i),
+                ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  List<CivicNavItem> get _defaultItems => const [
+        CivicNavItem(
+          icon: Icons.assignment_outlined,
+          activeIcon: Icons.assignment_rounded,
+          label: 'My Reports',
+        ),
+        CivicNavItem(
+          icon: Icons.add_circle_outline_rounded,
+          activeIcon: Icons.add_circle_rounded,
+          label: 'Report Issue',
+        ),
+        CivicNavItem(
+          icon: Icons.map_outlined,
+          activeIcon: Icons.map_rounded,
+          label: 'Incidents',
+        ),
+        CivicNavItem(
+          icon: Icons.person_outline_rounded,
+          activeIcon: Icons.person_rounded,
+          label: 'Profile',
+        ),
+      ];
+
+  bool _isItemActive(int index) {
+    if (_items != null) {
+      return _currentIndex == index;
+    }
+    return currentTab.index == index;
+  }
+
+  void _handleTap(int index) {
+    HapticFeedback.selectionClick();
+
+    if (_items != null) {
+      _onSelected?.call(index);
+      return;
+    }
+
+    final tab = CivicNavTab.values[index];
+    if (tab == CivicNavTab.reportIssue) {
+      onReportIssuePressed?.call();
+    }
+    onTabSelected?.call(tab);
   }
 
   Widget _buildNavItem({

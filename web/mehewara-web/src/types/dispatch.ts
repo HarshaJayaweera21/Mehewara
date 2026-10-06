@@ -2,6 +2,8 @@
  * Prioritization & Crew Dispatch Types
  */
 
+export type { PagedResult } from './common';
+
 export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 export type ValidationStatus = 'VALID' | 'WARNING' | 'REVISION_REQUIRED' | 'INVALID' | 'ERROR' | 'NOT_RUN';
