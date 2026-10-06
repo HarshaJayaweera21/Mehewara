@@ -34,6 +34,9 @@ const baseRecommendation: RecommendationListItem = {
   recommendedCrewName: 'Road Crew Alpha',
   recommendationReason: 'Road crew needed urgently',
   dispatchStrategy: 'STANDARD_DISPATCH',
+  validation: { status: 'VALID', issues: [] },
+  reviewDecision: null,
+  createdAt: '2026-10-01T00:00:00Z',
 };
 
 const reply = (data: unknown, status = 200) =>

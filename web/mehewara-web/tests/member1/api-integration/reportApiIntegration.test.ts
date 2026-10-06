@@ -61,7 +61,7 @@ describe('Report & Auth API Integration Tests (Member 1)', () => {
   });
 
   it('uploadReportPhoto sends multipart form data without a JSON content-type header', async () => {
-    const mockUploaded: ReportPhotoDto = { photoId: 'photo-1', photoUrl: 'https://cdn.example.com/photo-1.jpg', fileName: 'pothole.jpg', mimeType: 'image/jpeg' };
+    const mockUploaded: ReportPhotoDto = { photoId: 'photo-1', photoUrl: 'https://cdn.example.com/photo-1.jpg', fileName: 'pothole.jpg', mimeType: 'image/jpeg', uploadedAt: '2026-10-01T00:00:00Z' };
     globalThis.fetch = vi.fn().mockResolvedValue(mockJsonResponse(mockUploaded));
 
     const file = new File(['fake-image-bytes'], 'pothole.jpg', { type: 'image/jpeg' });

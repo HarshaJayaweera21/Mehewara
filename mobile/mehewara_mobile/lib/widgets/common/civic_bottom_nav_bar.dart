@@ -46,9 +46,9 @@ class CivicBottomNavBar extends StatelessWidget {
     required int currentIndex,
     required ValueChanged<int> onSelected,
     required List<CivicNavItem> items,
-  })  : _items = items,
-        _currentIndex = currentIndex,
-        _onSelected = onSelected,
+  })  : _items = items, // ignore: prefer_initializing_formals
+        _currentIndex = currentIndex, // ignore: prefer_initializing_formals
+        _onSelected = onSelected, // ignore: prefer_initializing_formals
         currentTab = CivicNavTab.myReports,
         onTabSelected = null,
         onReportIssuePressed = null;

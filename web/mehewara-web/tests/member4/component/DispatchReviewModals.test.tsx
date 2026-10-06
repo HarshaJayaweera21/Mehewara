@@ -38,6 +38,9 @@ const baseRecommendation: RecommendationListItem = {
   estimatedDurationMinutes: 90,
   distanceKm: 2.5,
   estimatedTravelMinutes: 15,
+  validation: { status: 'VALID', issues: [] },
+  reviewDecision: null,
+  createdAt: '2026-10-01T00:00:00Z',
 };
 
 const reply = (data: unknown, status = 200) =>
@@ -69,7 +72,7 @@ describe('ApproveRecommendationModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /Confirm & Issue Work Order/ }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledWith('wo-123'));
-    const [url, options] = fetcher.mock.calls[0] as [string, RequestInit];
+    const [url, options] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toContain('/dispatch/recommendations/rec-1/approve');
     expect(JSON.parse(options.body as string)).toEqual({
       reason: undefined,
@@ -162,7 +165,7 @@ describe('RejectRecommendationModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Rejection' }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
-    const [url, options] = fetcher.mock.calls[0] as [string, RequestInit];
+    const [url, options] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toContain('/dispatch/recommendations/rec-1/reject');
     expect(JSON.parse(options.body as string)).toEqual({
       reason: 'Crew reassigned to emergency ward',
@@ -211,7 +214,7 @@ describe('EditRecommendationModal', () => {
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
     const editCall = fetcher.mock.calls.find(([url]) => (url as string).includes('/dispatch/recommendations/rec-1'));
-    const [, options] = editCall as [string, RequestInit];
+    const [, options] = editCall as unknown as [string, RequestInit];
     const body = JSON.parse(options.body as string);
     expect(body.priority).toBe('CRITICAL');
     expect(body.editReason).toBe('Escalated after second report');
@@ -243,7 +246,7 @@ describe('RegenerateRecommendationModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Regenerate Assessment' }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
-    const [url, options] = fetcher.mock.calls[0] as [string, RequestInit];
+    const [url, options] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toContain('/dispatch/recommendations/rec-1/regenerate');
     const body = JSON.parse(options.body as string);
     expect(body.reason).toBe('Crew went unavailable, reassign');
