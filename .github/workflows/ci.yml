@@ -31,14 +31,18 @@ jobs:
         run: |
           dotnet restore backend/Mehewara.API/Mehewara.API.csproj
           dotnet restore test/Mehewara.Tests.Member2/Mehewara.Tests.Member2.csproj
+          dotnet restore test/Mehewara.Tests.Member3/Mehewara.Tests.Member3.csproj
 
       - name: Build API and Tests
         run: |
           dotnet build backend/Mehewara.API/Mehewara.API.csproj --configuration Release --no-restore
           dotnet build test/Mehewara.Tests.Member2/Mehewara.Tests.Member2.csproj --configuration Release --no-restore
+          dotnet build test/Mehewara.Tests.Member3/Mehewara.Tests.Member3.csproj --configuration Release --no-restore
 
       - name: Run backend tests
-        run: dotnet test test/Mehewara.Tests.Member2/Mehewara.Tests.Member2.csproj --configuration Release --no-build
+        run: |
+          dotnet test test/Mehewara.Tests.Member2/Mehewara.Tests.Member2.csproj --configuration Release --no-build
+          dotnet test test/Mehewara.Tests.Member3/Mehewara.Tests.Member3.csproj --configuration Release --no-build
 
   ai-service:
     name: AI service tests
