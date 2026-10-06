@@ -338,11 +338,20 @@ Mehewara/
 
 ## 🌐 Live System & Deployment
 
-* **Swagger API Documentation:** `https://api.mehewara.gov.lk/swagger` *(or `http://localhost:5000/swagger`)*
-* **API Health Check:** `https://api.mehewara.gov.lk/health`
-* **Coordinator Web Portal:** `https://app.mehewara.gov.lk` *(or `http://localhost:5173`)*
-* **Android APK Download:** [Download Mehewara Field Release APK](https://github.com/HarshaJayaweera21/Mehewara/releases)
-* **10-Minute System Demonstration:** [Watch Video Demonstration](https://youtu.be/example-mehewara-demo)
+The production system is deployed on a dedicated cloud host (`51.79.240.142`) orchestrated via Docker Compose with an Nginx reverse proxy gateway.
+
+| Resource | URL / Access Path | Description & Access Notes |
+| :--- | :--- | :--- |
+| **Coordinator Web Portal** | [http://51.79.240.142/](http://51.79.240.142/) | Production React 18 web application |
+| **Swagger UI** | [http://51.79.240.142/swagger/index.html](http://51.79.240.142/swagger/index.html) | Interactive API exploration and live testing |
+| **API Health Endpoint** | [http://51.79.240.142/health](http://51.79.240.142/health) | System health status (`HTTP 200 OK` JSON body) |
+| **OpenAPI Definition** | [http://51.79.240.142/swagger/v1/swagger.json](http://51.79.240.142/swagger/v1/swagger.json) | Raw OpenAPI v1 JSON schema definition |
+| **Business API Base** | `http://51.79.240.142/api` | Reverse-proxied gateway; protected calls require Bearer JWT |
+| **Mobile Android APK** | [Download APK (Google Drive)](https://drive.google.com/drive/folders/1rwlvVtLey2Kk6OtXGyAplTVokG1qjRf?usp=sharing) | Runnable Flutter Android release build |
+| **Source Repository** | [GitHub Repository](https://github.com/HarshaJayaweera21/Mehewara) | Source code, branches, and execution evidence |
+| **AI Subsystem (Internal)** | `http://ai-service:8000` | Internal container network; protected from direct public access |
+| **Database (Internal)** | `postgres-db:5432` | Internal PostgreSQL container connection |
+| **System Demonstration** | [Watch Video Demonstration](https://youtu.be/example-mehewara-demo) | 10-minute end-to-end recorded system walkthrough |
 
 ---
 
