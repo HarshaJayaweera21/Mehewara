@@ -314,14 +314,13 @@ Mehewara/
 
 ## 📐 Architecture Decision Records (ADRs)
 
-| Record | Title | Summary & Technical Justification |
+| Record | Title | Decision & Technical Justification |
 | :--- | :--- | :--- |
-| **ADR-01** | **Clustering vs. Triage Boundary** | AI generates semantic clusters; ASP.NET Core retains authoritative problem creation and coordinator review. |
-| **ADR-02** | **Report-Problem Association Strategy** | Many-to-many relationship via `report_problems` junction allowing safe re-clustering and correction. |
-| **ADR-03** | **LangGraph Sequential Pipeline** | Structured linear DAG (`Agent 1 → Agent 2 → Agent 3 → Agent 4`) orchestrated through a single unified workflow entrypoint. |
-| **ADR-04** | **Deterministic Tool Execution** | Avoids LLM-driven ReAct AFC recursion bugs by executing allow-listed tools programmatically in Python and injecting results into the system prompt. |
-| **ADR-05** | **Agent 1 Passthrough Schema** | Downstream agents read normalized facts directly from workflow state without re-invoking previous agents. |
-| **ADR-06** | **Safe Failure & Approval Invariants** | Unrecognized or uncertain recommendations fail gracefully; human coordinator retains exclusive dispatch authority. |
+| **ADR-01** | **React State-Management Approach** | **React Context API + Custom Hooks:** Adopted native React state mechanisms for authentication, theme, and notifications combined with localized hook state for dispatch triage and modals. Avoids third-party bundle overhead (Redux/Zustand) while maintaining clean separation of concerns and fast HMR performance. |
+| **ADR-02** | **Flutter State-Management Approach** | **Provider Pattern (`provider: ^6.1.5`):** Selected Provider with `ChangeNotifier` for reactive UI binding across Citizen reporting and Crew Leader field screens. Provides clean lifecycle dependency injection, seamless `flutter_secure_storage` JWT session handling, and efficient real-time GPS telemetry updates with minimal boilerplate. |
+| **ADR-03** | **Agentic AI Framework & Orchestration Method** | **LangGraph Sequential Pipeline (`FastAPI`):** Selected LangGraph DAG orchestration for a strictly ordered 4-agent cognitive pipeline (`Agent 1 → Agent 2 → Agent 3 → Agent 4`). Eliminates unpredictable ReAct looping by executing allow-listed tools deterministically in Python before prompt injection and enforcing structured Pydantic schema validation. |
+| **ADR-04** | **Database Schema Strategy for Workflow State** | **Normalized Relational Audit Persistence (PostgreSQL):** Persists durable workflow execution state across `workflow_runs`, `workflow_events`, and `approval_history` tables. Retains structured agent input/output payloads, execution timestamps, and human approval audit trails while strictly omitting non-deterministic hidden chain-of-thought tokens. |
+| **ADR-05** | **Cloud Deployment Platform** | **Self-Hosted Linux VPS with Docker Compose & Nginx:** Deployed on a dedicated Cloud VPS host (`51.79.240.142`) using multi-container Docker Compose orchestration and an Nginx 1.27 reverse proxy gateway. Isolates internal microservices (FastAPI AI, PostgreSQL) from public exposure while providing unified CORS, SSL termination, and centralized health monitoring. |
 
 ---
 
@@ -329,10 +328,10 @@ Mehewara/
 
 | Member | Primary Ownership | Component Responsibilities | GitHub Profile |
 | :---: | :--- | :--- | :---: |
-| **Member 1** | **Report & Intake Management** | Citizen mobile reporting with GPS/photos, Report REST APIs, PostgreSQL `reports` schema, Agent 1 (Report Structuring). | [@HarshaJayaweera21](https://github.com/HarshaJayaweera21) |
-| **Member 2** | **Problem Identification & Consolidation** | Coordinator problem explorer, consolidation APIs, `problems` & `report_problems` schema, Agent 2 (Problem Consolidation). | [@nuwandh](https://github.com/nuwandh) |
+| **Member 1** | **Report & Intake Management** | Citizen mobile reporting with GPS/photos, Report REST APIs, PostgreSQL `reports` schema, Agent 1 (Report Structuring). | [@bimsara2003](https://github.com/bimsara2003) |
+| **Member 2** | **Problem Identification & Consolidation** | Coordinator problem explorer, consolidation APIs, `problems` & `report_problems` schema, Agent 2 (Problem Consolidation). | [@HarshaJayaweera21](https://github.com/HarshaJayaweera21) |
 | **Member 3** | **Prioritization & Crew Dispatch** | Coordinator dispatch triage dashboard & action modals, Crew APIs, `crews` schema, Agent 3 (Priority & Crew Matching). | [@ssshanaka](https://github.com/ssshanaka) |
-| **Member 4** | **Work Orders & Crew Execution** | Crew mobile field execution terminal, WorkOrder APIs, `work_orders` & `approval_history`, Agent 4 (Validation & Safety). | [@bimsara2003](https://github.com/bimsara2003) |
+| **Member 4** | **Work Orders & Crew Execution** | Crew mobile field execution terminal, WorkOrder APIs, `work_orders` & `approval_history`, Agent 4 (Validation & Safety). | [@nuwandh](https://github.com/nuwandh) |
 
 ---
 
