@@ -9,7 +9,7 @@ import {
   removeProfilePhoto,
 } from '../../services/api';
 import type { User } from '../../types/auth';
-import { isCrewLeader } from '../../types/access';
+import { isCrewLeader, getHomePathForRole } from '../../types/access';
 import { ROUTES } from '../../routes/paths';
 import { LandingPage } from '../landing/LandingPage';
 import { AuthShell } from '../landing/AuthShell';
@@ -125,7 +125,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 localStorage.setItem('mehewara_token', authData.accessToken);
                 localStorage.setItem('mehewara_user', JSON.stringify(authData.user));
                 setCurrentUser(authData.user);
-                onLoginSuccess?.(authData.user, authData.accessToken);
+                if (onLoginSuccess) {
+                  onLoginSuccess(authData.user, authData.accessToken);
+                } else {
+                  navigate(getHomePathForRole(authData.user.role), { replace: true });
+                }
               } catch (err: unknown) {
                 setError(err instanceof Error ? err.message : 'Google authentication failed.');
               } finally {
@@ -161,7 +165,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       }, 150);
       return () => clearInterval(interval);
     }
-  }, [googleClientId, currentUser, activeTab, publicView, onLoginSuccess]);
+  }, [googleClientId, currentUser, activeTab, publicView, onLoginSuccess, navigate]);
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,7 +181,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       localStorage.setItem('mehewara_token', authData.accessToken);
       localStorage.setItem('mehewara_user', JSON.stringify(authData.user));
       setCurrentUser(authData.user);
-      onLoginSuccess?.(authData.user, authData.accessToken);
+      if (onLoginSuccess) {
+        onLoginSuccess(authData.user, authData.accessToken);
+      } else {
+        navigate(getHomePathForRole(authData.user.role), { replace: true });
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to sign in.');
     } finally {
@@ -205,7 +213,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       localStorage.setItem('mehewara_token', authData.accessToken);
       localStorage.setItem('mehewara_user', JSON.stringify(authData.user));
       setCurrentUser(authData.user);
-      onLoginSuccess?.(authData.user, authData.accessToken);
+      if (onLoginSuccess) {
+        onLoginSuccess(authData.user, authData.accessToken);
+      } else {
+        navigate(getHomePathForRole(authData.user.role), { replace: true });
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Registration failed.');
     } finally {
@@ -601,9 +613,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <button
                   type="button"
                   className="submit-btn"
-                  onClick={() => onNavigateToReports?.()}
+                  onClick={() => {
+                    if (onNavigateToReports) {
+                      onNavigateToReports();
+                    } else {
+                      navigate(getHomePathForRole(currentUser.role));
+                    }
+                  }}
                 >
-                  {currentUser.role === 'ADMIN' ? 'Go to coordinator dashboard' : isCrewLeader(currentUser.role) ? 'Go to My Jobs' : 'Go to Reports Portal'}
+                  {currentUser.role === 'ADMIN' || currentUser.role === 'COORDINATOR'
+                    ? 'Go to coordinator dashboard'
+                    : isCrewLeader(currentUser.role)
+                    ? 'Go to My Jobs'
+                    : 'Go to Reports Portal'}
                 </button>
                 <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
                   <button

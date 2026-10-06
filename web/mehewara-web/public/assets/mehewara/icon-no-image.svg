@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="no-image-title" fill="none" stroke="currentColor" color="#123C32" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <title id="no-image-title">No image attached</title>
+  <path d="M8 4h11a2 2 0 0 1 2 2v9M3 8v10a2 2 0 0 0 2 2h11M3 16l5-5 5 5M16 12l5 5M3 3l18 18"/>
+  <circle cx="16" cy="8" r="1.5"/>
+</svg>

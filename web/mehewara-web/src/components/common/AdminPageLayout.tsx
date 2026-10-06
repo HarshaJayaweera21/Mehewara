@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Header } from './Header';
-import { OpsNavStrip, type OpsNavPage } from './OpsNavStrip';
+import { OpsNavDrawer, type OpsNavPage } from './OpsNavDrawer';
 import type { User } from '../../types/auth';
 import './AdminPageLayout.css';
 
@@ -25,6 +25,8 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
   className = '',
   children,
 }) => {
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
+
   return (
     <div className="mw-admin-layout">
       <Header
@@ -32,8 +34,13 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
         onLogout={onLogout}
         onOpenProfile={onOpenProfile}
         onBrandClick={onBrandClick}
+        showMenuButton={true}
+        onMenuClick={() => setIsNavDrawerOpen(prev => !prev)}
+        isMenuOpen={isNavDrawerOpen}
       />
-      <OpsNavStrip
+      <OpsNavDrawer
+        isOpen={isNavDrawerOpen}
+        onClose={() => setIsNavDrawerOpen(false)}
         activePage={activeNavPage}
         pendingDispatchCount={pendingDispatchCount}
       />

@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/theme/app_theme.dart';
 import '../../../widgets/common/civic_bottom_nav_bar.dart';
+import '../../../widgets/common/civic_header.dart';
 import '../../../widgets/problems/category_filter_bar.dart';
 import '../../../widgets/problems/problem_pin_marker.dart';
 import '../../../widgets/problems/problem_preview_card.dart';
+import '../../auth/auth_widgets.dart';
 import 'problem_detail_screen.dart';
 import 'problem_explorer_provider.dart';
 
@@ -38,18 +42,33 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
       child: Consumer<ProblemExplorerProvider>(
         builder: (context, provider, _) {
           return Scaffold(
-            backgroundColor: CivicColors.alabaster,
+            backgroundColor: const Color(0xFFF4F7F4),
+            appBar: CivicHeader(
+              title: 'Community Incidents',
+              subtitle: 'Live Municipal Map & Directory',
+              actions: [
+                IconButton(
+                  tooltip: 'Refresh',
+                  icon: const Icon(Icons.refresh_rounded, color: CivicColors.forest),
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    provider.loadProblems();
+                  },
+                ),
+                const SizedBox(width: 4),
+              ],
+            ),
             body: SafeArea(
               child: Stack(
                 children: [
-                  // 1. MAIN BACKGROUND: MAP VIEW OR LIST VIEW
+                  // 1. MAIN BODY: MAP VIEW OR LIST VIEW
                   Positioned.fill(
                     child: provider.viewMode == ExplorerViewMode.map
                         ? _buildMapView(provider)
                         : _buildListView(provider),
                   ),
 
-                  // 2. TOP HEADER SECTION (Z-INDEX OVER MAP)
+                  // 2. TOP HEADER SECTION (FROSTED OVERLAY)
                   Positioned(
                     top: 0,
                     left: 0,
@@ -57,28 +76,37 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
                     child: _buildTopHeaderSection(provider),
                   ),
 
-                  // 3. FLOATING BOTTOM CARD (When Map Mode is active and problem selected)
-                  if (provider.viewMode == ExplorerViewMode.map &&
-                      provider.selectedProblem != null)
+                  // 3. FLOATING PREVIEW CARD OR INITIAL ADVISORY CARD (When Map Mode is active)
+                  if (provider.viewMode == ExplorerViewMode.map)
                     Positioned(
                       left: 14,
                       right: 14,
-                      bottom: widget.embedded ? 14 : 74, // Above the bottom nav bar
-                      child: ProblemPreviewCard(
-                        problem: provider.selectedProblem!,
-                        onTrackProgress: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => ProblemDetailScreen(
+                      bottom: widget.embedded ? 14 : 76,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child: provider.selectedProblem != null
+                            ? ProblemPreviewCard(
+                                key: ValueKey('preview_${provider.selectedProblem!.id}'),
                                 problem: provider.selectedProblem!,
-                              ),
-                            ),
-                          );
-                        },
+                                onClose: () {
+                                  HapticFeedback.selectionClick();
+                                  provider.selectProblem(null);
+                                },
+                                onTrackProgress: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => ProblemDetailScreen(
+                                        problem: provider.selectedProblem!,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : _buildAdvisoryCard(provider),
                       ),
                     ),
 
-                  // 4. BOTTOM NAVIGATION BAR
+                  // 4. BOTTOM NAVIGATION BAR (When not embedded in resident shell)
                   if (!widget.embedded)
                     const Positioned(
                       left: 0,
@@ -98,46 +126,138 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
   }
 
   // ===========================================================================
+  // INITIAL ADVISORY GUIDE CARD
+  // ===========================================================================
+  Widget _buildAdvisoryCard(ProblemExplorerProvider provider) {
+    return Container(
+      key: const ValueKey('advisory_guide_card'),
+      decoration: BoxDecoration(
+        color: CivicColors.cardSurface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFDCE5DF), width: 1.2),
+        boxShadow: const [CivicShadows.card],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: CivicColors.mintTint,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: CivicColors.mintPip.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.explore_rounded,
+                    size: 22,
+                    color: CivicColors.forest,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Reported Community Incidents',
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: CivicColors.forest,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Here are the problems we have so far. Please check before submitting a new report. Click on an icon on the map to view its details.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: CivicColors.charcoal,
+                        fontWeight: FontWeight.w500,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F7F4),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0x99DCE5DF), width: 1),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.touch_app_rounded,
+                  size: 15,
+                  color: CivicColors.forest,
+                ),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    '${provider.problems.length} reported problems in this area • Tap any icon to inspect',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: CivicColors.forest,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
   // TOP HEADER & FILTER SECTION
   // ===========================================================================
   Widget _buildTopHeaderSection(ProblemExplorerProvider provider) {
     return Container(
       decoration: BoxDecoration(
-        color: CivicColors.alabaster.withValues(alpha: 0.96),
+        color: const Color(0xFFF4F7F4).withValues(alpha: 0.95),
         border: const Border(
-          bottom: BorderSide(color: Color(0x99DDE2DE), width: 1),
+          bottom: BorderSide(color: Color(0x99DCE5DF), width: 1.2),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.only(top: 8, bottom: 8),
+      padding: const EdgeInsets.only(top: 8, bottom: 10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 1. App Bar Row
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Center(
-              child: Text(
-                'Community Incidents',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: CivicColors.charcoal,
-                  letterSpacing: -0.3,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // 2. Search Bar
+          // 1. Search Input
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
-              height: 40,
+              height: 42,
               decoration: BoxDecoration(
                 color: CivicColors.cardSurface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: CivicColors.borderSubtle, width: 1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFDCE5DF), width: 1.2),
                 boxShadow: const [CivicShadows.subtle],
               ),
               child: Row(
@@ -145,20 +265,24 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
                   const SizedBox(width: 12),
                   const Icon(
                     Icons.search_rounded,
-                    size: 18,
-                    color: CivicColors.slateGreen,
+                    size: 19,
+                    color: CivicColors.forest,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
                       controller: _searchController,
-                      onChanged: provider.updateSearch,
+                      onChanged: (val) {
+                        provider.updateSearch(val);
+                        setState(() {});
+                      },
                       style: const TextStyle(
-                        fontSize: 13,
+                        fontSize: 13.5,
                         color: CivicColors.charcoal,
+                        fontWeight: FontWeight.w500,
                       ),
                       decoration: const InputDecoration(
-                        hintText: 'Search problems or locations...',
+                        hintText: 'Search incidents, streets or wards...',
                         hintStyle: TextStyle(
                           fontSize: 13,
                           color: CivicColors.subdued,
@@ -169,12 +293,29 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  if (_searchController.text.isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        _searchController.clear();
+                        provider.updateSearch('');
+                        setState(() {});
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10),
+                        child: Icon(
+                          Icons.cancel_rounded,
+                          size: 17,
+                          color: CivicColors.subdued,
+                        ),
+                      ),
+                    )
+                  else
+                    const SizedBox(width: 12),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // 3. Category Filter Chips
           CategoryFilterBar(
@@ -194,9 +335,9 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
                   padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
                     color: CivicColors.segmentBg,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: CivicColors.borderSubtle.withValues(alpha: 0.7),
+                      color: const Color(0xFFDCE5DF),
                       width: 1,
                     ),
                   ),
@@ -204,20 +345,34 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
                     children: [
                       // Map View Button
                       _buildSegmentButton(
-                        icon: Icons.map_outlined,
+                        icon: Icons.map_rounded,
                         label: 'Map View',
                         isActive: provider.viewMode == ExplorerViewMode.map,
-                        onTap: () => provider.setViewMode(ExplorerViewMode.map),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          provider.setViewMode(ExplorerViewMode.map);
+                        },
                       ),
-                      const SizedBox(width: 2),
+                      const SizedBox(width: 3),
                       // List View Button
                       _buildSegmentButton(
-                        icon: Icons.format_list_bulleted_rounded,
+                        icon: Icons.view_agenda_rounded,
                         label: 'List (${provider.problems.length})',
                         isActive: provider.viewMode == ExplorerViewMode.list,
-                        onTap: () => provider.setViewMode(ExplorerViewMode.list),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          provider.setViewMode(ExplorerViewMode.list);
+                        },
                       ),
                     ],
+                  ),
+                ),
+                Text(
+                  '${provider.problems.length} of ${provider.totalIncidentCount} reports',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: CivicColors.slateGreen,
                   ),
                 ),
               ],
@@ -236,26 +391,27 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: isActive ? CivicColors.cardSurface : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-          boxShadow: isActive ? [CivicShadows.subtle] : null,
+          borderRadius: BorderRadius.circular(7),
+          boxShadow: isActive ? const [CivicShadows.subtle] : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              size: 14,
+              size: 14.5,
               color: isActive ? CivicColors.forest : CivicColors.slateGreen,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 5),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 11.5,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                 color: isActive ? CivicColors.forest : CivicColors.slateGreen,
               ),
@@ -276,12 +432,13 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
           mapController: provider.mapController,
           options: MapOptions(
             initialCenter: provider.defaultCenter,
-            initialZoom: 15.0,
-            minZoom: 10.0,
+            initialZoom: 14.0,
+            minZoom: 8.0,
             maxZoom: 18.0,
+            onMapReady: provider.onMapReady,
           ),
           children: [
-            // OpenStreetMap Standard Tiles (100% Free, Zero API Keys, Full Color)
+            // OpenStreetMap Standard Tiles
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.mehewara.mobile',
@@ -291,69 +448,71 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
             MarkerLayer(
               markers: [
                 // 1. User Location ("You are here")
-                Marker(
-                  point: provider.userLocation,
-                  width: 140,
-                  height: 52,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: CivicColors.charcoal,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white24, width: 1),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircleAvatar(
-                                radius: 3,
-                                backgroundColor: Colors.blueAccent,
+                if (provider.hasRealUserLocation)
+                  Marker(
+                    point: provider.userLocation,
+                    width: 140,
+                    height: 52,
+                    alignment: Alignment.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: CivicColors.charcoal,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white24, width: 1),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
                               ),
-                              SizedBox(width: 4),
-                              Text(
-                                'You are here',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                            ],
+                          ),
+                          child: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircleAvatar(
+                                  radius: 3,
+                                  backgroundColor: Colors.blueAccent,
                                 ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'You are here',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.blue.shade600,
+                            border: Border.all(color: Colors.white, width: 2.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.blue.withValues(alpha: 0.35),
+                                blurRadius: 6,
+                                spreadRadius: 2,
                               ),
                             ],
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.blue.shade600,
-                          border: Border.all(color: Colors.white, width: 2.5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.blue.withValues(alpha: 0.35),
-                              blurRadius: 6,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
                 // 2. Incident Pin Markers for each Problem in DB
                 ...provider.problems.map((problem) {
@@ -362,10 +521,14 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
                     point: LatLng(problem.latitude, problem.longitude),
                     width: 54,
                     height: 64,
+                    alignment: Alignment.bottomCenter,
                     child: ProblemPinMarker(
                       problem: problem,
                       isSelected: isSelected,
-                      onTap: () => provider.selectProblem(problem),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        provider.selectProblem(problem);
+                      },
                     ),
                   );
                 }),
@@ -376,46 +539,58 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
 
         // Floating Map Utility Controls (Upper-Right)
         Positioned(
-          top: 175,
-          right: 12,
+          top: 185,
+          right: 14,
           child: Column(
             children: [
               // Recenter GPS Button
               _buildMapControlBtn(
                 icon: Icons.my_location_rounded,
-                onTap: provider.recenterToUser,
-                iconColor: CivicColors.charcoal,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  provider.recenterToUser();
+                },
+                iconColor: CivicColors.forest,
                 isLoading: provider.isLocatingUser,
+                tooltip: 'Recenter on my location',
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               // Zoom In / Out Group
               Container(
                 decoration: BoxDecoration(
                   color: CivicColors.cardSurface.withValues(alpha: 0.95),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: CivicColors.borderSubtle, width: 1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFDCE5DF), width: 1.2),
                   boxShadow: const [CivicShadows.subtle],
                 ),
                 child: Column(
                   children: [
                     InkWell(
-                      onTap: provider.zoomIn,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        provider.zoomIn();
+                      },
                       child: const SizedBox(
-                        width: 36,
-                        height: 32,
+                        width: 38,
+                        height: 36,
                         child: Center(
-                          child: Icon(Icons.add, size: 18, color: CivicColors.charcoal),
+                          child: Icon(Icons.add_rounded, size: 20, color: CivicColors.charcoal),
                         ),
                       ),
                     ),
-                    const Divider(height: 1, color: CivicColors.borderSubtle),
+                    const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8E4)),
                     InkWell(
-                      onTap: provider.zoomOut,
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        provider.zoomOut();
+                      },
                       child: const SizedBox(
-                        width: 36,
-                        height: 32,
+                        width: 38,
+                        height: 36,
                         child: Center(
-                          child: Icon(Icons.remove, size: 18, color: CivicColors.charcoal),
+                          child: Icon(Icons.remove_rounded, size: 20, color: CivicColors.charcoal),
                         ),
                       ),
                     ),
@@ -434,14 +609,15 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
     required VoidCallback onTap,
     required Color iconColor,
     bool isLoading = false,
+    String? tooltip,
   }) {
     return Container(
-      width: 36,
-      height: 36,
+      width: 38,
+      height: 38,
       decoration: BoxDecoration(
         color: CivicColors.cardSurface.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: CivicColors.borderSubtle, width: 1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFDCE5DF), width: 1.2),
         boxShadow: const [CivicShadows.subtle],
       ),
       child: isLoading
@@ -456,8 +632,9 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
               ),
             )
           : IconButton(
+              tooltip: tooltip,
               padding: EdgeInsets.zero,
-              icon: Icon(icon, size: 18, color: iconColor),
+              icon: Icon(icon, size: 20, color: iconColor),
               onPressed: onTap,
             ),
     );
@@ -473,56 +650,109 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
       );
     }
 
-    if (provider.problems.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.check_circle_outline_rounded,
-              size: 48,
-              color: CivicColors.slateGreen,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'No active incidents in this area',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: CivicColors.charcoal,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Category: ${provider.selectedCategory}',
-              style: const TextStyle(fontSize: 13, color: CivicColors.subdued),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.only(top: 175, bottom: 90, left: 16, right: 16),
-      itemCount: provider.problems.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final problem = provider.problems[index];
-        return ProblemPreviewCard(
-          problem: problem,
-          onTrackProgress: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ProblemDetailScreen(
-                  problem: problem,
+    return CivicAtmosphericBackground(
+      child: RefreshIndicator(
+        color: CivicColors.forest,
+        onRefresh: provider.loadProblems,
+        child: provider.problems.isEmpty
+            ? SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(top: 200, left: 24, right: 24),
+                child: Center(
+                  child: CivicSurfaceCard(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: CivicColors.mintTint,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: CivicColors.mintPip.withValues(alpha: 0.4),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.check_circle_outline_rounded,
+                            size: 28,
+                            color: CivicColors.forest,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        const Text(
+                          'No Active Incidents Found',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: CivicColors.charcoal,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _searchController.text.isNotEmpty
+                              ? 'No results match "${_searchController.text}". Try a different search term or category filter.'
+                              : 'There are currently no incidents recorded for the ${provider.selectedCategory} category.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: CivicColors.subdued,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            _searchController.clear();
+                            provider.updateSearch('');
+                            provider.selectCategory('ALL');
+                            setState(() {});
+                          },
+                          icon: const Icon(Icons.refresh_rounded, size: 16),
+                          label: const Text('Reset All Filters'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: CivicColors.forest,
+                            side: const BorderSide(color: CivicColors.forest),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
+              )
+            : ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.only(
+                  top: 195,
+                  bottom: widget.embedded ? 24 : 96,
+                  left: 16,
+                  right: 16,
+                ),
+                itemCount: provider.problems.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final problem = provider.problems[index];
+                  return ProblemPreviewCard(
+                    problem: problem,
+                    onTrackProgress: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ProblemDetailScreen(
+                            problem: problem,
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
-            );
-          },
-        );
-      },
+      ),
     );
   }
-
-
 }

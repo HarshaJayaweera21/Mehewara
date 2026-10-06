@@ -56,12 +56,17 @@ class ProblemPinMarker extends StatelessWidget {
     final pinWidth = isSelected ? 42.0 : 34.0;
     final pinHeight = isSelected ? 52.0 : 42.0;
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.topCenter,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 54,
+          height: 64,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.topCenter,
         children: [
           // Ground shadow
           Positioned(
@@ -151,7 +156,9 @@ class ProblemPinMarker extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 }
 

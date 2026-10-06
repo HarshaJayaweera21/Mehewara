@@ -54,7 +54,11 @@ export const ReportCard: React.FC<ReportCardProps> = ({ report, onViewDetails })
           />
         ) : (
           <div className="report-card-no-thumbnail">
-            <span className="no-thumbnail-icon">{cat.icon}</span>
+            <img
+              src="/assets/mehewara/icon-no-image.svg"
+              alt="No photo attached"
+              className="no-thumbnail-icon-img"
+            />
             <span className="no-thumbnail-label">No photo</span>
           </div>
         )}

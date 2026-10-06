@@ -18,14 +18,19 @@
   background-repeat: no-repeat;
   border: 1px solid var(--mw-border, #DDE2DE);
   border-radius: 10px;
-  min-height: 180px;
-  padding: 1.75rem 2.25rem;
+  height: 164px;
+  min-height: 164px;
+  max-height: 164px;
+  padding: 1.5rem 2.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
   box-shadow: 0 1px 3px rgba(18, 60, 50, 0.04);
   box-sizing: border-box;
+  overflow: hidden;
+  margin: 0;
+  width: 100%;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -38,40 +43,51 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  max-width: 840px;
+  max-width: 860px;
+  min-width: 0;
+  flex: 1;
 }
 
 .mw-hero-banner-badge {
   display: inline-flex;
   align-items: center;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 700;
   color: #0F766E;
   background: rgba(229, 246, 238, 0.95);
-  padding: 0.25rem 0.65rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 20px;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.45rem;
   align-self: flex-start;
   border: 1px solid #CCFBF1;
   box-shadow: 0 1px 2px rgba(15, 118, 110, 0.06);
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .mw-hero-banner-heading {
-  font-size: 1.65rem;
+  font-size: 1.55rem;
   font-weight: 700;
   color: var(--mw-primary-forest, #123C32);
-  margin: 0 0 0.4rem;
+  margin: 0 0 0.35rem;
   letter-spacing: -0.02em;
-  line-height: 1.25;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mw-hero-banner-subtitle {
-  font-size: 0.94rem;
+  font-size: 0.8875rem;
   color: var(--mw-text-secondary, #586660);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .mw-hero-banner-actions {
@@ -79,17 +95,75 @@
   align-items: center;
   gap: 0.75rem;
   flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 0.15rem;
+}
+
+.mw-hero-banner-actions .profile-status-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.mw-hero-banner-actions .profile-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #eef2ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(18, 60, 50, 0.04);
+}
+
+.mw-hero-banner-actions .profile-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--mw-sage, #e5f6ee);
+  color: var(--mw-forest, #123c32);
+  border: 1px solid #c4ecd8;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(18, 60, 50, 0.04);
+}
+
+.mw-hero-banner-actions .profile-status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--mw-mint, #4fd1a1);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(79, 209, 161, 0.4);
+  animation: pulse-dot 2s infinite ease-in-out;
 }
 
 @media (max-width: 768px) {
   .mw-hero-banner {
+    height: auto;
+    min-height: auto;
+    max-height: none;
     flex-direction: column;
     align-items: flex-start;
-    padding: 1.5rem 1.25rem;
-    min-height: auto;
+    padding: 1.25rem;
   }
 
   .mw-hero-banner-heading {
     font-size: 1.35rem;
+    white-space: normal;
+  }
+
+  .mw-hero-banner-actions {
+    align-self: flex-start;
+    width: 100%;
+    margin-top: 0.5rem;
   }
 }

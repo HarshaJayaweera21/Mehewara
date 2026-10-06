@@ -15,6 +15,7 @@
 
 .jobs-main {
   width: 100%;
+  max-width: 100%;
   margin: 0;
   display: flex;
   flex-direction: column;
@@ -34,6 +35,7 @@
   padding: 1.25rem 1.5rem;
   border-radius: 10px;
   box-shadow: 0 1px 3px rgba(18, 60, 50, 0.03);
+  margin: 0;
 }
 
 .jobs-page label {
@@ -355,9 +357,9 @@
   color: var(--mw-text-secondary, #68736E);
 }
 
-@media(max-width: 850px) {
+@media (max-width: 768px) {
   .jobs-page {
-    padding: 1.25rem;
+    padding: 1.25rem 1rem 3rem;
   }
   .jobs-grid {
     grid-template-columns: 1fr;

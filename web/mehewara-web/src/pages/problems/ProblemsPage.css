@@ -21,46 +21,7 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
-}
-
-/* ==========================================================================
-/* Coordinator Triage Alert Banner */
-
-.metric-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.metric-label {
-  font-size: 0.71875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--mw-text-secondary);
-}
-
-.metric-mint-pip {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--mw-mint-accent);
-}
-
-.metric-value {
-  font-size: 1.75rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--mw-text-primary);
-  line-height: 1.15;
-}
-
-.metric-descriptor {
-  font-size: 0.775rem;
-  font-weight: 400;
-  color: var(--mw-text-muted);
+  gap: 1.5rem;
 }
 
 /* ==========================================================================
@@ -94,11 +55,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.85rem;
-  background: var(--mw-surface);
-  border: 1px solid var(--mw-border);
-  border-radius: 8px;
-  padding: 0.65rem 0.85rem;
-  box-shadow: var(--mw-shadow-card);
+  background: var(--mw-surface, #FFFFFF);
+  border: 1px solid var(--mw-border, #DDE2DE);
+  border-radius: 10px;
+  padding: 0.75rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(18, 60, 50, 0.03);
+  margin: 0;
 }
 
 .problems-search-box {
@@ -111,7 +73,7 @@
   border: 1px solid var(--mw-border);
   border-radius: 6px;
   padding: 0 0.85rem;
-  height: 44px;
+  height: 40px;
   box-sizing: border-box;
   transition: border-color 140ms ease, background 140ms ease;
 }
@@ -154,7 +116,7 @@
 }
 
 .problems-filter-select {
-  height: 44px;
+  height: 40px;
   background: var(--mw-surface);
   border: 1px solid var(--mw-border);
   border-radius: 6px;
@@ -190,7 +152,7 @@
   font-size: 0.8125rem;
   font-weight: 500;
   padding: 0 0.75rem;
-  height: 44px;
+  height: 40px;
   border-radius: 6px;
   cursor: pointer;
   display: inline-flex;
@@ -926,17 +888,6 @@
   .problems-filter-select-wrap {
     width: 100%;
   }
-
-  .problems-top-nav {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-
-  .problems-nav-user {
-    width: 100%;
-    justify-content: space-between;
-  }
 }
 
 /* ==========================================================================
@@ -1096,6 +1047,12 @@
 .problems-crews-nav-btn:hover {
   background: #F7F7F2;
   border-color: #BEE0D1;
+}
+
+@media (max-width: 768px) {
+  .problems-dashboard-container {
+    padding: 1.25rem 1rem 3rem;
+  }
 }
 
 

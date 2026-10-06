@@ -15,6 +15,8 @@ class ProblemExplorerProvider extends ChangeNotifier {
   List<Problem> _filteredProblems = [];
   bool _isLoading = false;
   bool _isLocatingUser = false;
+  bool _isMapReady = false;
+  bool _hasRealUserLocation = false;
   String? _errorMessage;
 
   String _selectedCategory = 'ALL';
@@ -26,11 +28,24 @@ class ProblemExplorerProvider extends ChangeNotifier {
   LatLng _userLocation = LocationService.defaultLocation;
   LatLng get userLocation => _userLocation;
   bool get isLocatingUser => _isLocatingUser;
+  bool get hasRealUserLocation => _hasRealUserLocation;
+  bool get isMapReady => _isMapReady;
 
-  // Default camera center (falls back to Colombo Ward 4 or first problem centroid)
-  LatLng get defaultCenter => _selectedProblem != null
-      ? LatLng(_selectedProblem!.latitude, _selectedProblem!.longitude)
-      : _userLocation;
+  // Dynamic camera center: selected problem -> centroid of problems -> user location
+  LatLng get defaultCenter {
+    if (_selectedProblem != null) {
+      return LatLng(_selectedProblem!.latitude, _selectedProblem!.longitude);
+    }
+    final activeList = _filteredProblems.isNotEmpty ? _filteredProblems : _allProblems;
+    if (activeList.isNotEmpty) {
+      final avgLat =
+          activeList.map((p) => p.latitude).reduce((a, b) => a + b) / activeList.length;
+      final avgLng =
+          activeList.map((p) => p.longitude).reduce((a, b) => a + b) / activeList.length;
+      return LatLng(avgLat, avgLng);
+    }
+    return _userLocation;
+  }
 
   // Getters
   List<Problem> get problems => _filteredProblems;
@@ -47,10 +62,51 @@ class ProblemExplorerProvider extends ChangeNotifier {
     initUserLocation();
   }
 
+  void onMapReady() {
+    _isMapReady = true;
+    if (_filteredProblems.isNotEmpty && _selectedProblem == null) {
+      fitToProblems();
+    }
+  }
+
+  /// Automatically adjusts camera bounds or center so all active incident pins are visible
+  void fitToProblems() {
+    if (_filteredProblems.isEmpty) return;
+    try {
+      if (_filteredProblems.length == 1) {
+        mapController.move(
+          LatLng(_filteredProblems.first.latitude, _filteredProblems.first.longitude),
+          15.0,
+        );
+      } else {
+        final points = _filteredProblems
+            .map((p) => LatLng(p.latitude, p.longitude))
+            .toList();
+        final bounds = LatLngBounds.fromPoints(points);
+        mapController.fitCamera(
+          CameraFit.bounds(
+            bounds: bounds,
+            padding: const EdgeInsets.only(
+              top: 190,
+              bottom: 170,
+              left: 48,
+              right: 48,
+            ),
+            maxZoom: 16.0,
+            minZoom: 12.0,
+          ),
+        );
+      }
+    } catch (_) {
+      // MapController not mounted yet; will be triggered when onMapReady fires
+    }
+  }
+
   Future<void> initUserLocation() async {
     final loc = await LocationService.getCurrentLocation();
     if (loc != null) {
       _userLocation = loc;
+      _hasRealUserLocation = true;
       notifyListeners();
     }
   }
@@ -67,18 +123,12 @@ class ProblemExplorerProvider extends ChangeNotifier {
       );
       _applyFilters();
 
-      // Automatically select the primary Drainage problem if available, or first problem
-      if (_selectedProblem == null && _filteredProblems.isNotEmpty) {
-        _selectedProblem = _filteredProblems.firstWhere(
-          (p) => p.category == 'DRAINAGE',
-          orElse: () => _filteredProblems.first,
-        );
-        try {
-          mapController.move(
-            LatLng(_selectedProblem!.latitude, _selectedProblem!.longitude),
-            14.5,
-          );
-        } catch (_) {}
+      if (_selectedProblem != null && !_filteredProblems.contains(_selectedProblem)) {
+        _selectedProblem = null;
+      }
+
+      if (_isMapReady && _filteredProblems.isNotEmpty && _selectedProblem == null) {
+        fitToProblems();
       }
     } catch (e) {
       _errorMessage = e.toString();
@@ -107,9 +157,11 @@ class ProblemExplorerProvider extends ChangeNotifier {
     if (_selectedCategory == category) return;
     _selectedCategory = category;
     _applyFilters();
-    if (_filteredProblems.isNotEmpty &&
-        (_selectedProblem == null || !_filteredProblems.contains(_selectedProblem))) {
-      _selectedProblem = _filteredProblems.first;
+    if (_selectedProblem != null && !_filteredProblems.contains(_selectedProblem)) {
+      _selectedProblem = null;
+    }
+    if (_isMapReady && _filteredProblems.isNotEmpty && _selectedProblem == null) {
+      fitToProblems();
     }
     notifyListeners();
   }
@@ -117,6 +169,9 @@ class ProblemExplorerProvider extends ChangeNotifier {
   void updateSearch(String query) {
     _searchQuery = query;
     _applyFilters();
+    if (_isMapReady && _filteredProblems.isNotEmpty && _selectedProblem == null) {
+      fitToProblems();
+    }
     notifyListeners();
   }
 
@@ -125,15 +180,21 @@ class ProblemExplorerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void selectProblem(Problem problem) {
+  void selectProblem(Problem? problem) {
     _selectedProblem = problem;
-    // Smoothly pan camera to problem centroid
-    try {
-      mapController.move(
-        LatLng(problem.latitude, problem.longitude),
-        15.5,
-      );
-    } catch (_) {}
+    if (problem != null) {
+      // Smoothly pan camera to problem centroid
+      try {
+        mapController.move(
+          LatLng(problem.latitude, problem.longitude),
+          15.5,
+        );
+      } catch (_) {}
+    } else {
+      if (_isMapReady && _filteredProblems.isNotEmpty) {
+        fitToProblems();
+      }
+    }
     notifyListeners();
   }
 
@@ -144,6 +205,7 @@ class ProblemExplorerProvider extends ChangeNotifier {
     final loc = await LocationService.getCurrentLocation();
     if (loc != null) {
       _userLocation = loc;
+      _hasRealUserLocation = true;
     }
     _isLocatingUser = false;
     notifyListeners();

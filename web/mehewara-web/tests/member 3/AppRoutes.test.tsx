@@ -182,6 +182,42 @@ describe('AppRoutes routing and protection', () => {
     expect(await screen.findByTestId('problems-page')).toBeInTheDocument();
   });
 
+  it('redirects authenticated resident accessing /login to /reports', async () => {
+    const user = { id: 'r1', name: 'Resident Jane', role: 'RESIDENT', email: 'jane@example.com' };
+    const token = `hdr.${btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }))}.sig`;
+    localStorage.setItem('mehewara_user', JSON.stringify(user));
+    localStorage.setItem('mehewara_token', token);
+
+    render(
+      <MemoryRouter initialEntries={[ROUTES.LOGIN]}>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByTestId('reports-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
+  });
+
+  it('redirects authenticated coordinator accessing /login to /operations', async () => {
+    const coordinator = { id: 'c1', name: 'Coordinator Bob', role: 'COORDINATOR', email: 'coord@example.com' };
+    const token = `hdr.${btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }))}.sig`;
+    localStorage.setItem('mehewara_user', JSON.stringify(coordinator));
+    localStorage.setItem('mehewara_token', token);
+
+    render(
+      <MemoryRouter initialEntries={[ROUTES.LOGIN]}>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByTestId('operations-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
+  });
+
   it('renders NotFoundPage on non-existent route', async () => {
     render(
       <MemoryRouter initialEntries={['/some/arbitrary/path/that/does/not/exist']}>
@@ -195,3 +231,4 @@ describe('AppRoutes routing and protection', () => {
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
   });
 });
+

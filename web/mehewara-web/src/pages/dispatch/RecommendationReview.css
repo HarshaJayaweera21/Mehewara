@@ -30,19 +30,19 @@
   letter-spacing: 0.04em;
 }
 
-.dispatch-review-tabs { margin: 0 0 1.25rem; gap: 9px; display: flex; flex-wrap: wrap; }
-.dispatch-review-tabs button { min-height: 54px; padding: 0 20px; border: 1px solid #edf0eb; border-radius: 14px; background: #fff; color: #49534e; font: inherit; font-size: 16px; font-weight: 650; box-shadow: 0 1px 2px #0b30220b; }
+.dispatch-review-tabs { margin: 0; gap: 9px; display: flex; flex-wrap: wrap; }
+.dispatch-review-tabs button { min-height: 44px; padding: 0 18px; border: 1px solid #edf0eb; border-radius: 10px; background: #fff; color: #49534e; font: inherit; font-size: 15px; font-weight: 650; box-shadow: 0 1px 2px #0b30220b; }
 .dispatch-review-tabs button.active { border-color: var(--review-forest); background: var(--review-forest); color: #fff; }
 .review-tab-count { margin-left: 10px; padding: 3px 9px; border-radius: 999px; background: #e7ebe8; color: #3e5148; font-size: 12px; }
 .dispatch-review-tabs button.active .review-tab-count { background: #78edc5; color: #073729; }
-.dispatch-toolbar { order: 0; margin: 0 0 28px; padding: 20px; border: 1px solid #f0f1ed; border-radius: 20px; background: #fff; }
+.dispatch-toolbar { order: 0; margin: 0; padding: 0.75rem 1.25rem; border: 1px solid var(--mw-border, #DDE2DE); border-radius: 10px; background: #fff; box-shadow: 0 1px 3px rgba(18, 60, 50, 0.03); }
 .dispatch-search-box { max-width: none; min-width: 230px; }
-.dispatch-search-input, .dispatch-filter-select, .dispatch-refresh-btn { height: 53px; border: 0; border-radius: 13px; background: #f3f4f1; font-size: 15px; }
+.dispatch-search-input, .dispatch-filter-select, .dispatch-refresh-btn { height: 40px; border: 1px solid var(--mw-border, #DDE2DE); border-radius: 8px; background: #ffffff; font-size: 14px; }
 .dispatch-search-input { padding-left: 40px; }
 .dispatch-filters-group { flex-wrap: wrap; }
 .dispatch-filter-select { max-width: 175px; padding: 0 11px; }
 .dispatch-refresh-btn { padding: 0 14px; }
-.dispatch-pagination { order: 2; justify-content: flex-end; margin: 18px 2px 0; }
+.dispatch-pagination { order: 2; justify-content: flex-end; margin: 0; }
 .dispatch-pagination span { color: #68736e; font-size: 12px; }
 .dispatch-pagination button { border: 0; background: #fff; min-height: 37px; }
 .dispatch-split-layout { display: block; order: 1; min-width: 0; }

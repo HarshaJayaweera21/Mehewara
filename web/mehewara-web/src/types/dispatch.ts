@@ -1,6 +1,8 @@
 /**
- * Prioritization & Crew Dispatch Types for Member 3
+ * Prioritization & Crew Dispatch Types
  */
+
+export type { PagedResult } from './common';
 
 export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 

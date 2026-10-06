@@ -1,5 +1,5 @@
 /**
- * Municipal Crew Types & Contracts for Member 3
+ * Municipal Crew Types & Contracts
  */
 
 export type CrewType = 'DRAINAGE' | 'ROAD' | 'WASTE' | 'ELECTRICAL' | 'ENVIRONMENT';
