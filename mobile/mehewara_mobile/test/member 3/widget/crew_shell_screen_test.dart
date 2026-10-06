@@ -73,21 +73,21 @@ void main() {
 
       // Verify bottom navigation items
       expect(find.text('Status & Depot'), findsOneWidget);
+      expect(find.text('Mission Queue'), findsOneWidget);
+      expect(find.text('Squad Profile'), findsOneWidget);
       expect(find.byIcon(Icons.radar_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.assignment_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.person_rounded), findsOneWidget);
 
       // Tap on Squad Profile tab (index 2)
-      await tester.tap(find.byIcon(Icons.person_rounded));
+      await tester.tap(find.text('Squad Profile'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Squad Profile'), findsOneWidget);
+      expect(find.byIcon(Icons.person_rounded), findsOneWidget);
 
       // Tap on Mission Queue tab (index 1)
-      await tester.tap(find.byIcon(Icons.assignment_rounded));
+      await tester.tap(find.text('Mission Queue'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Mission Queue'), findsOneWidget);
+      expect(find.byIcon(Icons.assignment_rounded), findsOneWidget);
     });
   });
 }

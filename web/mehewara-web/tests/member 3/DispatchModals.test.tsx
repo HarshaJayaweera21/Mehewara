@@ -11,30 +11,30 @@ const baseRec: RecommendationListItem = {
   recommendationId: 'rec-001',
   problemId: 'prob-001',
   problemTitle: 'Flooded Culvert',
-  problemDescription: 'Drainage blockage on main avenue',
   category: 'DRAINAGE',
   priority: 'HIGH',
   priorityScore: 88,
-  confidenceScore: 0.91,
-  suggestedCrewId: 'crew-001',
-  suggestedCrewName: 'Drainage Squad Alpha',
   recommendedCrewId: 'crew-001',
+  recommendedCrewName: 'Drainage Squad Alpha',
   requiredCrewType: 'DRAINAGE',
-  recommendedAction: 'Deploy pump units',
-  reasoning: 'Critical flood risk',
   recommendationReason: 'Critical flood risk',
   priorityReasons: ['Near hospital', 'High traffic'],
   reviewDecision: null,
   reviewBucket: 'READY',
+  reviewProgress: 'READY_FOR_REVIEW',
+  attentionReason: null,
+  allowedActions: ['APPROVE', 'EDIT', 'REJECT', 'REGENERATE'],
+  canApprove: true,
+  isCurrent: true,
+  previousRecommendationId: null,
+  latestJob: null,
   revision: 1,
   validation: {
-    passed: true,
-    hardGatePassed: true,
-    failedCodes: [],
+    status: 'VALID',
+    issues: [],
     checks: [],
   },
   createdAt: '2026-10-05T08:00:00Z',
-  updatedAt: '2026-10-05T08:00:00Z',
 };
 
 const reply = (data: unknown, status = 200) =>
@@ -221,6 +221,73 @@ describe('Dispatch Modals Action Tests (Member 3)', () => {
 
       await waitFor(() => {
         expect(onSuccess).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('EditRecommendationModal', () => {
+    it('submits updated recommendation details and triggers onSuccess', async () => {
+      const onSuccess = vi.fn();
+      const onClose = vi.fn();
+      const updatedDetail: RecommendationDetail = {
+        ...baseRec,
+        priority: 'CRITICAL',
+        priorityScore: 95,
+        reviewDecision: null,
+        latitude: 6.9,
+        longitude: 79.8,
+        address: 'Test',
+        problemDescription: 'Drainage blockage on main avenue',
+        reportCount: 1,
+        reportDescriptions: ['Flooded street'],
+        recommendedCrewStatus: 'AVAILABLE',
+        reviewReason: null,
+        reviewedBy: null,
+        reviewedAt: null,
+        workOrderId: null,
+        history: [],
+        editHistory: [],
+        validationHistory: [],
+        jobHistory: [],
+      };
+
+      const fetcher = vi.fn(async (url: string, options?: RequestInit) => {
+        if (url.includes('/api/crews')) {
+          return reply({
+            items: [
+              {
+                id: 'crew-001',
+                name: 'Drainage Squad Alpha',
+                crewType: 'DRAINAGE',
+                status: 'AVAILABLE',
+              },
+            ],
+          });
+        }
+        if (options?.method === 'PATCH' || options?.method === 'PUT' || url.includes('/edit')) {
+          return reply(updatedDetail);
+        }
+        return reply({});
+      });
+      vi.stubGlobal('fetch', fetcher);
+
+      render(
+        <EditRecommendationModal
+          recommendation={baseRec}
+          token="mock-token"
+          onClose={onClose}
+          onSuccess={onSuccess}
+        />
+      );
+
+      const textarea = screen.getByPlaceholderText(/State the justification/i);
+      fireEvent.change(textarea, { target: { value: 'Severe compounding risk' } });
+
+      const submitBtn = screen.getByRole('button', { name: /Save Overrides/i });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalledWith(updatedDetail);
       });
     });
   });
