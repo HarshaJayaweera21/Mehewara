@@ -10,10 +10,12 @@ import 'profile/crew_profile_screen.dart';
 
 class CrewShellScreen extends StatefulWidget {
   final VoidCallback onLogout;
+  final CrewService? crewService;
 
   const CrewShellScreen({
     super.key,
     required this.onLogout,
+    this.crewService,
   });
 
   @override
@@ -22,7 +24,7 @@ class CrewShellScreen extends StatefulWidget {
 
 class _CrewShellScreenState extends State<CrewShellScreen> {
   int _currentIndex = 0;
-  final CrewService _crewService = CrewService();
+  late final CrewService _crewService = widget.crewService ?? CrewService();
 
   Future<void> _confirmLogout() async {
     final confirmed = await showDialog<bool>(
