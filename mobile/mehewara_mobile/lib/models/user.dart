@@ -42,7 +42,7 @@ class ResidentUser {
       email: (json['email'] ?? '').toString(),
       phoneNumber: json['phoneNumber'] as String?,
       role: json['role'] as String?,
-      profilePhotoUrl: json['profilePhotoUrl'] as String?,
+      profilePhotoUrl: (json['profilePhotoUrl'] ?? json['profileImageUrl']) as String?,
     );
   }
 

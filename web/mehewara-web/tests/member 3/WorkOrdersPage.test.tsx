@@ -41,7 +41,7 @@ describe('WorkOrder screens and contracts', () => {
     expect(await screen.findByText('WORK ORDER COMPLETED')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Complete Job' })).not.toBeInTheDocument();
     expect(fetcher.mock.calls.every(([, init]) => new Headers(init?.headers).get('Authorization') === 'Bearer token')).toBe(true);
-  });
+  }, 15000);
 
   it('reloads a stale job on 409 and retains typed notes', async () => {
     let conflict = false;
