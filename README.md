@@ -89,39 +89,7 @@ Screenshots are organized in the [`screenshots/`](screenshots/) directory. Drop 
 
 Mehewara follows a strictly partitioned multi-tier architecture adhering to reference integration standards:
 
-```mermaid
-flowchart TD
-    subgraph Clients["Presentation Layer"]
-        MobileResident["Flutter Mobile App<br/>(Resident Citizen)"]
-        MobileCrew["Flutter Mobile App<br/>(Crew Leader Field)"]
-        WebAdmin["React 18 Web Portal<br/>(Works Coordinator / Admin)"]
-    end
-
-    subgraph Gateway["Authoritative Application Gateway"]
-        Backend["ASP.NET Core 8 Web API<br/>JWT Auth • Role Authorization • Business Rules<br/>10-Point Deterministic Validation Gate"]
-    end
-
-    subgraph Persistence["Authoritative Persistence"]
-        DB[("PostgreSQL 16 Database<br/>Normalized Relational Schema<br/>EF Core Migrations & Spatial Indexes")]
-    end
-
-    subgraph AIService["Internal Cognitive Subsystem"]
-        FastAPI["FastAPI Python Microservice<br/>LangGraph Sequential Pipeline<br/>gemini-3.5-flash-lite"]
-        subgraph Pipeline["4-Agent Triage Chain"]
-            A1["Agent 1: Report Structuring"] --> A2["Agent 2: Problem Consolidation"]
-            A2 --> A3["Agent 3: Priority & Crew Recommendation"]
-            A3 --> A4["Agent 4: Validation & Safety Gate"]
-        end
-        FastAPI --- Pipeline
-    end
-
-    MobileResident -->|HTTPS / REST| Backend
-    MobileCrew -->|HTTPS / REST| Backend
-    WebAdmin -->|HTTPS / REST| Backend
-
-    Backend <-->|EF Core 8 / Npgsql| DB
-    Backend <-->|Internal HTTP JSON| FastAPI
-```
+![system- architecture](screenshots/web/system-architecture.png)
 
 ### Architectural Invariants & Boundary Rules
 1. **Strict Client Boundary:** React and Flutter clients communicate **exclusively** with ASP.NET Core. The internal FastAPI AI service is never exposed to client applications.
