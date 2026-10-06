@@ -432,9 +432,10 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
           mapController: provider.mapController,
           options: MapOptions(
             initialCenter: provider.defaultCenter,
-            initialZoom: 15.0,
-            minZoom: 10.0,
+            initialZoom: 14.0,
+            minZoom: 8.0,
             maxZoom: 18.0,
+            onMapReady: provider.onMapReady,
           ),
           children: [
             // OpenStreetMap Standard Tiles
@@ -447,69 +448,71 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
             MarkerLayer(
               markers: [
                 // 1. User Location ("You are here")
-                Marker(
-                  point: provider.userLocation,
-                  width: 140,
-                  height: 52,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: CivicColors.charcoal,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white24, width: 1),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircleAvatar(
-                                radius: 3,
-                                backgroundColor: Colors.blueAccent,
+                if (provider.hasRealUserLocation)
+                  Marker(
+                    point: provider.userLocation,
+                    width: 140,
+                    height: 52,
+                    alignment: Alignment.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: CivicColors.charcoal,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white24, width: 1),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
                               ),
-                              SizedBox(width: 4),
-                              Text(
-                                'You are here',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                            ],
+                          ),
+                          child: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircleAvatar(
+                                  radius: 3,
+                                  backgroundColor: Colors.blueAccent,
                                 ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'You are here',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.blue.shade600,
+                            border: Border.all(color: Colors.white, width: 2.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.blue.withValues(alpha: 0.35),
+                                blurRadius: 6,
+                                spreadRadius: 2,
                               ),
                             ],
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.blue.shade600,
-                          border: Border.all(color: Colors.white, width: 2.5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.blue.withValues(alpha: 0.35),
-                              blurRadius: 6,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
                 // 2. Incident Pin Markers for each Problem in DB
                 ...provider.problems.map((problem) {
@@ -518,6 +521,7 @@ class _ProblemExplorerScreenState extends State<ProblemExplorerScreen> {
                     point: LatLng(problem.latitude, problem.longitude),
                     width: 54,
                     height: 64,
+                    alignment: Alignment.bottomCenter,
                     child: ProblemPinMarker(
                       problem: problem,
                       isSelected: isSelected,
