@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import '../../core/constants/api_constants.dart';
 import '../../core/storage/token_storage.dart';
 import '../../models/problem.dart';
 
@@ -9,8 +10,11 @@ class ProblemService {
 
   ProblemService({String? baseUrl})
       : baseUrl = baseUrl ??
-            (dotenv.isInitialized ? dotenv.env['API_BASE_URL'] : null) ??
-            'http://10.0.2.2:5194/api';
+            (dotenv.isInitialized &&
+                    dotenv.env['API_BASE_URL'] != null &&
+                    dotenv.env['API_BASE_URL']!.isNotEmpty
+                ? dotenv.env['API_BASE_URL']!
+                : ApiConstants.baseUrl);
 
   /// Fetch problems from backend, falling back to realistic initial dataset
   Future<List<Problem>> getProblems({
@@ -19,6 +23,7 @@ class ProblemService {
     String? search,
   }) async {
     try {
+      final cleanBase = baseUrl.replaceFirst(RegExp(r'/$'), '');
       final queryParams = <String, String>{};
       if (category != null && category != 'ALL') {
         queryParams['category'] = category;
@@ -30,15 +35,15 @@ class ProblemService {
         queryParams['search'] = search.trim();
       }
 
-      final uri = Uri.parse('$baseUrl/problems').replace(
+      final uri = Uri.parse('$cleanBase/problems').replace(
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
 
       final token = await TokenStorage.getToken();
-      final headers = <String, String>{'Content-Type': 'application/json'};
-      if (token != null && token.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $token';
-      }
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      };
 
       final response = await http
           .get(uri, headers: headers)
@@ -50,7 +55,9 @@ class ProblemService {
             ? data['items']
             : (data is List ? data : []);
 
-        return items.map((j) => Problem.fromJson(j)).toList();
+        if (items.isNotEmpty) {
+          return items.map((j) => Problem.fromJson(j)).toList();
+        }
       }
     } catch (_) {
       // Backend not running or timeout; return curated initial problems matching Stitch UI
@@ -62,13 +69,13 @@ class ProblemService {
   /// Fetch a single problem with full details and related reports
   Future<Problem> getProblemById(String id) async {
     try {
-      final uri = Uri.parse('$baseUrl/problems/$id');
+      final cleanBase = baseUrl.replaceFirst(RegExp(r'/$'), '');
+      final uri = Uri.parse('$cleanBase/problems/$id');
       final token = await TokenStorage.getToken();
-      final headers = <String, String>{'Content-Type': 'application/json'};
-      if (token != null && token.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $token';
-      }
-
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      };
       final response = await http
           .get(uri, headers: headers)
           .timeout(const Duration(seconds: 4));

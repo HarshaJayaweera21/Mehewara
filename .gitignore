@@ -539,8 +539,10 @@ downloads/*
 
 .dotnet/
 
-
 *.md
+!README.md
+!screenshots/**/*.md
+!screenshots/README.md
 
 # ============================================================
 # GRAPHIFY (Code Knowledge Graph Artifacts)

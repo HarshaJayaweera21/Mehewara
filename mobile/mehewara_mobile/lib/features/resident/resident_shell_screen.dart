@@ -13,7 +13,7 @@ class ResidentShellScreen extends StatefulWidget {
 
   const ResidentShellScreen({
     super.key,
-    this.initialTab = CivicNavTab.incidents,
+    this.initialTab = CivicNavTab.myReports,
   });
 
   @override
@@ -27,7 +27,7 @@ class _ResidentShellScreenState extends State<ResidentShellScreen> {
   void initState() {
     super.initState();
     final tabIndex = CivicNavTab.values.indexOf(widget.initialTab);
-    _index = tabIndex >= 0 ? tabIndex : CivicNavTab.values.indexOf(CivicNavTab.incidents);
+    _index = tabIndex >= 0 ? tabIndex : CivicNavTab.values.indexOf(CivicNavTab.myReports);
   }
 
   void _select(CivicNavTab tab) {
