@@ -154,5 +154,12 @@ class ApiClient {
     );
     return _handleResponse(response);
   }
+
+  Future<dynamic> delete(String endpoint) async {
+    final uri = Uri.parse('${baseUrl.replaceFirst(RegExp(r'/$'), '')}$endpoint');
+    final headers = await _buildHeaders();
+    final response = await _client.delete(uri, headers: headers);
+    return _handleResponse(response);
+  }
 }
 
