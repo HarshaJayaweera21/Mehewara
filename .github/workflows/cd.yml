@@ -38,10 +38,12 @@ jobs:
       - name: Build and push service images
         env:
           IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID || secrets.VITE_GOOGLE_CLIENT_ID }}
         run: |
+          test -n "$VITE_GOOGLE_CLIENT_ID" || { echo "Set VITE_GOOGLE_CLIENT_ID in GitHub Actions repository variables or secrets"; exit 1; }
           docker build -f backend/Mehewara.API/Dockerfile -t "$IMAGE_PREFIX-backend:$IMAGE_TAG" -t "$IMAGE_PREFIX-backend:latest" .
           docker build -f ai-service/mehewara-ai/Dockerfile -t "$IMAGE_PREFIX-ai:$IMAGE_TAG" -t "$IMAGE_PREFIX-ai:latest" .
-          docker build --build-arg VITE_API_BASE_URL=/api -f web/mehewara-web/Dockerfile -t "$IMAGE_PREFIX-frontend:$IMAGE_TAG" -t "$IMAGE_PREFIX-frontend:latest" .
+          docker build --build-arg VITE_API_BASE_URL=/api --build-arg VITE_GOOGLE_CLIENT_ID="$VITE_GOOGLE_CLIENT_ID" -f web/mehewara-web/Dockerfile -t "$IMAGE_PREFIX-frontend:$IMAGE_TAG" -t "$IMAGE_PREFIX-frontend:latest" .
           docker push "$IMAGE_PREFIX-backend:$IMAGE_TAG"
           docker push "$IMAGE_PREFIX-backend:latest"
           docker push "$IMAGE_PREFIX-ai:$IMAGE_TAG"
