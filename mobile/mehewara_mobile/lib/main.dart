@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/routes/app_routes.dart';
 import 'core/storage/token_storage.dart';
 import 'core/theme/app_theme.dart';
+import 'features/resident/problems/problem_explorer_screen.dart';
 import 'services/auth/auth_service.dart';
 import 'screens/crew_screens.dart';
 
@@ -14,10 +15,13 @@ void main() async {
     // Graceful fallback if .env is missing in certain build environments
   }
   final isLoggedIn = await TokenStorage.isLoggedIn();
+  final role = await TokenStorage.getRole();
 
   runApp(
     MehewaraMobileApp(
-      initialRoute: isLoggedIn ? AppRoutes.crewShell : AppRoutes.initial,
+      initialRoute: isLoggedIn
+          ? (role?.toUpperCase() == 'RESIDENT' ? AppRoutes.residentHome : AppRoutes.crewShell)
+          : AppRoutes.initial,
     ),
   );
 }
@@ -75,6 +79,11 @@ class MehewaraApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MehewaraMobileApp(initialRoute: AppRoutes.residentHome);
+    return MaterialApp(
+      title: 'Mehewara',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      home: const ProblemExplorerScreen(),
+    );
   }
 }
