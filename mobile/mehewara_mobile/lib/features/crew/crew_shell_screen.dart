@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../services/crew_service.dart';
+import '../../widgets/common/civic_bottom_nav_bar.dart';
 import '../../widgets/common/civic_header.dart';
 import 'home/crew_home_screen.dart';
 import 'jobs/crew_jobs_screen.dart';
@@ -123,103 +124,9 @@ class _CrewShellScreenState extends State<CrewShellScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: CivicColors.cardSurface.withValues(alpha: 0.96),
-          border: const Border(
-            top: BorderSide(color: Color(0x99DCE5DF), width: 1.2),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: SafeArea(
-          top: false,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(
-                index: 0,
-                icon: Icons.radar_rounded,
-                label: 'Status & Depot',
-              ),
-              _buildNavItem(
-                index: 1,
-                icon: Icons.assignment_rounded,
-                label: 'Mission Queue',
-              ),
-              _buildNavItem(
-                index: 2,
-                icon: Icons.person_rounded,
-                label: 'Squad Profile',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required int index,
-    required IconData icon,
-    required String label,
-  }) {
-    final isSelected = _currentIndex == index;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          setState(() => _currentIndex = index);
-        },
-        borderRadius: BorderRadius.circular(100),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.symmetric(
-            horizontal: isSelected ? 16 : 12,
-            vertical: 8,
-          ),
-          decoration: BoxDecoration(
-            color: isSelected ? CivicColors.mintTint : Colors.transparent,
-            borderRadius: BorderRadius.circular(100),
-            border: isSelected
-                ? Border.all(
-                    color: CivicColors.mintPip.withValues(alpha: 0.4),
-                    width: 1,
-                  )
-                : null,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: isSelected ? CivicColors.forest : CivicColors.slateGreen,
-              ),
-              if (isSelected) ...[
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: CivicColors.forest,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
+      bottomNavigationBar: CivicBottomNavBar.crew(
+        currentIndex: _currentIndex,
+        onTabSelected: (index) => setState(() => _currentIndex = index),
       ),
     );
   }
