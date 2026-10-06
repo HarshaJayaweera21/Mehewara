@@ -551,63 +551,6 @@ export const ProblemsPage: React.FC<ProblemsPageProps> = ({
           </section>
         </div>
 
-        {/* 4. Results Header */}
-        <div className="problems-results-header">
-          <h2 className="results-section-title">
-            <span>Problems</span>
-          </h2>
-          <div className="problems-results-header-actions">
-            <button
-              type="button"
-              className="problems-uncertain-nav-btn"
-              onClick={goToUncertainReports}
-              title="Review citizen reports requiring coordinator verification"
-            >
-              <span className="uncertain-nav-dot" />
-              <span>Uncertain Reports</span>
-              {uncertainCount > 0 && (
-                <span className="uncertain-nav-badge">{uncertainCount}</span>
-              )}
-            </button>
-            <button
-              type="button"
-              className="problems-dispatch-nav-btn"
-              onClick={goToDispatch}
-              title="Open Dispatch Queue & Work Order Authorizations"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                <polyline points="2 17 12 22 22 17" />
-                <polyline points="2 12 12 17 22 12" />
-              </svg>
-              <span>Dispatch Queue</span>
-              {pendingDispatchCount > 0 && (
-                <span className="dispatch-nav-badge">{pendingDispatchCount}</span>
-              )}
-            </button>
-            <button type="button" className="problems-crews-nav-btn" onClick={goToWorkOrders}>Work Orders</button>
-            <button
-              type="button"
-              className="problems-crews-nav-btn"
-              onClick={goToCrews}
-              title="Open Municipal Response Crews Directory"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-              </svg>
-              <span>Crews</span>
-            </button>
-            <div className="results-count-pill">
-              {isLoading
-                ? 'Loading...'
-                : totalResults === 0
-                ? 'No problems found'
-                : `${totalResults} ${totalResults === 1 ? 'result' : 'results'}`}
-            </div>
-          </div>
-        </div>
-
         {/* 5. Problems Grid & Real Backend States */}
 
         {/* STATE A: Loading Skeleton (Rectangular Cards) */}
